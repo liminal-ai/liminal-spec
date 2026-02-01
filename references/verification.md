@@ -1,0 +1,171 @@
+# Verification: The Scrutiny Gradient
+
+**Upstream = more scrutiny. Errors compound downward.**
+
+The feature spec gets the most attention because if it's on track, everything else follows. If it's off, everything downstream is off.
+
+## The Gradient
+
+```
+Feature Spec:  ████████████████████ Every line
+Tech Design:   █████████████░░░░░░░ Detailed review
+Stories:       ████████░░░░░░░░░░░░ Key things + shape
+Prompts:       ██████░░░░░░░░░░░░░░ Shape + intuition  
+Implementation:████░░░░░░░░░░░░░░░░ Spot checks + tests
+```
+
+## Feature Spec Verification (MOST SCRUTINY)
+
+This is the linchpin. Read and verify EVERY LINE.
+
+### Verification Steps
+
+1. **Agent self-review** — Have the BA do a critical review of their own work. Fresh eyes on what they just wrote.
+
+2. **Tech Lead validation** — Fresh context. Tech Lead validates the spec is properly laid out for tech design work:
+   - Can I map every AC to implementation?
+   - Are data contracts complete and realistic?
+   - Are there technical constraints the BA missed?
+   - Do flows make sense from implementation perspective?
+
+3. **Additional model validation** — Another perspective (Senior Engineer, Codex, GPT-5.2):
+   - Different model, different strengths
+   - Adversarial/diverse perspectives catch different issues
+
+4. **Human review (CRITICAL)** — Read and parse EVERY LINE:
+   - Can you explain why each AC matters?
+   - No "AI wrote this and I didn't read it" items
+   - This is the document that matters most
+
+## Tech Design Verification
+
+Still detailed review, but less line-by-line than feature spec.
+
+### What to Check
+
+- Structure matches methodology expectations
+- TC-to-test mapping is complete
+- Interface definitions are clear
+- Phase breakdown makes sense
+- No circular dependencies
+
+### Who Validates
+
+- **Tech Lead self-review** — Critical review of own work
+- **Scrum Master validation** — Can I derive stories from this? Can I generate proper prompts?
+
+## Story and Prompt Verification
+
+Less line-by-line, more shape and intuition.
+
+### What to Check
+
+- Pick out key things to look for
+- Intuitively judge the shape
+- "Looks about right or not"
+- Running test totals are accurate
+
+### Prompt Validation (Multi-Agent)
+
+Before giving prompts to Senior Engineer:
+
+1. **Scrum Master self-review** — Does the prompt have everything needed?
+2. **Senior Engineer preview** — Can a fresh agent understand and execute?
+3. **Different model review** — GPT-5.2 or Codex reviews prompts against summary
+4. **Cross-check with tech design** — Do prompts cover all chunks?
+
+The Senior Engineer validates prompts by executing them. If they can't execute cleanly, the prompt isn't ready.
+
+## Implementation Verification
+
+Spot checks + automated tests.
+
+### What to Check
+
+- Tests pass (full suite)
+- Types check clean
+- Lint passes
+- Spot check implementation against tech design
+- Gorilla testing catches "feels wrong" moments
+
+---
+
+## Multi-Agent Validation Pattern
+
+Lee uses this pattern throughout SDD:
+
+| Artifact | Author Reviews | Consumer Reviews |
+|----------|---------------|------------------|
+| Feature Spec | BA self-review | Tech Lead (needs it for design) |
+| Tech Design | Tech Lead self-review | Scrum Master (needs it for stories) |
+| Prompts | Scrum Master self-review | Senior Engineer + different model |
+
+### Why This Works
+
+1. **Author review** — Catches obvious issues, forces author to re-read
+2. **Consumer review** — Downstream consumer knows what they need from the artifact
+3. **Different model** — Different strengths catch different issues
+4. **Fresh context** — No negotiation baggage, reads artifact cold
+
+### The Key Pattern: Author + Downstream Consumer
+
+If Tech Lead can't build a design from the feature spec → spec isn't ready.
+If Scrum Master can't derive stories from tech design → design isn't ready.
+If Senior Engineer can't execute from prompt → prompt isn't ready.
+
+**The downstream consumer is the ultimate validator.**
+
+---
+
+## Orchestration
+
+**Opus orchestrates validation passes.** Launches subagents for:
+- Self-reviews
+- Downstream consumer validation
+- Different model passes
+
+### Challenge
+
+Hard to prescribe exact orchestration in a skill. 
+
+### Solution
+
+This skill describes:
+- **WHAT to validate** — Which artifacts, which aspects
+- **WHEN to validate** — Checkpoints in the flow
+
+Leaves flexible:
+- **HOW to validate** — Which models, how many passes
+- **Specific orchestration** — Based on your setup and preferences
+
+---
+
+## Checkpoints
+
+### Before Tech Design
+
+- [ ] Feature Spec complete
+- [ ] BA self-review done
+- [ ] Tech Lead validated: can design from this
+- [ ] Human reviewed every line
+
+### Before Stories
+
+- [ ] Tech Design complete
+- [ ] Tech Lead self-review done
+- [ ] Scrum Master validated: can derive stories from this
+- [ ] Human reviewed structure and coverage
+
+### Before Execution
+
+- [ ] Stories and prompts complete
+- [ ] Scrum Master self-review done
+- [ ] Senior Engineer validated: can execute from prompts
+- [ ] Different model reviewed prompts
+
+### Before Ship
+
+- [ ] All tests pass
+- [ ] Gorilla testing complete
+- [ ] Verification checklist passes
+- [ ] Human has seen it work
