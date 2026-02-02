@@ -190,6 +190,207 @@ The anti-pattern tests internal modules in isolation with mocked dependencies. T
 
 ---
 
+## Feedback from Story Sharding Phase (2026-02-01)
+
+Collected during Phase 4 (Scrum Master / Story Sharding) of oc-context-cleaner. These are observations from the first real project built with the skill.
+
+### Validation Process Documentation
+
+**Gap:** The methodology mentions prompt validation (Scrum Master drafts prompts, Senior Engineer previews, different model reviews), but the actual orchestration pattern isn't documented. During oc-context-cleaner, validation happened in parallel via a separate agent—but the skill doesn't describe this.
+
+**Recommendation:** Add explicit documentation of the parallel validation pattern:
+- When validation happens (concurrent with drafting, not sequential)
+- Mechanism (separate agent with fresh context)
+- What's validated (cross-prompt consistency, story-level coherence, spec alignment)
+- How feedback flows back to Orchestrator
+
+**Location:** `references/scrum-master.md` or new `references/prompt-validation.md`
+
+### Story Zero / Infrastructure Story Pattern
+
+**Gap:** Every SDD project starts with a "Story 0" for types, fixtures, error classes. This is implicit but not called out as a named pattern with guidance.
+
+**Recommendation:** Formalize "Story Zero" or "Infrastructure Story" as a standard concept:
+- What it contains (types, error classes, test fixtures, project config)
+- Why it's always first (establishes contracts for all subsequent stories)
+- Template or checklist for common Story 0 deliverables
+- No tests in Story 0 (types only)
+
+**Location:** `references/scrum-master.md` or `references/story-prompts.md`
+
+### Technical Stand-Up Stories / Feature 0
+
+**Gap:** No guidance for projects that need significant architectural scaffolding before any product functionality. Example: a project with Convex backend, Fastify app server, REST endpoints, frontend, MCP endpoints, and MCP widgets. The integration risk dominates—getting all pieces connected matters more than iterating features.
+
+**Experience:** Recent project required "hello world with full auth and all layers connected" before building actual features. This was pair-programmed because no SDD pattern existed.
+
+**Recommendation:** Add "Feature 0" or "Technical Stand-Up" pattern:
+- When to use: greenfield projects with multiple integration points, new stacks, auth flows
+- What it delivers: overbuilt scaffold with all structural pieces and NFRs, zero product functionality
+- Why: adapts architecture before features lock it in, reduces rework
+- Relationship to Story 0: Feature 0 may span multiple stories, Story 0 is one story within a feature
+
+**Note:** This is a significant addition. May require restructuring or a separate reference file.
+
+**Location:** New `references/feature-zero.md` or section in `references/scrum-master.md`
+
+### NFR Handling
+
+**Gap:** The methodology focuses on functional requirements (User Flows → ACs → TCs). Non-functional requirements (performance, security, observability, error handling patterns) aren't addressed.
+
+**Recommendation:** Add NFR guidance:
+- Where NFRs live in artifacts (separate section in Feature Spec? Tech Design?)
+- How NFRs trace to implementation (not through TCs—different mechanism)
+- Common NFR categories for agentic/CLI tools
+
+**Location:** `references/business-analyst.md` and/or `templates/feature-spec.template.md`
+
+### CLI Enhancements
+
+Several items relate to CLI tooling. Add to CLI roadmap (item #5 in Prioritized Improvements):
+
+**Test Count Tracking:**
+- Automated counting of tests per story
+- Running total calculation
+- Validation that TC count matches test count
+
+**Structured Story Manifest:**
+- `stories.yaml` or similar that lists stories, test counts, dependencies
+- Auto-generates README tables
+- Enables validation (all TCs covered, no orphan tests)
+
+**Verification Prompt Generator:**
+- Given `story.md`, generate `prompt-N.R-verify.md`
+- Structure is predictable: test results table, typecheck, specific checks, pass criteria
+- Reduces boilerplate, ensures consistency
+
+**Prompt Template File:**
+- Skeleton prompt structure for Scrum Master to fill in
+- Ensures consistent format across stories
+- `templates/prompt.template.md`
+
+### Prompt Improvements
+
+**Blocked Handling:**
+- Prompts don't specify what the Engineer should do if blocked
+- Add standard line: "If blocked, document the blocker and return to Orchestrator before proceeding"
+
+**Escalation Protocol:**
+- Related to blocked handling
+- When to escalate vs. when to work around
+- Include in every execution prompt
+
+**Location:** Add to `references/story-prompts.md` as standard prompt section
+
+---
+
+## Additions from Story Execution Phase (2026-02-01)
+
+### Added: `references/execution-orchestration.md`
+
+**What it covers:**
+- Dual-validator pattern (Senior Engineer + GPT-5.2 Codex in parallel)
+- Validation → Fix → Execute → Verify pipeline
+- Parallel story processing (validate N+1 while executing N)
+- Session management (when to resume vs fresh)
+- Human decision points where automation breaks down
+- Agent selection guide (which agent/model/sandbox for each task)
+- Anti-patterns and checklist
+
+**Why it was needed:**
+The skill documented WHAT to do in Phase 5 (Skeleton → Red → Green → Gorilla → Verify) but not HOW to coordinate agents through it. During oc-context-cleaner execution, a repeatable orchestration pattern emerged that wasn't captured anywhere.
+
+**Integration:**
+- Referenced from SKILL.md Phase 5 section
+- Added to Progressive Disclosure Phase 5 load list
+- Added to Full Reference List under Process & Patterns
+
+### Recommendations for Refining execution-orchestration.md
+
+**Immediate fixes (before next execution cycle):**
+
+1. **Rename internal phases to avoid collision**
+   - Document uses "Phase 1: Story Validation" etc.
+   - SDD already uses "Phase 1-5" for macro phases
+   - Change to "Step 1" or "Stage 1" or remove numbering
+
+2. **Add session resume syntax**
+   - Codex CLI: `codex exec resume <session-id> "prompt"`
+   - Claude Code Task tool: `resume` parameter with agent ID
+   - Currently says "resume same session" without explaining how
+
+3. **Add orchestrator context management note**
+   - Orchestrator has limited context budget
+   - When to launch subagents vs work directly
+   - When to clone/compress context
+   - This constraint affects the whole pipeline
+
+**Short-term improvements:**
+
+4. **Add worked example**
+   - Concrete example from today: "Story 3 validation found X, fixed Y, meanwhile Story 2 executing"
+   - Show actual validator output, fix decisions, re-validation
+   - Anonymized but realistic
+
+5. **Document backfill strategy**
+   - When prompts evolve beyond tech-design, update tech-design
+   - Keep artifacts in sync
+   - Mentioned in conversation but not documented
+
+6. **Expand Gorilla testing guidance**
+   - Currently just "human does ad-hoc testing"
+   - Add: "exercise happy path, try invalid inputs, try TC edge cases"
+   - Different for CLI vs web app vs API
+
+7. **Add cost/benefit analysis for dual-validation**
+   - Two validators per story is expensive (tokens, time, attention)
+   - When to use both vs skip one
+   - Probably: always for complex stories, maybe skip for trivial Story 0
+
+**Deeper improvements (after more usage):**
+
+8. **Explain WHY dual-validator works**
+   - SE has builder empathy (understands shortcuts, pragmatic tradeoffs)
+   - GPT-5.2 reads specs literally without context of intent
+   - Complementarity is the insight, not just "two > one"
+
+9. **Add failure mode recovery**
+   - What if validator is wrong and you implement wrong fix?
+   - What if fix cycle exceeds 3 iterations?
+   - What if Story N-1 fails verification after Story N is executing?
+
+10. **Abstract away Codex CLI specifics**
+    - Currently hardcodes `codex exec -m gpt-5.2-codex -c model_reasoning_effort=high`
+    - Will be wrong when tooling changes
+    - Separate "pedantic verifier with high reasoning" from access method
+
+11. **Add metrics/signals section**
+    - How do you know the process is working?
+    - Validation catching issues that would have blocked execution
+    - Verification catching issues that would have shipped bugs
+    - Currently no way to improve systematically
+
+### Self-Assessment of execution-orchestration.md
+
+**Strengths:**
+- Captures actual workflow from practice, not theory
+- Clear structure with actionable guidance (validator template, agent table, checklist)
+- Human Decision Points section explicitly names where automation breaks down
+- Anti-Patterns section names what NOT to do
+
+**Weaknesses:**
+- Missing the "why" for dual-validator (complementary cognitive models)
+- Too tied to current Codex CLI syntax
+- Phase numbering collision with SDD macro phases
+- No worked example
+- Gorilla testing under-specified
+- Assumes orchestrator has unlimited context
+
+**Overall:**
+Good enough to use, not good enough to hand off without explanation. Captures WHAT we do but not enough of WHY or WHEN TO DEVIATE. Needs iteration after more execution cycles.
+
+---
+
 ## Next Steps
 
 1. Build oc-context-cleaner using SDD (tests the skill)

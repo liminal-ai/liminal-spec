@@ -116,6 +116,8 @@ Execute stories using the Story Execution Cycle. The same Orchestrator from Phas
 
 The Engineer doesn't orchestrate or document — they receive a self-contained prompt and execute it. The Orchestrator handles coordination, verification, and iteration.
 
+**Execution pipeline:** Stories flow through validation → fix → execute → verify. Multiple stories can be in flight: while Story N executes, Story N+1 validates. This parallelism maximizes throughput.
+
 **Model guidance:**
 - **Implementation:** Claude Code senior-engineer subagent is the typical choice. Fallback: Opus 4.5 with TDD/service-mocks/contract-first context.
 - **Finicky implementation or difficult debugging:** GPT 5.2 or GPT 5.2 Codex (via Codex CLI or Copilot) for detailed, disciplined execution.
@@ -123,6 +125,7 @@ The Engineer doesn't orchestrate or document — they receive a self-contained p
 
 → Reference: `references/senior-engineer.md`
 → Reference: `references/phase-execution.md`
+→ Reference: `references/execution-orchestration.md` — Agent coordination, dual-validator pattern, parallel pipeline
 → Reference: `references/prompting-gpt-5.2.md` — Verification and detailed implementation
 
 ---
@@ -190,6 +193,10 @@ Each artifact gets validated by its downstream consumer — the agent who needs 
 | Prompts | Orchestrator | Engineer + different model | Needs to execute |
 
 **Different models catch different issues.** Use adversarial/diverse perspectives: Opus for gestalt, GPT-5.2 for pedantic detail.
+
+**Dual-validator pattern:** For story/prompt validation, launch both Senior Engineer (Claude) and GPT-5.2 Codex in parallel. Consolidate findings, fix blockers, then re-validate with the same validator session.
+
+→ Details: `references/execution-orchestration.md`
 
 ### Verification Checkpoints
 
@@ -271,6 +278,7 @@ After TDD Green, before formal verification. Unstructured, interactive, catches 
 **Gorilla testing legitimizes ad hoc work within the structured process.** TDD ensures correctness against spec. Gorilla catches what specs miss.
 
 → Details: `references/phase-execution.md`
+→ Orchestration: `references/execution-orchestration.md` — How to coordinate agents through the cycle
 
 ---
 
@@ -336,7 +344,8 @@ Before writing the next section:
 ### Phase 5: Execution
 1. `references/senior-engineer.md`
 2. `references/phase-execution.md`
-3. `references/prompting-gpt-5.2.md` (for verification)
+3. `references/execution-orchestration.md` (agent coordination, dual-validator, pipeline)
+4. `references/prompting-gpt-5.2.md` (for verification)
 
 ### Understanding the Why
 1. `references/context-economics.md`
@@ -358,6 +367,7 @@ Before writing the next section:
 
 **Process & Patterns:**
 - `references/phase-execution.md` — Story execution cycle details
+- `references/execution-orchestration.md` — Agent coordination, dual-validator, parallel pipeline
 - `references/verification.md` — Multi-agent validation patterns
 - `references/testing.md` — Mock strategies, test patterns
 - `references/story-prompts.md` — Writing self-contained prompts
