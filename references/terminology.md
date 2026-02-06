@@ -10,17 +10,17 @@
 | **Artifact** | A document that captures decisions and serves as handoff between agents. |
 | **Verification Gradient** | Upstream artifacts get more scrutiny. Feature spec most, implementation least. |
 
-## Agents
+## Phases (as Context Roles)
 
 | Term | Definition |
 |------|------------|
 | **Agent** | A fresh context session that receives artifacts and produces artifacts. Means context isolation, not roleplay personas. |
-| **PO (Product Owner)** | Optional agent. Product Brief → PRD. Often skipped. |
-| **BA (Business Analyst)** | Creates Feature Spec from requirements. The linchpin — most scrutiny here. |
-| **Tech Lead** | Creates Tech Design from Feature Spec. Validates spec as downstream consumer. |
-| **Scrum Master** | Creates Stories and Prompts from Tech Design. Orchestrates but doesn't implement. |
-| **Senior Engineer** | Executes implementation from prompt packs. Zero prior context. |
-| **Verifier** | Validates artifacts and implementation. Different model for rigor (pedantic is the point). |
+| **Product Research** | Optional phase. Product Brief → PRD. Often skipped. |
+| **Feature Specification** | Creates Feature Spec from requirements. The linchpin — most scrutiny here. |
+| **Tech Design** | Creates Tech Design from Feature Spec. Validates spec as downstream consumer. |
+| **Story Sharding / Orchestration** | Creates Stories and Prompts from Tech Design. Orchestrates but doesn't implement. |
+| **Implementation** | Executes implementation from prompt packs. Zero prior context. |
+| **Verification** | Validates artifacts and implementation. Different model for rigor (pedantic is the point). |
 
 ## Artifacts
 

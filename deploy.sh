@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TARGET="${1:-$HOME/.claude/skills/sdd}"
+TARGET="${1:-$HOME/.claude/skills/liminal-spec}"
 
 # Files/dirs to exclude from deployment (dev artifacts)
 EXCLUDES=(
@@ -23,4 +23,4 @@ mkdir -p "$TARGET"
 rsync -av --delete $EXCLUDE_ARGS "$SCRIPT_DIR/" "$TARGET/"
 
 echo ""
-echo "Deployed SDD skill to: $TARGET"
+echo "Deployed liminal-spec skill to: $TARGET"

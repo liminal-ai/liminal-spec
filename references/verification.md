@@ -20,15 +20,15 @@ This is the linchpin. Read and verify EVERY LINE.
 
 ### Verification Steps
 
-1. **Agent self-review** — Have the BA do a critical review of their own work. Fresh eyes on what they just wrote.
+1. **BA self-review** — Critical review of own work. Fresh eyes on what was just written.
 
-2. **Tech Lead validation** — Fresh context. Tech Lead validates the spec is properly laid out for tech design work:
+2. **Tech Lead validation** — Fresh context. The Tech Lead validates the spec is properly laid out for tech design work:
    - Can I map every AC to implementation?
    - Are data contracts complete and realistic?
    - Are there technical constraints the BA missed?
    - Do flows make sense from implementation perspective?
 
-3. **Additional model validation** — Another perspective (Senior Engineer, Codex, GPT-5.2):
+3. **Additional model validation** — Another perspective (different model, different strengths):
    - Different model, different strengths
    - Adversarial/diverse perspectives catch different issues
 
@@ -52,7 +52,7 @@ Still detailed review, but less line-by-line than feature spec.
 ### Who Validates
 
 - **Tech Lead self-review** — Critical review of own work
-- **Scrum Master validation** — Can I derive stories from this? Can I generate proper prompts?
+- **Orchestrator validation** — Can I derive stories from this? Can I generate proper prompts?
 
 ## Story and Prompt Verification
 
@@ -67,11 +67,11 @@ Less line-by-line, more shape and intuition.
 
 ### Prompt Validation (Multi-Agent)
 
-Before giving prompts to Senior Engineer:
+Before giving prompts to the Senior Engineer:
 
-1. **Scrum Master self-review** — Does the prompt have everything needed?
+1. **Orchestrator self-review** — Does the prompt have everything needed?
 2. **Senior Engineer preview** — Can a fresh agent understand and execute?
-3. **Different model review** — GPT-5.2 or Codex reviews prompts against summary
+3. **Different model review** — Different model reviews prompts against summary
 4. **Cross-check with tech design** — Do prompts cover all chunks?
 
 The Senior Engineer validates prompts by executing them. If they can't execute cleanly, the prompt isn't ready.
@@ -92,13 +92,13 @@ Spot checks + automated tests.
 
 ## Multi-Agent Validation Pattern
 
-Lee uses this pattern throughout SDD:
+SDD uses this pattern throughout:
 
 | Artifact | Author Reviews | Consumer Reviews |
 |----------|---------------|------------------|
 | Feature Spec | BA self-review | Tech Lead (needs it for design) |
-| Tech Design | Tech Lead self-review | Scrum Master (needs it for stories) |
-| Prompts | Scrum Master self-review | Senior Engineer + different model |
+| Tech Design | Tech Lead self-review | Orchestrator (needs it for stories) |
+| Prompts | Orchestrator self-review | Senior Engineer + different model |
 
 ### Why This Works
 
@@ -109,9 +109,9 @@ Lee uses this pattern throughout SDD:
 
 ### The Key Pattern: Author + Downstream Consumer
 
-If Tech Lead can't build a design from the feature spec → spec isn't ready.
-If Scrum Master can't derive stories from tech design → design isn't ready.
-If Senior Engineer can't execute from prompt → prompt isn't ready.
+If the Tech Lead can't build a design from the feature spec → spec isn't ready.
+If the Orchestrator can't derive stories from tech design → design isn't ready.
+If the Senior Engineer can't execute from prompt → prompt isn't ready.
 
 **The downstream consumer is the ultimate validator.**
 
@@ -153,13 +153,13 @@ Leaves flexible:
 
 - [ ] Tech Design complete
 - [ ] Tech Lead self-review done
-- [ ] Scrum Master validated: can derive stories from this
+- [ ] Orchestrator validated: can derive stories from this
 - [ ] Human reviewed structure and coverage
 
 ### Before Execution
 
 - [ ] Stories and prompts complete
-- [ ] Scrum Master self-review done
+- [ ] Orchestrator self-review done
 - [ ] Senior Engineer validated: can execute from prompts
 - [ ] Different model reviewed prompts
 

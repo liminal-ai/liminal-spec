@@ -1,13 +1,13 @@
-# Product Owner Phase (Optional)
+# Product Research (Optional)
 
 **Purpose:** Transform vision into a Product Requirements Document (PRD) that scopes multiple features.
 
-**This phase is often skipped.** If you already know what feature you need, go straight to the Business Analyst phase. Use the PO phase when you need to:
+**This phase is often skipped.** If you already know what feature you need, go straight to Feature Specification. Use this phase when you need to:
 - Explore product direction before committing to features
 - Document multiple related features in one initiative
 - Create alignment artifacts for stakeholders
 
-## When to Use PO Phase
+## When to Use Product Research
 
 **Use when:**
 - Starting a new product or major initiative
@@ -20,7 +20,7 @@
 - Single feature with clear scope
 - "Just build X" situations
 
-Most SDD work **skips PO entirely** and goes straight to BA with "here's the feature I need."
+Most SDD work **skips this phase entirely** and goes straight to Feature Specification with "here's the feature I need."
 
 ---
 
@@ -70,16 +70,16 @@ How we'll know this worked.
 | Stakeholder alignment | Implementation guidance |
 | Optional | Required for SDD |
 
-The PRD sketches features. The Feature Spec (BA phase) elaborates one feature fully.
+The PRD sketches features. The Feature Spec (Phase 2) elaborates one feature fully.
 
 ---
 
-## Handoff to BA
+## Handoff to Feature Specification
 
 For each feature in the PRD that's ready to build:
 
 1. Extract the feature section
-2. BA expands into full Feature Spec
+2. Expand into full Feature Spec (Phase 2)
 3. PRD becomes reference context, not source of truth
 
 The Feature Spec supersedes the PRD for implementation details. PRD remains useful for "why are we building this" context.

@@ -1,6 +1,6 @@
 # Changelog: v8-reworked vs v2-full
 
-This document tracks what changed from v2-full to v8-reworked based on the brain dump from 2025-01-29.
+This document tracks what changed from v2-full to v8-reworked based on the brain dump from 2026-01-29.
 
 ## Summary of Key Changes
 

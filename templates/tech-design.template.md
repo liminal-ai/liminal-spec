@@ -140,7 +140,9 @@ The module breakdown creates the skeleton that Phase 1 will implement. Each modu
 
 ### Module Architecture
 
-Show the file structure with annotations. Mark what exists vs. what's new. This becomes the implementation checklist for skeleton phase.
+Show the file structure with annotations. Mark what exists vs. what's new. This becomes the implementation checklist for skeleton phase. Adapt the structure to your stack — the principle is the same: group by responsibility, mark mock boundaries, trace to ACs.
+
+**React/UI example:**
 
 ```
 src/
@@ -161,16 +163,33 @@ src/
     └── [feature]Api.ts                 # NEW: API functions (mock boundary)
 ```
 
+**API service / CLI example:**
+
+```
+src/
+├── errors.ts                           # EXISTS: Add NotImplementedError if missing
+├── types/
+│   └── [feature].types.ts              # NEW: Request/response types, domain models
+├── commands/                            # or routes/, handlers/
+│   └── [feature].command.ts            # NEW: Entry point (command handler or route handler)
+├── services/
+│   └── [feature].service.ts            # NEW: Business logic, orchestration
+├── clients/
+│   └── [external].client.ts            # NEW: External API/DB client (mock boundary)
+└── utils/
+    └── [feature].utils.ts              # NEW: Pure transformations (testable without mocks)
+```
+
 ### Module Responsibility Matrix
 
 Define what each module does, what it depends on, and which ACs it serves. This matrix is the rosetta stone connecting functional requirements to code locations. When someone asks "where is AC-15 implemented?"—this table answers.
 
 | Module | Type | Responsibility | Dependencies | ACs Covered |
 |--------|------|----------------|--------------|-------------|
-| `[Feature].tsx` | Page | Orchestrates flow, manages page state | hooks, components | AC-1 to AC-5 |
-| `use[Feature].ts` | Hook | Encapsulates business logic, data fetching | api | AC-6 to AC-10 |
-| `[ComponentName].tsx` | Component | Renders specific UI section | types | AC-11 to AC-15 |
-| `[feature]Api.ts` | API | HTTP calls to XAPI | fetch/axios | (supports above) |
+| `[entrypoint]` | Handler | Entry point, request/response orchestration | services, components | AC-1 to AC-5 |
+| `[service/hook]` | Logic | Business logic, data fetching, state | clients, api | AC-6 to AC-10 |
+| `[component/formatter]` | Output | Renders/formats results | types | AC-11 to AC-15 |
+| `[client/api]` | Boundary | External calls (mock boundary) | network/fs | (supports above) |
 
 Notice how ACs appear here after appearing in the Context section (implicitly) and before appearing in Flow-by-Flow (explicitly). This repetition is intentional—the spiral pattern creates redundant paths through the material.
 
@@ -295,7 +314,7 @@ If you can't draw these connections, the design has gaps. Fill them before proce
 
 Now at the lowest altitude before code. Specific types, method signatures, and implementation contracts. These become copy-paste ready for skeleton phase and serve as the source of truth for what gets built.
 
-This section should feel like the inevitable conclusion of everything above. The types exist because the flows need them. The method signatures fulfill the module responsibilities. The props enable the component interactions shown in diagrams.
+This section should feel like the inevitable conclusion of everything above. The types exist because the flows need them. The method signatures fulfill the module responsibilities. The props/parameters enable the interactions shown in diagrams. Adapt to your stack — the examples below use TypeScript but the pattern (types → service signatures → boundary contracts → entry point signatures) applies to any language.
 
 ### Types
 
@@ -323,9 +342,9 @@ export interface [TypeName]V2 {
 }
 ```
 
-### Hook Interface
+### Service / Hook Interface
 
-Hooks encapsulate business logic and data fetching. Define the return type contract—this is what components program against.
+Services (or hooks in React) encapsulate business logic and data fetching. Define the return type contract—this is what entry points and consumers program against.
 
 ```typescript
 /**
@@ -390,9 +409,9 @@ export const submit[Data] = async (data: [RequestType]): Promise<[ResponseType]>
 };
 ```
 
-### Component Props
+### Entry Point / Component Interface
 
-Props define component contracts. Include callback signatures and document what triggers them.
+Entry points (route handlers, command handlers, component props) define the contract at the top of your call stack. Include parameter types and document what triggers each entry.
 
 ```typescript
 /**
@@ -458,64 +477,63 @@ Component tests. Tests rendering and user interaction. Mock only what's passed v
 
 ## Testing Strategy
 
-> **Reference:** See [UI TDD Test Approach](../ui-tdd-test-approach.md) for full methodology, patterns, and rationale.
+> **Reference:** See `references/testing.md` for full methodology, mock strategy, and test patterns.
 
 ### Test Pyramid for This Feature
 
-The pyramid visualizes where tests live. More tests at the bottom (fast, isolated), fewer at the top (slow, integrated). This feature's pyramid:
+The pyramid visualizes where tests live. More tests at the bottom (fast, isolated), fewer at the top (slow, integrated). Adapt labels to your stack.
 
 ```
          /\
-        /  \  Manual (Launcher)
-       /----\  - Full flow via launcher.html
+        /  \  Manual / Gorilla testing
+       /----\  - Full flow end-to-end
       /      \
-     /--------\  Page ([Feature].test.tsx)
-    /          \  - Entry/exit, routing, orchestration
-   /------------\  Component (individual .test.tsx)
-  /              \  - Props → render, user interactions
- /----------------\  Hook + API (logic, contracts)
-/                  \  - Pure logic, request/response shapes
+     /--------\  Entry point tests (handler, page, command)
+    /          \  - Full request/response or user flow
+   /------------\  Module tests (service, component)
+  /              \  - Business logic with mocked boundaries
+ /----------------\  Pure logic (utils, algorithms)
+/                  \  - No mocks needed, edge case coverage
 ```
 
 ### The Critical Mocking Rule
 
-**Mock at the API function level, never at the hook level.**
+**Mock at the external boundary, never at internal module boundaries.**
 
-This rule preserves the integration between component → hook → React Query → API. Mocking hooks hides wiring bugs. Mocking API functions tests the real integration path.
+This rule preserves integration between your own modules. Mock where your code ends and external systems begin (network, database, filesystem). Mocking internal modules hides wiring bugs between your own components.
 
 ```typescript
-// ✅ CORRECT: Mock the API function
-// Tests real hook behavior with controlled API responses
-jest.mock('@/api/[feature]Api', () => ({
-  getData: jest.fn(() => Promise.resolve(mockData)),
+// ✅ CORRECT: Mock at external boundary
+// (Examples use Vitest syntax; pattern applies to any mock framework)
+vi.mock('@/clients/[external]Client', () => ({
+  getData: vi.fn(() => Promise.resolve(mockData)),
 }));
 
-// ✅ OK: Mock utility hooks for config injection
-// These don't contain business logic worth testing
-jest.mock('@/hooks/useQueryParams', () => ({
-  useQueryParams: jest.fn(),
+// ✅ OK: Mock config/environment injection
+vi.mock('@/config', () => ({
+  getConfig: vi.fn(() => testConfig),
 }));
 
-// ❌ WRONG: Never mock data-fetching hooks
-// This hides bugs in hook implementation and React Query wiring
-jest.mock('@/hooks/use[Feature]');  // Don't do this
+// ❌ WRONG: Never mock your own business logic modules
+// This hides integration bugs between your own code
+vi.mock('@/services/[feature]Service');  // Don't do this
 ```
 
 ### What Gets Mocked
 
-This table appears here (Testing Strategy) after error shapes appeared in External Contracts. The repetition is intentional—someone entering from either section finds what they need.
+This table appears here (Testing Strategy) after error shapes appeared in External Contracts. The repetition is intentional—someone entering from either section finds what they need. Adapt to your stack — the principle is consistent: mock external, exercise internal.
 
-| Layer | Mock? | Strategy | Why |
-|-------|-------|----------|-----|
-| API functions | Yes | `jest.mock('@/api/...')` | Data boundary—control responses |
-| useQueryParams | Yes | `jest.mock('@/hooks/useQueryParams')` | Config injection—no business logic |
-| Data-fetching hooks | **No** | Let them run | Preserve integration |
-| React Query | **No** | Use testing utilities | Preserve cache/state behavior |
-| window.location | Yes | Mock `assign()` | Test redirects without navigation |
+| Layer | Mock? | Why |
+|-------|-------|-----|
+| External API clients / DB | Yes | External boundary — control responses |
+| Filesystem / network / child processes | Yes | External boundary — determinism |
+| Config / environment injection | Yes | No business logic, just setup |
+| Your services / business logic | **No** | That's what you're testing |
+| Framework internals (React Query, Express middleware) | **No** | Preserve real behavior |
 
-### MSW Handlers (Dev Server Only)
+### Dev Server Mocks (UI projects — optional)
 
-MSW provides mocks for the development server and launcher.html manual testing. Jest tests use `jest.mock()` instead—MSW is for humans, mocks are for tests.
+For UI projects, dev server mock handlers (MSW or similar) provide mock responses for manual testing. Test files use `vi.mock()` (or equivalent) instead — dev mocks are for humans, test mocks are for tests. Skip this section for API/CLI projects.
 
 ```typescript
 // src/services/[feature]/handlers.ts (for dev server)
@@ -559,21 +577,18 @@ Each chunk typically goes through all three phases before the next chunk starts.
 
 ### Chunk 0: Infrastructure (Always First)
 
-Creates structural scaffolding. All code compiles. Execution throws `NotImplementedError`. This chunk has no user-visible functionality—it's pure setup.
+Creates shared foundation that all subsequent chunks build on. No user-facing functionality, no stubs, no TDD cycle — pure setup. Component/hook/API stubs come in Chunk 1+ skeleton phases.
 
 | Deliverable | Path | What It Contains |
 |-------------|------|------------------|
 | Error class | `src/errors.ts` | `NotImplementedError` if not present |
 | Types | `src/types/[Feature].ts` | All interfaces from Low Altitude section |
-| Page stub | `src/pages/[feature]/[Feature].tsx` | Component that throws |
-| Hook stub | `src/hooks/use[Feature].ts` | Hook that throws |
-| API stubs | `src/api/[feature]Api.ts` | Functions that throw |
-| Component stubs | `src/components/[Name]/[Name].tsx` | Components that throw |
-| Styles | `*.module.scss` | Empty or minimal styles |
-| Route | `src/index.tsx` | Route registered |
-| MSW handlers | `src/services/.../handlers.ts` | Basic mock responses for dev server |
+| Test fixtures | `src/test/fixtures/[feature].ts` | Mock data matching data contracts |
+| Test utilities | `src/test/utils/[feature].ts` | Shared test helpers, factory functions |
+| Error classes | `src/errors/[feature].ts` | Feature-specific errors from tech design |
+| Project config | — | Test config, path aliases, setup files if needed |
 
-**Exit Criteria:** `npm run typecheck` passes. Navigating to route shows error (stub throws). No tests yet.
+**Exit Criteria:** `npm run typecheck` passes. No tests yet (types and fixtures don't need TDD).
 
 ### Chunk 1: [First Capability Name]
 
@@ -687,7 +702,7 @@ Items identified during design that are out of scope. Document them so they're n
 
 ## Related Documentation
 
-- Feature Spec: `01-[feature].feature.md`
-- Phase Prompts: `phases/`
-- Test Approach: `ui-tdd-test-approach.md`
-- Methodology: `meta-spec-design.md`
+- Feature Spec: `[feature-spec filename]`
+- Story Prompts: `stories/`
+- Testing Reference: `references/testing.md`
+- Methodology: `SKILL.md`

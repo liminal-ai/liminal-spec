@@ -93,6 +93,12 @@ Product summary
 - Use exact type names from tech design
 - Use exact data-testid values specified
 
+## If Blocked or Uncertain
+- If you encounter inconsistencies between the prompt, tech design, or feature spec — **stop and ask** before proceeding
+- If something doesn't line up (signatures don't match, test counts conflict, a dependency is missing) — surface it rather than silently resolving it
+- If you are blocked (missing file, failing prerequisite, unclear requirement) — document what you attempted, what's not working, and what you think the resolution is, then return to the orchestrator
+- Do NOT work around ambiguity or inconsistencies without approval
+
 ## Verification
 When complete:
 1. Run: `npm test -- --testPathPattern="FeaturePage"`

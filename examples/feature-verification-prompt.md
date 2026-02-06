@@ -10,14 +10,13 @@ Use this prompt template to have an agent critically review a Feature Specificat
 
 You are reviewing a Feature Specification for [brief description]. This is Phase 2 (Feature Specification) of an SDD pipeline.
 
-**Step 1: Load SDD Skill Context**
+**Step 1: Load liminal-spec Skill Context**
 
 Read these files to understand the methodology and evaluation criteria:
 
-1. **Core methodology:** `~/.claude/skills/sdd/SKILL.md`
-2. **BA phase guidance:** `~/.claude/skills/sdd/references/business-analyst.md`
-3. **Writing style:** `~/.claude/skills/sdd/references/writing-style.md`
-4. **Feature spec template:** `~/.claude/skills/sdd/templates/feature-spec.template.md`
+1. **Core methodology:** `~/.claude/skills/liminal-spec/SKILL.md`
+2. **Feature spec guidance:** `~/.claude/skills/liminal-spec/references/feature-specification.md`
+3. **Writing style:** `~/.claude/skills/liminal-spec/references/writing-style.md`
 
 **Step 2: Review These Files**
 
@@ -104,4 +103,4 @@ Be thorough and critical. The goal is to catch issues before they compound downs
 - Run this with a verification-oriented model (GPT 5.2 recommended for pedantic detail)
 - Can also run with multiple agents in parallel for diverse perspectives
 - Compare results across reviewers to find consensus issues vs edge cases
-- The BA should address Critical and Major issues before Tech Design handoff
+- Critical and Major issues should be addressed before Tech Design handoff

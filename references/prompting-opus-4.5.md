@@ -195,14 +195,14 @@ The formatting in your prompt influences response style. If you want less markdo
 
 ## For SDD Prompt Writing
 
-When Opus 4.5 drafts prompts for execution (Senior Engineer, verification):
+When Opus 4.5 drafts prompts for execution (implementation, verification):
 
 1. **Specify the target model** — "This prompt will be executed by GPT 5.2 Codex"
 2. **Include model-specific guidance** — Reference the appropriate prompting guide
 3. **Be explicit about constraints** — Service mocks, contract-first, TDD expectations
 4. **Include verification criteria** — Clear pass/fail, test counts, type checks
 
-Example prompt preamble for Senior Engineer execution:
+Example prompt preamble for implementation execution:
 ```markdown
 ## Model Context
 This prompt targets Claude Code or a fresh Opus 4.5 context.

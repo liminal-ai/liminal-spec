@@ -98,8 +98,8 @@ When an agent session ends (compaction, crash, human break), state files enable 
 
 ```
 .sdd/state.json        # Project state
-.sdd/ba-state.md       # BA agent session state
-.sdd/tl-state.md       # Tech Lead session state
+.sdd/feature-spec-state.md   # Feature spec session state
+.sdd/tech-design-state.md    # Tech design session state
 ```
 
 The next agent (or resumed agent) reads state, loads relevant artifacts, continues.
@@ -108,7 +108,7 @@ The next agent (or resumed agent) reads state, loads relevant artifacts, continu
 
 ### Long Session with Checkpoints
 
-For planning phases (BA, Tech Lead), use checkpoints:
+For planning phases (Feature Spec, Tech Design), use checkpoints:
 
 ```
 Start Session

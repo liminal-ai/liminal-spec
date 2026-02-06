@@ -1,8 +1,8 @@
-# Tech Lead Phase
+# Tech Design
 
 **Purpose:** Transform Feature Spec into Tech Design with architecture, interfaces, and test mapping.
 
-**You are the downstream consumer of the Feature Spec.** If you can't design from it, the spec isn't ready. Your validation is part of the quality gate.
+**This phase is the downstream consumer of the Feature Spec.** If you can't design from it, the spec isn't ready. Validation is part of the quality gate.
 
 ## Dual Role: Designer and Validator
 
@@ -218,7 +218,7 @@ The test plan must explicitly map every TC from the Feature Spec to a test. This
 
 ## Work Plan: Chunking for Stories
 
-Break work into manageable pieces. Each chunk becomes a story or set of stories.
+Break work into manageable pieces. Each chunk becomes a story or set of stories. The chunk is the Tech Lead's unit of decomposition; the Orchestrator maps chunks to stories during story sharding (usually 1:1, sometimes a chunk splits into multiple stories or merges with another).
 
 ### Chunks vs. Phases
 
@@ -292,7 +292,7 @@ Chunk 0 → Chunk 1 → Chunk 2
 - Is the spiral pattern present?
 - Are there redundant connections or just thin threads?
 
-**The Scrum Master validates by confirming they can derive stories from your design.** If they can't, the design isn't ready.
+**The Scrum Master validates by confirming they can derive stories from the design.** If they can't, the design isn't ready.
 
 ---
 

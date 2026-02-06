@@ -361,6 +361,58 @@ Plan for more gorilla testing. Plan for iterative polish. The GORILLA phase exis
 
 ---
 
+## CLI Testing
+
+For CLI tools, the entry point is the command handler. The same service mock principle applies: test at the entry point, exercise internal modules through it, mock only at external boundaries (filesystem, network, child processes).
+
+### The Principle Applied to CLI
+
+```
+CLI Code
+┌─────────────────────────────────────────────────────┐
+│  Command handler (yargs, commander, etc.)           │ ← Test here
+│         ↓                                           │
+│  Internal orchestration (executors, managers)        │ ← Exercised, not mocked
+│         ↓                                           │
+│  Pure algorithms (parsing, transforming)             │ ← Can test directly (no mocks needed)
+│         ↓                                           │
+│  Filesystem / network / child processes             │ ← Mock here
+└─────────────────────────────────────────────────────┘
+```
+
+| Layer | Mock? | Why |
+|-------|-------|-----|
+| Command handler | Test here | Entry point |
+| Internal orchestration (executors, managers) | Don't mock | Exercise through command |
+| Pure algorithms (no IO) | Can test directly | No mocking needed, supplemental coverage |
+| Filesystem / network / child processes | Mock | External boundary |
+
+### Correct Structure
+
+```
+tests/
+├── commands/              # Entry point tests (primary coverage)
+│   ├── edit-command.test.ts    # Full edit flow, mocks filesystem
+│   ├── clone-command.test.ts   # Full clone flow, mocks filesystem
+│   └── list-command.test.ts    # Full list flow, mocks filesystem
+└── algorithms/            # Pure function tests (supplemental)
+    └── tool-call-remover.test.ts  # No mocks, edge case coverage
+```
+
+### Anti-Pattern
+
+```
+tests/
+├── edit-operation-executor.test.ts  # ❌ Internal module with mocked fs
+├── backup-manager.test.ts           # ❌ Internal module with mocked fs
+├── tool-call-remover.test.ts        # ✓ Pure algorithm, ok
+└── edit-command.test.ts             # ✓ Entry point, ok
+```
+
+The anti-pattern tests internal modules in isolation with mocked dependencies. This hides integration bugs between your own components — exactly what service mocks avoid. An agent seeing API and UI examples ("test the route handler," "test the component") will pattern-match to "test the executor, test the manager" unless given explicit CLI guidance.
+
+---
+
 ## Convex Testing
 
 Convex functions are serverless handlers. Same service mock principle — mock external boundaries, test the function directly:

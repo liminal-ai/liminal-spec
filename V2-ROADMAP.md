@@ -18,7 +18,7 @@ Improvements in order of priority, informed by critical review (2026-01-31).
 - Handling engineer output that doesn't meet spec
 - Partial completion / resumption after compression
 
-**Location:** SKILL.md section or `references/orchestration-playbook.md`
+**Location:** SKILL.md (keep orchestration guidance centralized; avoid a separate playbook doc)
 
 ### 2. Tutorial
 **Gap:** Current docs are execution-oriented, not learning-oriented. Newcomers need conceptual onboarding.
@@ -53,15 +53,15 @@ need far more detail; some will need less.
 
 **Minimal fix:** Add note to SKILL.md acknowledging the bias.
 
-### 5. CLI (`sdd-skill`)
+### 5. CLI (`liminal-spec`)
 **Gap:** Installation is manual file copying. No structured onboarding or utilities.
 **Deliverable:** npm package with:
 ```bash
-npm install -g sdd-skill
-sdd-skill init        # Deploy skill files to .claude/skills/sdd/
-sdd-skill quickstart  # Interactive: Tutorial / Test Drive / Jump In / Reference
-sdd-skill tutorial    # Conceptual walkthrough
-sdd-skill status      # Where am I in the pipeline?
+npm install -g liminal-spec
+liminal-spec init        # Deploy skill files to .claude/skills/liminal-spec/
+liminal-spec quickstart  # Interactive: Tutorial / Test Drive / Jump In / Reference
+liminal-spec tutorial    # Conceptual walkthrough
+liminal-spec status      # Where am I in the pipeline?
 ```
 
 **Test Drive:** Scaffolds a practice feature for low-stakes pipeline learning.

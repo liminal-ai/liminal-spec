@@ -1,6 +1,6 @@
 # Execution Orchestration
 
-How to coordinate agents during Phase 5 (Execution) after stories and prompts are drafted.
+Detailed patterns for coordinating agents during Phase 5 (Execution). SKILL.md defines the pipeline flow (validate → fix → execute → verify); this reference covers the operational details: dual-validator pattern, agent selection, session management, and parallel pipeline mechanics.
 
 ## The Pipeline
 
@@ -16,16 +16,18 @@ While one story executes, the next story validates. This maximizes throughput wh
 
 ---
 
-## Phase 1: Story Validation
+## Story Validation
 
 Before executing a story, validate its prompts are ready.
 
 ### Dual-Validator Pattern
 
-Launch two validators in parallel with the same instructions:
+Launch two validators in parallel with the same instructions but different cognitive profiles:
 
-1. **Senior Engineer** (Claude) — Builder mindset, catches structural issues
-2. **GPT-5.2 Codex** (high reasoning) — Pedantic, catches spec drift and edge cases
+1. **Builder validator** — Holistic, understands implementation intent, catches structural issues
+2. **Pedantic validator** — Literal spec reader with high reasoning, catches spec drift and edge cases
+
+Use different models for complementary coverage. See `references/prompting-opus-4.5.md` and `references/prompting-gpt-5.2.md` for model-specific guidance.
 
 Both read:
 - The story (`story.md`)
@@ -69,8 +71,8 @@ You are validating Story N for execution readiness.
 
 | Validator | Strengths | Typically Catches |
 |-----------|-----------|-------------------|
-| Senior Engineer | Holistic, understands builder intent | Missing dependencies, structural gaps |
-| GPT-5.2 Codex | Pedantic, literal spec reading | Signature mismatches, test count errors, edge cases |
+| Builder validator | Holistic, understands implementation intent | Missing dependencies, structural gaps |
+| Pedantic validator | Literal spec reading, disciplined | Signature mismatches, test count errors, edge cases |
 
 Using both increases coverage. They find different issues.
 
@@ -89,7 +91,7 @@ After both validators return:
 
 ---
 
-## Phase 2: Fix Cycle
+## Fix Cycle
 
 When validation fails, iterate until it passes.
 
@@ -126,7 +128,7 @@ This prevents blind trust in either direction.
 
 ---
 
-## Phase 3: Story Execution
+## Story Execution
 
 Once validation passes, execute the story.
 
@@ -165,13 +167,13 @@ Between Green and Verify, human does ad-hoc testing:
 
 ---
 
-## Phase 4: Formal Verification
+## Formal Verification
 
 After implementation, run the verify prompt.
 
 ### Verification Pattern
 
-Launch GPT-5.2 Codex with `workspace-write` sandbox:
+Launch a pedantic verifier model with write access (needs to run tests). See `references/prompting-gpt-5.2.md` for specific model and CLI syntax.
 
 ```
 Execute the verification prompt for Story N.
@@ -203,15 +205,17 @@ If verification fails:
 
 ## Agent Selection Guide
 
-| Task | Agent Type | Model | Sandbox | Notes |
-|------|------------|-------|---------|-------|
-| Validate story | Senior Engineer | Opus | — | Builder perspective |
-| Validate story | Codex CLI | GPT-5.2-codex high | read-only | Pedantic perspective |
-| Fix issues | Senior Engineer | Opus | — | Same or fresh session |
-| Re-validate | Codex CLI | GPT-5.2-codex high | read-only | **Same session** |
-| Implement | Senior Engineer | Opus | — | Fresh session |
-| Self-review | Senior Engineer | Opus | — | **Same session** |
-| Verify | Codex CLI | GPT-5.2-codex high | workspace-write | Needs to run tests |
+| Task | Intent | Access | Session | Notes |
+|------|--------|--------|---------|-------|
+| Validate story | Builder perspective | Read-only | Fresh | Holistic, catches structural issues |
+| Validate story | Pedantic perspective | Read-only | Fresh | Literal spec reading, catches details |
+| Fix issues | Implementation | Write | Same or fresh | Fix what validators found |
+| Re-validate | Pedantic re-check | Read-only | **Same session** | Validator has context of original issues |
+| Implement | Implementation | Write | Fresh | Execute prompt pack |
+| Self-review | Builder review | Read-only | **Same session** | Senior Engineer reviews own work |
+| Verify | Pedantic verification | Write (runs tests) | Fresh | Formal TC-by-TC check |
+
+For specific model and CLI syntax for each task, see `references/prompting-opus-4.5.md` (orchestration, implementation) and `references/prompting-gpt-5.2.md` (pedantic verification).
 
 ### Session Management
 
@@ -341,8 +345,8 @@ Problems:
 ## Story N Execution Checklist
 
 ### Validation
-- [ ] Senior Engineer validated
-- [ ] GPT-5.2 Codex validated
+- [ ] Builder validator validated
+- [ ] Pedantic validator validated
 - [ ] Findings consolidated
 - [ ] Blockers fixed
 - [ ] Re-validation passed

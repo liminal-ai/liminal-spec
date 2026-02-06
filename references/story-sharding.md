@@ -1,4 +1,4 @@
-# Scrum Master Phase
+# Story Sharding & Orchestration
 
 **Purpose:** Parse feature into stories and generate prompt packs for execution.
 
@@ -24,6 +24,51 @@ Once validated, produce:
 
 ---
 
+## Story 0: Infrastructure Story
+
+Every SDD feature starts with Story 0. It establishes the shared foundation that all subsequent stories build on. Story 0 has no user-facing functionality and no TDD cycle — it's pure setup.
+
+### What Story 0 Contains
+
+- **`NotImplementedError` class** — Custom error for stubs (if not already in the codebase)
+- **Type definitions** — All interfaces from the tech design's Low Altitude section
+- **Test fixtures** — Mock data matching the data contracts in the feature spec
+- **Test utilities** — Shared helpers for test setup (factory functions, mock builders)
+- **Error classes** — Feature-specific errors defined in the tech design
+- **Project config** — Any test config, path aliases, or setup files needed
+
+### What Story 0 Does NOT Contain
+
+- No tests (types and fixtures don't need TDD)
+- No implementation logic
+- No component/hook/API stubs (those come in Story 1+ skeleton phase)
+- No user-facing functionality
+
+### Why It's Always First
+
+Story 0 establishes the contracts that all subsequent stories depend on. Types defined here become the interfaces that stubs implement, tests assert against, and implementations fulfill. If types change mid-feature, every downstream story is affected — getting them right first reduces rework.
+
+### Story 0 Prompt Structure
+
+Story 0 uses a simplified prompt structure since there's no TDD cycle:
+
+```
+story-0-infrastructure/
+├── story.md
+├── prompt-0.1-setup.md      # Creates all infrastructure
+└── prompt-0.R-verify.md     # Verifies setup complete (typecheck passes)
+```
+
+### Exit Criteria
+
+- [ ] All type definitions from tech design created
+- [ ] Test fixtures match data contracts
+- [ ] `NotImplementedError` class available
+- [ ] TypeScript compiles clean
+- [ ] No tests (none expected)
+
+---
+
 ## Story Derivation
 
 ### From Tech Design Chunks to Stories
@@ -37,14 +82,9 @@ Tech designs include "chunks" — logical groupings of work:
 **Phases:** Skeleton + Red, Green
 ```
 
-Each chunk becomes a story (roughly 1:1).
+Each chunk maps to a story, usually 1:1. Sometimes a large chunk splits into multiple stories (if it has too many TCs for one execution cycle) or small related chunks merge into one story. Use judgment — the goal is stories that are independently executable and verifiable.
 
 ### Story Types
-
-**Story 0: Infrastructure**
-- Types, fixtures, test utilities, error classes
-- No TDD cycle (just setup)
-- Always first
 
 **Story 1-N: Feature Stories**
 - Deliver user-facing functionality
@@ -161,45 +201,11 @@ The prompt pack is self-contained. Reference documents are for human traceabilit
 
 ---
 
-## Prompt Validation (Multi-Agent)
+## Prompt Validation
 
-**Before giving prompts to Senior Engineer, validate them.**
+Before giving prompts to Senior Engineer, validate them. At minimum: self-review for completeness, then have a fresh agent confirm they can execute from the prompt alone.
 
-### Validation Steps
-
-1. **Self-review** — Does the prompt have everything needed? Is it truly self-contained?
-
-2. **Senior Engineer preview** — Can a fresh agent understand and execute? Have an SE agent review the prompt (not execute, just review).
-
-3. **Different model review** — GPT-5.2 or Codex reviews prompts against the story summary. Different models catch different issues.
-
-4. **Cross-check with tech design** — Do prompts cover all chunks? Nothing missing?
-
-### The Validation Pattern
-
-```markdown
-Scrum Master creates prompt
-    ↓
-Self-review: "Is this complete?"
-    ↓
-Spawn: SE Agent reviews prompt → Returns feedback
-    ↓
-Spawn: GPT-5.2 reviews prompt → Returns feedback
-    ↓
-Incorporate feedback, finalize prompt
-    ↓
-Ready for execution
-```
-
-**Adversarial/diverse perspectives** catch different issues. Use multiple models.
-
-### Validation Questions
-
-- Can a fresh agent with no history execute this?
-- Is all code inlined or does it require reading other docs?
-- Are constraints explicit?
-- Is verification concrete (commands + expected output)?
-- Does test count match what tech design specified?
+For the full validation pattern — dual-validator, parallel validation, fix cycles, and consolidation — see `references/execution-orchestration.md`.
 
 ---
 

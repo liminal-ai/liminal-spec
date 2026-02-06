@@ -9,7 +9,7 @@ Location: `.sdd/state.json`
 ```json
 {
   "project": "feature-name",
-  "currentPhase": "tech-lead",
+  "currentPhase": "tech-design",
   "status": "in-progress",
   "artifacts": {
     "functionalSpec": {
@@ -47,10 +47,10 @@ BUILD_COMPLETE → VERIFIED
 
 Each long-context agent maintains session state:
 
-- `.sdd/po-state.md` — Product Owner (if used)
-- `.sdd/ba-state.md` — Business Analyst
-- `.sdd/tl-state.md` — Tech Lead
-- `.sdd/sm-state.md` — Scrum Master
+- `.sdd/product-research-state.md` — Product research (if used)
+- `.sdd/feature-spec-state.md` — Feature specification
+- `.sdd/tech-design-state.md` — Tech design
+- `.sdd/story-sharding-state.md` — Story sharding / orchestration
 
 ### Agent State Structure
 
@@ -114,11 +114,11 @@ If work is interrupted:
 
 | From | To | Artifact |
 |------|-----|----------|
-| Product Owner | Business Analyst | PRD (if used) |
-| Business Analyst | Tech Lead | Feature Spec |
-| Tech Lead | Scrum Master | Tech Design |
-| Scrum Master | Senior Engineer | Story + Prompt Pack |
-| Senior Engineer | Verifier | Implementation + Test Results |
+| Product Research | Feature Specification | PRD (if used) |
+| Feature Specification | Tech Design | Feature Spec |
+| Tech Design | Story Sharding | Tech Design doc |
+| Story Sharding | Implementation | Story + Prompt Pack |
+| Implementation | Verification | Implementation + Test Results |
 
 **Rule:** If it's not in an artifact, it doesn't exist for the next agent.
 

@@ -28,6 +28,36 @@ SDD is a methodology for AI-assisted software development built on three ideas: 
 
 ---
 
+## Quickstart: Your First Feature
+
+Already know what you want to build? Start here.
+
+**1. Write the Feature Spec** (Phase 2 — most projects start here)
+
+Load `references/feature-specification.md` and `references/writing-style.md`. Write a spec covering:
+- **User Profile** — Who, context, mental model, key constraint
+- **Feature Overview** — What they can do after that they can't do now
+- **Scope** — In/out/assumptions
+- **Flows with ACs and TCs** — Each flow groups its acceptance criteria, each AC groups its test conditions (Given/When/Then)
+- **Data Contracts** — Typed shapes for APIs and responses
+- **Recommended Story Breakdown** — Story 0 (infrastructure) + feature stories
+
+Target: ~300 lines. Every AC testable, every AC has at least one TC.
+
+**2. Validate** — Have a fresh agent read the spec and confirm they could design from it without asking questions. If they can't, fix the spec.
+
+**3. Tech Design** (Phase 3) — Load `references/tech-design.md` and `templates/tech-design.template.md`. Transform the spec into architecture, interfaces, and test mapping (~2000 lines).
+
+**4. Story Sharding** (Phase 4) — Load `references/story-sharding.md` and `references/story-prompts.md`. Break into stories, write self-contained prompt packs.
+
+**5. Execute** (Phase 5) — Load `references/implementation.md` and `references/execution-orchestration.md`. Execute prompts in fresh agent contexts: Skeleton → TDD Red → TDD Green → Gorilla → Verify.
+
+Each phase uses a **fresh context** that reads the previous phase's artifact cold. That's the core of SDD — context isolation with artifact handoff.
+
+→ Read the rest of this file for the full methodology. The sections below explain *why* each piece works.
+
+---
+
 ## The Two Dimensions
 
 SDD operates on two dimensions that nest together:
@@ -56,29 +86,28 @@ SDD operates on two dimensions that nest together:
 
 Phases are defined by artifact boundaries — what you need going in, what you produce coming out. Agents attach to phases but don't define them.
 
-| Phase | Entry Artifact | Exit Artifact | Work | Who |
-|-------|---------------|---------------|------|-----|
-| **1. Product Research** | Vision, idea | PRD | Ideation, product brief, PRD | PO / Product |
-| **2. Feature Specification** | PRD or direct need | Feature Spec | Nail down requirements (ACs, TCs, flows) | BA |
-| **3. Tech Design** | Feature Spec | Tech Design doc(s) | Architecture, interfaces, test mapping | Tech Lead |
-| **4. Story Sharding** | Spec + Design | Stories + Prompts | Break into stories, draft execution prompts | Orchestrator |
-| **5. Execution** | Stories + Prompts | Verified code | Execute prompts, verify, iterate | Orchestrator + Engineer |
+| Phase | Entry Artifact | Exit Artifact | Work |
+|-------|---------------|---------------|------|
+| **1. Product Research** | Vision, idea | PRD | Ideation, product brief, PRD |
+| **2. Feature Specification** | PRD or direct need | Feature Spec | Nail down requirements (ACs, TCs, flows) |
+| **3. Tech Design** | Feature Spec | Tech Design doc(s) | Architecture, interfaces, test mapping |
+| **4. Story Sharding** | Spec + Design | Stories + Prompts | Break into stories, draft execution prompts |
+| **5. Execution** | Stories + Prompts | Verified code | Execute prompts, verify, iterate |
 
 ### Phase 1: Product Research & Planning (Optional)
 
 **Often skipped.** If you already know the feature you want, go straight to Phase 2 with "here's what I need." Use Phase 1 when you need to explore product direction or document multiple related features.
 
-→ Reference: `references/product-owner.md`
+→ Reference: `references/product-research.md`
 
 ### Phase 2: Feature Specification
 
 **The linchpin.** This is where requirements become precise. The Feature Spec gets the most scrutiny because errors here cascade everywhere.
 
-The BA produces a complete specification: User Profile, User Flows, Acceptance Criteria (ACs), Test Conditions (TCs), Data Contracts, and Scope Boundaries. Approximately 300 lines that expand to ~2000 lines of tech design.
+The spec author produces a complete specification: User Profile, Feature Overview, User Flows with co-located Acceptance Criteria and Test Conditions, Data Contracts, Scope Boundaries, and a recommended Story Breakdown. Approximately 300 lines that expand to ~2000 lines of tech design.
 
-→ Reference: `references/business-analyst.md`
+→ Reference: `references/feature-specification.md` — Feature spec creation, structure, and template
 → Reference: `references/writing-style.md` — Documentation principles for spec writing
-→ Template: `templates/feature-spec.template.md`
 
 ### Phase 3: Tech Design
 
@@ -87,9 +116,9 @@ Transform the Feature Spec into implementable architecture. May produce one docu
 - Tech Design UI (if UI-heavy)
 - Test Plan (if testing needs depth)
 
-The Tech Lead validates the Feature Spec by confirming they can design from it. If they can't, the spec goes back to BA.
+The Tech Lead validates the Feature Spec by confirming they can design from it. If they can't, the spec goes back for revision.
 
-→ Reference: `references/tech-lead.md`
+→ Reference: `references/tech-design.md`
 → Reference: `references/writing-style.md` — Documentation principles for design writing
 → Reference: `references/testing.md` — Mock strategy, test architecture
 → Template: `templates/tech-design.template.md`
@@ -102,11 +131,11 @@ Break the feature into executable stories. Draft prompts for each story phase.
 - **Story 0:** Infrastructure setup — types, fixtures, error classes, stubs
 - **Feature 0:** Stack standup — auth, connectivity, integrated skeleton with no product functionality (used when building on a new stack)
 
-The Orchestrator (Scrum Master role) runs this phase and continues into Phase 5.
+The Orchestrator runs this phase and continues into Phase 5.
 
 **Model guidance:** Opus 4.5 typically orchestrates and drafts prompts. When writing prompts, specify the target execution model so prompts include appropriate guidance.
 
-→ Reference: `references/scrum-master.md`
+→ Reference: `references/story-sharding.md`
 → Reference: `references/story-prompts.md` — Prompt structure and self-contained prompt writing
 → Reference: `references/prompting-opus-4.5.md` — Orchestration and prompt drafting
 
@@ -114,16 +143,16 @@ The Orchestrator (Scrum Master role) runs this phase and continues into Phase 5.
 
 Execute stories using the Story Execution Cycle. The same Orchestrator from Phase 4 drives this phase, calling on a Senior Engineer (fresh context) to execute each prompt.
 
-The Engineer doesn't orchestrate or document — they receive a self-contained prompt and execute it. The Orchestrator handles coordination, verification, and iteration.
+The Senior Engineer doesn't orchestrate or document — they receive a self-contained prompt and execute it. The Orchestrator handles coordination, verification, and iteration.
 
 **Execution pipeline:** Stories flow through validation → fix → execute → verify. Multiple stories can be in flight: while Story N executes, Story N+1 validates. This parallelism maximizes throughput.
 
 **Model guidance:**
-- **Implementation:** Claude Code senior-engineer subagent is the typical choice. Fallback: Opus 4.5 with TDD/service-mocks/contract-first context.
+- **Implementation:** Claude Code subagent is the typical choice. Fallback: Opus 4.5 with TDD/service-mocks/contract-first context.
 - **Finicky implementation or difficult debugging:** GPT 5.2 or GPT 5.2 Codex (via Codex CLI or Copilot) for detailed, disciplined execution.
 - **Verification/code review:** GPT 5.2 or GPT 5.2 Codex — pedantic, catches what builders miss.
 
-→ Reference: `references/senior-engineer.md`
+→ Reference: `references/implementation.md`
 → Reference: `references/phase-execution.md`
 → Reference: `references/execution-orchestration.md` — Agent coordination, dual-validator pattern, parallel pipeline
 → Reference: `references/prompting-gpt-5.2.md` — Verification and detailed implementation
@@ -153,7 +182,6 @@ Phase N+1 (fresh context)
 - **Debuggable handoffs** — You can read exactly what was passed
 
 → Deep dive: `references/context-economics.md`
-
 ---
 
 ## The Confidence Chain
@@ -190,11 +218,11 @@ Each artifact gets validated by its downstream consumer — the agent who needs 
 |----------|--------|--------------|-------------------|
 | Feature Spec | BA | Tech Lead | Needs it for design |
 | Tech Design | Tech Lead | Orchestrator | Needs it for stories |
-| Prompts | Orchestrator | Engineer + different model | Needs to execute |
+| Prompts | Orchestrator | Senior Engineer + different model | Needs to execute |
 
 **Different models catch different issues.** Use adversarial/diverse perspectives: Opus for gestalt, GPT-5.2 for pedantic detail.
 
-**Dual-validator pattern:** For story/prompt validation, launch both Senior Engineer (Claude) and GPT-5.2 Codex in parallel. Consolidate findings, fix blockers, then re-validate with the same validator session.
+**Dual-validator pattern:** For story/prompt validation, launch two validators with different cognitive profiles in parallel. Consolidate findings, fix blockers, then re-validate with the same validator session.
 
 → Details: `references/execution-orchestration.md`
 
@@ -220,6 +248,14 @@ Before each phase transition, verify readiness:
 
 → Details: `references/verification.md`
 
+### Orchestration (Quick Nav)
+
+- **Phase transition gates:** see `### Verification Checkpoints` above.
+- **Prompt packs (Phase 4):** `references/story-sharding.md` and `references/story-prompts.md`.
+- **Execution pipeline (Phase 5):** Validate → Fix → Execute → Verify. Each story flows through this pipeline; validation can run ahead while the previous story executes.
+- **Per-story cycle / done criteria:** `references/phase-execution.md`.
+- **Agent coordination patterns:** `references/execution-orchestration.md` — dual-validator template, agent selection table, session management, parallel pipeline details, checklist.
+
 ---
 
 ## Model Selection
@@ -241,7 +277,7 @@ Different models excel at different tasks. Use the right model for the job.
 ### Typical Flow
 
 1. **Opus 4.5** orchestrates, shards stories, drafts prompts
-2. **Claude Code senior-engineer** (or Opus with TDD context) executes implementation
+2. **Claude Code subagent** (or Opus with TDD context) executes implementation
 3. **GPT 5.2** verifies artifacts and reviews code
 
 ### Access Methods
@@ -322,31 +358,28 @@ Before writing the next section:
 
 ### Phase 1: Product Research (if used)
 1. This file (overview)
-2. `references/product-owner.md`
+2. `references/product-research.md`
 
 ### Phase 2: Feature Specification
 1. This file (overview)
-2. `references/business-analyst.md`
+2. `references/feature-specification.md`
 3. `references/writing-style.md`
-4. `templates/feature-spec.template.md`
 
 ### Phase 3: Tech Design
-1. `references/tech-lead.md`
+1. `references/tech-design.md`
 2. `references/testing.md`
 3. `references/writing-style.md`
 4. `templates/tech-design.template.md`
 
 ### Phase 4: Story Sharding
-1. `references/scrum-master.md`
+1. `references/story-sharding.md`
 2. `references/story-prompts.md`
 3. `references/prompting-opus-4.5.md` (for drafting prompts)
-
 ### Phase 5: Execution
-1. `references/senior-engineer.md`
+1. `references/implementation.md`
 2. `references/phase-execution.md`
 3. `references/execution-orchestration.md` (agent coordination, dual-validator, pipeline)
 4. `references/prompting-gpt-5.2.md` (for verification)
-
 ### Understanding the Why
 1. `references/context-economics.md`
 2. `references/verification.md`
@@ -359,11 +392,11 @@ Before writing the next section:
 ## Full Reference List
 
 **By Phase:**
-- `references/product-owner.md` — Phase 1: Product Brief → PRD
-- `references/business-analyst.md` — Phase 2: Feature Spec
-- `references/tech-lead.md` — Phase 3: Tech Design
-- `references/scrum-master.md` — Phase 4: Stories + Prompts
-- `references/senior-engineer.md` — Phase 5: Execution
+- `references/product-research.md` — Phase 1: Product Brief → PRD
+- `references/feature-specification.md` — Phase 2: Feature Spec (creation, structure, template)
+- `references/tech-design.md` — Phase 3: Tech Design
+- `references/story-sharding.md` — Phase 4: Stories + Prompts
+- `references/implementation.md` — Phase 5: Execution
 
 **Process & Patterns:**
 - `references/phase-execution.md` — Story execution cycle details
@@ -383,5 +416,4 @@ Before writing the next section:
 - `references/terminology.md` — Glossary
 
 **Templates:**
-- `templates/feature-spec.template.md` — Phase 2 artifact template
 - `templates/tech-design.template.md` — Phase 3 artifact template

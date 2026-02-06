@@ -77,14 +77,6 @@ export const locationApi = {
 - [ ] Stubs throw NotImplementedError
 - [ ] No actual logic implemented
 
-### Review Gate
-
-Tech Lead reviews skeleton before proceeding:
-- Structure matches tech design?
-- Types match interface definitions?
-- Abstractions appropriate?
-- Naming consistent?
-
 ---
 
 ## TDD Red Phase
