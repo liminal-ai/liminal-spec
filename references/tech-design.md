@@ -295,6 +295,8 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 **The Orchestrator validates by confirming they can derive stories from the design.** If they can't, the design isn't ready.
 
+→ Verification prompt: `examples/tech-design-verification-prompt.md` — Ready-to-use prompt for external validation before handoff
+
 ---
 
 ## Output: Tech Design

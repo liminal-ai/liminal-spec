@@ -158,8 +158,12 @@ Leaves flexible:
 
 ### Before Stories
 
-- [ ] Tech Design complete
-- [ ] Tech Lead self-review done
+- [ ] Tech Design complete (all altitudes: system context, modules, interfaces)
+- [ ] Tech Lead self-review done (completeness, richness, writing quality, agent readiness)
+- [ ] Model validation complete (different model for diverse perspective)
+- [ ] All issues addressed (Critical, Major, and Minor)
+- [ ] Validation rounds complete (no substantive changes remaining)
+- [ ] TC → Test mapping complete (every TC from feature spec maps to a test)
 - [ ] Orchestrator validated: can derive stories from this
 - [ ] Human reviewed structure and coverage
 

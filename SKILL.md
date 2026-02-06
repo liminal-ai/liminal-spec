@@ -230,9 +230,14 @@ Before each phase transition, verify readiness:
 - [ ] Human reviewed every line
 
 **Before Story Sharding:**
-- [ ] Tech Design complete
+- [ ] Tech Design complete (all altitudes: system context, modules, interfaces)
+- [ ] Tech Lead self-review done
+- [ ] Model validation complete (different model for diverse perspective)
+- [ ] All issues addressed (Critical, Major, and Minor)
+- [ ] Validation rounds complete (no substantive changes remaining)
 - [ ] TC-to-test mapping complete
 - [ ] Orchestrator validated: "I can derive stories"
+- [ ] Human reviewed structure and coverage
 
 **Before Execution:**
 - [ ] Stories and prompts complete
@@ -364,6 +369,7 @@ Before writing the next section:
 2. `references/testing.md`
 3. `references/writing-style.md`
 4. `templates/tech-design.template.md`
+5. `examples/tech-design-verification-prompt.md` (for design validation before handoff)
 
 ### Phase 4: Story Sharding
 1. `references/story-sharding.md`
@@ -415,3 +421,4 @@ Before writing the next section:
 
 **Examples:**
 - `examples/feature-verification-prompt.md` — Ready-to-use prompt for Phase 2→3 spec validation
+- `examples/tech-design-verification-prompt.md` — Ready-to-use prompt for Phase 3→4 design validation
