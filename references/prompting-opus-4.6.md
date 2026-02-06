@@ -1,10 +1,10 @@
-# Prompting Claude Opus 4.5
+# Prompting Claude Opus 4.6
 
-Opus 4.5 is the primary model for orchestration, story sharding, and prompt drafting in Liminal Spec. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
+Opus 4.6 is the primary model for orchestration, story sharding, and prompt drafting in Liminal Spec. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
 
-## When to Use Opus 4.5
+## When to Use Opus 4.6
 
-| Task | Why Opus 4.5 |
+| Task | Why Opus 4.6 |
 |------|--------------|
 | **Orchestration** | Exceptional at managing complex workflows, delegating to subagents |
 | **Story sharding** | Understands feature scope, breaks work into coherent stories |
@@ -16,7 +16,7 @@ Opus 4.5 is the primary model for orchestration, story sharding, and prompt draf
 
 ### Be Explicit
 
-Opus 4.5 responds well to clear, explicit instructions. If you want "above and beyond" behavior, request it explicitly.
+Opus 4.6 responds well to clear, explicit instructions. If you want "above and beyond" behavior, request it explicitly.
 
 ```
 # Less effective
@@ -44,7 +44,7 @@ pronounce them.
 
 ### Communication Style
 
-Opus 4.5 is more concise and natural than previous models:
+Opus 4.6 is more concise and natural than previous models:
 - **Direct and grounded** — fact-based, not self-congratulatory
 - **More conversational** — less machine-like
 - **Less verbose** — may skip summaries unless prompted
@@ -59,7 +59,7 @@ summary of the work you've done.
 
 ### Tool Usage
 
-Opus 4.5 follows instructions precisely. If you say "suggest changes," it will suggest rather than implement.
+Opus 4.6 follows instructions precisely. If you say "suggest changes," it will suggest rather than implement.
 
 ```
 # Will only suggest
@@ -81,7 +81,7 @@ instead of guessing.
 
 ### Subagent Orchestration
 
-Opus 4.5 naturally recognizes when to delegate to subagents. Ensure:
+Opus 4.6 naturally recognizes when to delegate to subagents. Ensure:
 - Subagent tools are well-defined
 - Let Opus orchestrate naturally (no explicit instruction needed)
 
@@ -93,7 +93,7 @@ a separate agent with a new context window.
 
 ### Parallel Tool Calling
 
-Opus 4.5 excels at parallel execution. For maximum parallelism:
+Opus 4.6 excels at parallel execution. For maximum parallelism:
 ```xml
 <use_parallel_tool_calls>
 If you intend to call multiple tools and there are no dependencies 
@@ -106,7 +106,7 @@ use placeholders or guess missing parameters.
 
 ### Context Awareness
 
-Opus 4.5 tracks its remaining context window. For agent harnesses with compaction:
+Opus 4.6 tracks its remaining context window. For agent harnesses with compaction:
 ```
 Your context window will be automatically compacted as it approaches 
 its limit, allowing you to continue working indefinitely. Do not stop 
@@ -195,9 +195,9 @@ The formatting in your prompt influences response style. If you want less markdo
 
 ## For Liminal Spec Prompt Writing
 
-When Opus 4.5 drafts prompts for execution (implementation, verification):
+When Opus 4.6 drafts prompts for execution (implementation, verification):
 
-1. **Specify the target model** — "This prompt will be executed by GPT 5.2 Codex"
+1. **Specify the target model** — "This prompt will be executed by GPT 5x Codex"
 2. **Include model-specific guidance** — Reference the appropriate prompting guide
 3. **Be explicit about constraints** — Service mocks, contract-first, TDD expectations
 4. **Include verification criteria** — Clear pass/fail, test counts, type checks
@@ -205,7 +205,7 @@ When Opus 4.5 drafts prompts for execution (implementation, verification):
 Example prompt preamble for implementation execution:
 ```markdown
 ## Model Context
-This prompt targets Claude Code or a fresh Opus 4.5 context.
+This prompt targets Claude Code or a fresh Opus 4.6 context.
 Execute with TDD discipline: service mocks at API boundary,
 contract-first development, assert behavior not errors.
 

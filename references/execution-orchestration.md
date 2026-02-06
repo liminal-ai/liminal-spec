@@ -25,9 +25,9 @@ Before executing a story, validate its prompts are ready.
 Launch two validators in parallel with the same instructions but different cognitive profiles:
 
 1. **Builder validator** — Holistic, understands implementation intent, catches structural issues
-2. **Pedantic validator** — Literal spec reader with high reasoning, catches spec drift and edge cases
+2. **Detail validator** — Literal spec reader with high reasoning, catches spec drift and edge cases
 
-Use different models for complementary coverage. See `references/prompting-opus-4.5.md` and `references/prompting-gpt-5.2.md` for model-specific guidance.
+Use different models for complementary coverage. See `references/prompting-opus-4.6.md` and `references/prompting-gpt-5x.md` for model-specific guidance.
 
 Both read:
 - The story (`story.md`)
@@ -72,7 +72,7 @@ You are validating Story N for execution readiness.
 | Validator | Strengths | Typically Catches |
 |-----------|-----------|-------------------|
 | Builder validator | Holistic, understands implementation intent | Missing dependencies, structural gaps |
-| Pedantic validator | Literal spec reading, disciplined | Signature mismatches, test count errors, edge cases |
+| Detail validator | Literal spec reading, disciplined | Signature mismatches, test count errors, edge cases |
 
 Using both increases coverage. They find different issues.
 
@@ -173,7 +173,7 @@ After implementation, run the verify prompt.
 
 ### Verification Pattern
 
-Launch a pedantic verifier model with write access (needs to run tests). See `references/prompting-gpt-5.2.md` for specific model and CLI syntax.
+Launch a verification model with write access (needs to run tests). See `references/prompting-gpt-5x.md` for specific model and CLI syntax.
 
 ```
 Execute the verification prompt for Story N.
@@ -208,14 +208,14 @@ If verification fails:
 | Task | Intent | Access | Session | Notes |
 |------|--------|--------|---------|-------|
 | Validate story | Builder perspective | Read-only | Fresh | Holistic, catches structural issues |
-| Validate story | Pedantic perspective | Read-only | Fresh | Literal spec reading, catches details |
+| Validate story | Detail perspective | Read-only | Fresh | Literal spec reading, catches details |
 | Fix issues | Implementation | Write | Same or fresh | Fix what validators found |
-| Re-validate | Pedantic re-check | Read-only | **Same session** | Validator has context of original issues |
+| Re-validate | Detail re-check | Read-only | **Same session** | Validator has context of original issues |
 | Implement | Implementation | Write | Fresh | Execute prompt pack |
 | Self-review | Builder review | Read-only | **Same session** | Senior Engineer reviews own work |
-| Verify | Pedantic verification | Write (runs tests) | Fresh | Formal TC-by-TC check |
+| Verify | Formal verification | Write (runs tests) | Fresh | Formal TC-by-TC check |
 
-For specific model and CLI syntax for each task, see `references/prompting-opus-4.5.md` (orchestration, implementation) and `references/prompting-gpt-5.2.md` (pedantic verification).
+For specific model and CLI syntax for each task, see `references/prompting-opus-4.6.md` (orchestration, implementation) and `references/prompting-gpt-5x.md` (verification).
 
 ### Session Management
 
@@ -238,7 +238,7 @@ The orchestrator cannot fully automate these decisions:
 ### 1. Blocker Triage
 
 When validators find issues:
-- Is this a real blocker or pedantic?
+- Is this a real blocker or a nitpick?
 - Fix now or defer to polish pass?
 - Does the spec need updating instead?
 

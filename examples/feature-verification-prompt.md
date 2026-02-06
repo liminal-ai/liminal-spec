@@ -24,6 +24,8 @@ Read these files to understand the methodology and evaluation criteria:
 2. **Product Brief (for alignment):** `[path to product-brief.md]`
 3. **Reference Implementation (if applicable):** `[path to similar existing code]`
 
+**Important Boundary:** A detailed Tech Design phase follows Feature Specification. The spec defines *what* the system does, not *how* it's implemented. Technical implementation concerns (architecture, library choices, internal algorithms) are not spec issues. If you identify genuine technical questions that affect feasibility, add them to a "Tech Design Questions" section for the Tech Lead to address — don't flag them as spec blockers.
+
 **Step 3: Evaluation Criteria**
 
 Assess the feature spec against these criteria:
@@ -88,8 +90,8 @@ Provide your review in this structure:
 ### Major (Should fix)
 [Issues that would cause confusion or rework]
 
-### Minor (Nice to fix)
-[Polish items, not blocking]
+### Minor (Fix before handoff)
+[Polish items — address these too, not just blockers]
 
 ## Missing Elements
 [Anything that should be present but isn't]
@@ -103,11 +105,24 @@ Provide your review in this structure:
 
 Be thorough and critical. The goal is to catch issues before they compound downstream.
 
+**Step 5: AC → TC Traceability Table**
+
+As part of your review, produce a traceability table mapping every AC to its TCs:
+
+```
+| AC | TC(s) | Coverage Notes |
+|----|-------|----------------|
+| AC-1.1 | TC-1.1a, TC-1.1b | Happy path + edge case covered |
+| AC-1.2 | TC-1.2a | Missing error path TC |
+```
+
+This table makes gaps immediately visible. If an AC has no TCs, or TCs don't adequately cover the AC, flag it.
+
 ---
 
 ## Usage Notes
 
-- Run this with a verification-oriented model (GPT 5.2 recommended for pedantic detail)
+- Run this with a verification-oriented model (GPT 5x recommended for detail and precision)
 - Can also run with multiple agents in parallel for diverse perspectives
 - Compare results across reviewers to find consensus issues vs edge cases
 - Critical and Major issues should be addressed before Tech Design handoff

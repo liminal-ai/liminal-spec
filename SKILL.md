@@ -7,6 +7,15 @@ description: |
   no "lite" versions.
 ---
 
+<!-- ON LOAD: Present the following to the user exactly when this skill is invoked. -->
+<!-- This is the user-facing greeting. Display it verbatim, then wait for the user to respond. -->
+
+## On Load
+
+When this skill is invoked, present the following to the user and wait for their response:
+
+---
+
 # Liminal Spec
 
 A spec-driven development system for features with detailed requirements and complex integrations. Runs a rigorous, phased approach from specification through implementation — each phase produces an artifact the next phase reads cold. The traceability chain (requirement → test condition → test → code) means when tests go green, you have high confidence the implementation actually matches the spec.
@@ -30,6 +39,10 @@ Most work starts at **Phase 2**. Tell me what you want to build and which phase 
 - Multi-agent builds where context isolation matters
 
 Not for: quick bug fixes, single-file changes, spikes, or emergency patches. Either run the full methodology or use a lighter workflow.
+
+---
+
+<!-- END ON LOAD -->
 
 → For the full methodology and reference material, read on.
 
@@ -110,11 +123,11 @@ Break the feature into executable stories. Draft prompts for each story phase.
 
 The Orchestrator runs this phase and continues into Phase 5.
 
-**Model guidance:** Opus 4.5 typically orchestrates and drafts prompts. When writing prompts, specify the target execution model so prompts include appropriate guidance.
+**Model guidance:** Opus 4.6 typically orchestrates and drafts prompts. When writing prompts, specify the target execution model so prompts include appropriate guidance.
 
 → Reference: `references/story-sharding.md`
 → Reference: `references/story-prompts.md` — Prompt structure and self-contained prompt writing
-→ Reference: `references/prompting-opus-4.5.md` — Orchestration and prompt drafting
+→ Reference: `references/prompting-opus-4.6.md` — Orchestration and prompt drafting
 
 ### Phase 5: Execution
 
@@ -125,14 +138,14 @@ The Senior Engineer doesn't orchestrate or document — they receive a self-cont
 **Execution pipeline:** Stories flow through validation → fix → execute → verify. Multiple stories can be in flight: while Story N executes, Story N+1 validates. This parallelism maximizes throughput.
 
 **Model guidance:**
-- **Implementation:** Claude Code subagent is the typical choice. Fallback: Opus 4.5 with TDD/service-mocks/contract-first context.
-- **Finicky implementation or difficult debugging:** GPT 5.2 or GPT 5.2 Codex (via Codex CLI or Copilot) for detailed, disciplined execution.
-- **Verification/code review:** GPT 5.2 or GPT 5.2 Codex — pedantic, catches what builders miss.
+- **Implementation:** Claude Code subagent is the typical choice. Fallback: Opus 4.6 with TDD/service-mocks/contract-first context.
+- **Finicky implementation or difficult debugging:** GPT 5x or GPT 5x Codex (via Codex CLI or Copilot) for detailed, disciplined execution.
+- **Verification/code review:** GPT 5x or GPT 5x Codex — catches what builders miss.
 
 → Reference: `references/implementation.md`
 → Reference: `references/phase-execution.md`
 → Reference: `references/execution-orchestration.md` — Agent coordination, dual-validator pattern, parallel pipeline
-→ Reference: `references/prompting-gpt-5.2.md` — Verification and detailed implementation
+→ Reference: `references/prompting-gpt-5x.md` — Verification and detailed implementation
 
 ---
 
@@ -197,7 +210,7 @@ Each artifact gets validated by its downstream consumer — the agent who needs 
 | Tech Design | Tech Lead | Orchestrator | Needs it for stories |
 | Prompts | Orchestrator | Senior Engineer + different model | Needs to execute |
 
-**Different models catch different issues.** Use adversarial/diverse perspectives: Opus for gestalt, GPT-5.2 for pedantic detail.
+**Different models catch different issues.** Use adversarial/diverse perspectives: Opus for gestalt, GPT 5x for detail and precision. When validators disagree on data contract completeness, defer to GPT 5x — it has consistently been more accurate on contract specifics.
 
 **Dual-validator pattern:** For story/prompt validation, launch two validators with different cognitive profiles in parallel. Consolidate findings, fix blockers, then re-validate with the same validator session.
 
@@ -210,6 +223,9 @@ Before each phase transition, verify readiness:
 **Before Tech Design:**
 - [ ] Feature Spec complete (all ACs have TCs)
 - [ ] BA self-review done
+- [ ] Model validation complete (different model for diverse perspective)
+- [ ] All issues addressed (Critical, Major, and Minor)
+- [ ] Validation rounds complete (no substantive changes remaining)
 - [ ] Tech Lead validated: "I can design from this"
 - [ ] Human reviewed every line
 
@@ -241,30 +257,30 @@ Different models excel at different tasks. Use the right model for the job.
 
 | Task | Recommended Model | Why |
 |------|-------------------|-----|
-| **Orchestration** | Opus 4.5 | Gestalt thinking, manages complexity |
-| **Story sharding** | Opus 4.5 | Understands scope, breaks work coherently |
-| **Prompt drafting** | Opus 4.5 | Captures intent, writes for other models |
-| **Spec/design writing** | Opus 4.5 | Narrative flow, functional-technical weaving |
-| **Implementation** | Claude Code / Opus 4.5 | TDD discipline, service mocks |
-| **Finicky implementation** | GPT 5.2 / 5.2 Codex | Precise, disciplined, less drift |
-| **Difficult debugging** | GPT 5.2 / 5.2 Codex | Methodical, catches details |
-| **Verification** | GPT 5.2 / 5.2 Codex | Pedantic, catches what builders miss |
-| **Code review** | GPT 5.2 / 5.2 Codex | Thorough, checks against spec |
+| **Orchestration** | Opus 4.6 | Gestalt thinking, manages complexity |
+| **Story sharding** | Opus 4.6 | Understands scope, breaks work coherently |
+| **Prompt drafting** | Opus 4.6 | Captures intent, writes for other models |
+| **Spec/design writing** | Opus 4.6 | Narrative flow, functional-technical weaving |
+| **Implementation** | Claude Code / Opus 4.6 | TDD discipline, service mocks |
+| **Finicky implementation** | GPT 5x / 5x Codex | Precise, disciplined, less drift |
+| **Difficult debugging** | GPT 5x / 5x Codex | Methodical, catches details |
+| **Verification** | GPT 5x / 5x Codex | Thorough, catches what builders miss |
+| **Code review** | GPT 5x / 5x Codex | Thorough, checks against spec |
 
 ### Typical Flow
 
-1. **Opus 4.5** orchestrates, shards stories, drafts prompts
+1. **Opus 4.6** orchestrates, shards stories, drafts prompts
 2. **Claude Code subagent** (or Opus with TDD context) executes implementation
-3. **GPT 5.2** verifies artifacts and reviews code
+3. **GPT 5x** verifies artifacts and reviews code
 
 ### Access Methods
 
-- **Opus 4.5:** Claude Code, API, Clawdbot subagents
-- **GPT 5.2:** Codex CLI (`codex exec`), GitHub Copilot, API
-- **GPT 5.2 Codex:** Codex CLI with `-m gpt-5.2-codex`
+- **Opus 4.6:** Claude Code, API, Clawdbot subagents
+- **GPT 5x:** Codex CLI (`codex exec`), GitHub Copilot, API
+- **GPT 5x Codex:** Codex CLI with `-m gpt-5.2-codex`
 
-→ Reference: `references/prompting-opus-4.5.md`
-→ Reference: `references/prompting-gpt-5.2.md`
+→ Reference: `references/prompting-opus-4.6.md`
+→ Reference: `references/prompting-gpt-5x.md`
 
 ---
 
@@ -352,12 +368,12 @@ Before writing the next section:
 ### Phase 4: Story Sharding
 1. `references/story-sharding.md`
 2. `references/story-prompts.md`
-3. `references/prompting-opus-4.5.md` (for drafting prompts)
+3. `references/prompting-opus-4.6.md` (for drafting prompts)
 ### Phase 5: Execution
 1. `references/implementation.md`
 2. `references/phase-execution.md`
 3. `references/execution-orchestration.md` (agent coordination, dual-validator, pipeline)
-4. `references/prompting-gpt-5.2.md` (for verification)
+4. `references/prompting-gpt-5x.md` (for verification)
 ### Understanding the Why
 1. `references/context-economics.md`
 2. `references/verification.md`
@@ -386,8 +402,8 @@ Before writing the next section:
 - `references/state-management.md` — Project state, recovery
 
 **Model Prompting:**
-- `references/prompting-opus-4.5.md` — Orchestration, prompt drafting
-- `references/prompting-gpt-5.2.md` — Verification, detailed implementation
+- `references/prompting-opus-4.6.md` — Orchestration, prompt drafting
+- `references/prompting-gpt-5x.md` — Verification, detailed implementation
 
 **Conceptual:**
 - `references/context-economics.md` — Why context isolation works

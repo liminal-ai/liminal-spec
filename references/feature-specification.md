@@ -52,6 +52,8 @@ Feature (epic)
         ├── AC-2.1 + TCs
         └── AC-2.2 + TCs
   └── Data Contracts
+  └── Non-Functional Requirements (if applicable)
+  └── Tech Design Questions
   └── Recommended Story Breakdown
 ```
 
@@ -163,8 +165,25 @@ Users land here after clicking "Add Location" in Guidewire.
   - Then: Loading indicator appears and new fetch request is sent
 
 **AC-1.3:** Page displays location list when fetch succeeds
+
+- **TC-1.3a:** Location list rendered on successful fetch
+  - Given: User navigates to location list
+  - When: API returns location data
+  - Then: Location list is displayed with all returned locations
+
 **AC-1.4:** Each location row displays address, city, state, and zip code
+
+- **TC-1.4a:** All required fields displayed per row
+  - Given: Location list is displayed
+  - When: User views a location row
+  - Then: Address, city, state, and zip code are all visible
+
 **AC-1.5:** Locations are sorted by address alphabetically
+
+- **TC-1.5a:** Sort order verified
+  - Given: Location list is displayed with multiple locations
+  - When: User views the list
+  - Then: Locations appear in ascending alphabetical order by address
 ```
 
 ### Acceptance Criteria Principles
@@ -243,6 +262,25 @@ Include error response shapes:
 | 404 | ACCOUNT_NOT_FOUND | Account does not exist |
 | 500 | INTERNAL_ERROR | Unexpected server error |
 
+### Standing Data Contract Guidelines
+
+**Request/response completeness:** Each client message type should have an explicit success response and error path defined. The success behavior often seems "obvious" and gets omitted — spell it out.
+
+**Sort order:** User-facing lists need an explicit sort order. Don't leave it to implementation assumption.
+
+**Timestamps:** Default to ISO 8601 UTC unless the spec states otherwise.
+
+### Streaming / Real-Time Data Contracts
+
+If the feature involves real-time messaging or streaming, the data contracts section should address:
+
+- **Correlation IDs** — How are request/response pairs matched?
+- **Message sequencing** — Is ordering guaranteed? How are out-of-order messages handled?
+- **Upsert vs append semantics** — Does a new message replace or add to existing data?
+- **Completion markers** — How does the client know a stream is finished?
+
+These are consistently missed in initial specs and caught by validators. Address them upfront.
+
 ---
 
 ## Non-Functional Requirements (Optional)
@@ -266,6 +304,24 @@ Use this section when the feature has performance, security, observability, or o
 ```
 
 NFRs become constraints in the Tech Design rather than TCs in the spec. The Tech Lead uses them to make architecture decisions (caching strategy, indexing, error handling patterns). Include them in the feature spec so they're visible early — don't wait for Tech Design to discover them.
+
+---
+
+## Tech Design Questions
+
+During spec writing and validation, technical questions will surface that belong in Phase 3 (Tech Design), not in the spec itself. Give them a formal home so they're guaranteed to be answered downstream.
+
+```markdown
+## Tech Design Questions
+
+Questions for the Tech Lead to address during design:
+
+1. [Technical question raised during spec or validation]
+2. [Another question — e.g., "What caching strategy for the location list?"]
+3. [Implementation concern flagged by validator]
+```
+
+These aren't spec blockers — they're legitimate questions that the spec can't and shouldn't answer. The Tech Design reference includes instructions to answer every question listed here.
 
 ---
 
@@ -319,6 +375,8 @@ Before handing to Tech Lead:
 - [ ] Scope boundaries are explicit (in/out/assumptions)
 - [ ] Story breakdown covers all ACs
 - [ ] Stories sequence logically (read before write, happy before edge)
+- [ ] All validator issues addressed (Critical, Major, and Minor — severity sets fix order, not skip criteria)
+- [ ] Validation rounds complete (run until no substantive changes, typically 1-3 rounds)
 
 **Self-review (CRITICAL):**
 - Do a critical review of your own work
@@ -509,6 +567,14 @@ NFRs become Tech Design constraints, not TCs.]
 
 ---
 
+## Tech Design Questions
+
+Questions for the Tech Lead to address during design:
+
+1. [Technical question raised during spec writing or validation]
+
+---
+
 ## Recommended Story Breakdown
 
 ### Story 0: Infrastructure
@@ -544,6 +610,8 @@ NFRs become Tech Design constraints, not TCs.]
 - [ ] Scope boundaries are explicit (in/out/assumptions)
 - [ ] Story breakdown covers all ACs
 - [ ] Stories sequence logically (read before write, happy before edge)
+- [ ] All validator issues addressed (Critical, Major, and Minor)
+- [ ] Validation rounds complete (no substantive changes remaining)
 - [ ] Self-review complete
 ```
 

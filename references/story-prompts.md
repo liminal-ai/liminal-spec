@@ -167,9 +167,9 @@ Same reference info, same context. Different role and focus.
 | Prompt Type | Focus | Lens |
 |-------------|-------|------|
 | Implementation | Create/modify code | Builder |
-| Verification | Check against spec | Auditor/pedantic |
+| Verification | Check against spec | Auditor |
 
-The verifier prompt should use a pedantic model (GPT-5.2, Codex). That's the point — catch what builders miss.
+The verifier prompt should use a thorough, detail-oriented model (GPT 5x, Codex). The point is to catch what builders miss.
 
 ---
 

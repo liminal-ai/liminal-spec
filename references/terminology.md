@@ -20,7 +20,7 @@
 | **Tech Design** | Creates Tech Design from Feature Spec. Validates spec as downstream consumer. |
 | **Story Sharding / Orchestration** | Creates Stories and Prompts from Spec + Tech Design. Orchestrates through Phase 4 (sharding) and Phase 5 (execution). |
 | **Implementation** | Executes implementation from prompt packs. Zero prior context. |
-| **Verification** | Validates artifacts and implementation. Different model for rigor (pedantic is the point). |
+| **Verification** | Validates artifacts and implementation. Different model for rigor — thoroughness is the point. |
 
 ## Artifacts
 
@@ -63,7 +63,7 @@
 |------|------------|
 | **Downstream Consumer** | The agent who uses an artifact validates it (Tech Lead validates Feature Spec). |
 | **Multi-Agent Validation** | Author self-review + downstream consumer review + different model review. |
-| **Dual-Validator Pattern** | Launching two validators in parallel with different cognitive profiles (builder + pedantic) for complementary coverage. |
+| **Dual-Validator Pattern** | Launching two validators in parallel with different cognitive profiles (builder + detail-oriented) for complementary coverage. |
 | **Running Total** | Cumulative test count across stories. Previous tests must keep passing. |
 | **Service Mocks** | In-process tests at public entry points that mock only at external boundaries. The primary test layer — where TDD lives. |
 | **Wide Integration Tests** | Few, slower tests against deployed environment. Verify wiring and configuration. Run locally and post-CD, not on CI. |

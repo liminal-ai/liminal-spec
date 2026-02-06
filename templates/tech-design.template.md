@@ -644,7 +644,7 @@ Chunk 0 → Chunk 1 → Chunk 3
 
 ## Self-Review Checklist
 
-Before handoff, verify quality. Read your own design critically—the Scrum Master validates by confirming they can derive stories from this design. If they can't, the design isn't ready.
+Before handoff, verify quality. Read your own design critically—the Orchestrator validates by confirming they can derive stories from this design. If they can't, the design isn't ready.
 
 ### Completeness
 

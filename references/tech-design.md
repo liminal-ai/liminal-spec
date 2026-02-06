@@ -13,6 +13,7 @@ Before designing, validate the Feature Spec:
 - Are data contracts complete and realistic?
 - Are there technical constraints the BA missed?
 - Do the flows make sense from an implementation perspective?
+- **Answer every question in the Feature Spec's "Tech Design Questions" section.** These are legitimate technical questions raised during spec writing or validation that the spec intentionally deferred to this phase.
 
 If issues found → return to BA for revision. Don't design from a broken spec.
 
@@ -278,7 +279,7 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 ## Validation Before Handoff
 
-**Before handing to Scrum Master:**
+**Before handing to Orchestrator:**
 
 - [ ] Every TC mapped to test file
 - [ ] All interfaces defined
@@ -292,7 +293,7 @@ Chunk 0 → Chunk 1 → Chunk 2
 - Is the spiral pattern present?
 - Are there redundant connections or just thin threads?
 
-**The Scrum Master validates by confirming they can derive stories from the design.** If they can't, the design isn't ready.
+**The Orchestrator validates by confirming they can derive stories from the design.** If they can't, the design isn't ready.
 
 ---
 

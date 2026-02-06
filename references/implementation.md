@@ -87,6 +87,6 @@ After completing each phase, summarize:
 
 You may see references to tech design, feature spec, etc. These are for human traceability.
 
-For your execution: **the prompt pack is self-contained**. The Scrum Master inlined everything you need. Trust the prompt.
+For your execution: **the prompt pack is self-contained**. The Orchestrator inlined everything you need. Trust the prompt.
 
 If something seems missing or doesn't line up, **stop and surface it** — don't silently work around gaps. Document what's missing and return to the orchestrator. The prompt pack should have everything; if it doesn't, that's a prompt quality issue to fix, not something to improvise past.

@@ -1,12 +1,12 @@
-# Prompting GPT 5.2
+# Prompting GPT 5x
 
-GPT 5.2 is the primary model for verification, code review, and detailed/finicky implementation in Liminal Spec. It excels at catching details Opus misses, pedantic verification, and disciplined execution.
+GPT 5x is the primary model for verification, code review, and detailed/finicky implementation in Liminal Spec. It excels at catching details Opus misses, thorough verification, and disciplined execution.
 
-## When to Use GPT 5.2
+## When to Use GPT 5x
 
-| Task | Why GPT 5.2 |
+| Task | Why GPT 5x |
 |------|-------------|
-| **Verification** | Pedantic, catches details others miss |
+| **Verification** | Thorough, catches details others miss |
 | **Code review** | Thorough, checks against spec systematically |
 | **Difficult debugging** | Disciplined, methodical problem-solving |
 | **Finicky implementation** | Precise instruction following, less drift |
@@ -21,7 +21,7 @@ GPT 5.2 is the primary model for verification, code review, and detailed/finicky
 
 ### More Deliberate Scaffolding
 
-GPT 5.2 builds clearer plans and intermediate structure by default. Benefits from explicit scope and verbosity constraints.
+GPT 5x builds clearer plans and intermediate structure by default. Benefits from explicit scope and verbosity constraints.
 
 ### Lower Verbosity
 
@@ -53,7 +53,7 @@ Favors correctness and explicit reasoning. Handles ambiguity better with clarifi
 
 ### Preventing Scope Drift
 
-GPT 5.2 may produce more than minimal specs. Explicitly forbid extras:
+GPT 5x may produce more than minimal specs. Explicitly forbid extras:
 
 ```xml
 <design_and_scope_constraints>
@@ -135,7 +135,7 @@ Keep updates minimal and outcome-focused:
 
 ## Structured Extraction
 
-GPT 5.2 excels at structured output. Always provide schema:
+GPT 5x excels at structured output. Always provide schema:
 
 ```xml
 <extraction_spec>
@@ -153,7 +153,7 @@ Extract structured data into JSON following this schema exactly:
 
 ## Reasoning Effort
 
-GPT 5.2 supports `reasoning_effort` parameter:
+GPT 5x supports `reasoning_effort` parameter:
 
 | Level | Use Case |
 |-------|----------|
@@ -167,14 +167,14 @@ For verification, use `medium` to `high`. Reserve `xhigh` for critical artifact 
 
 ## For Liminal Spec Verification
 
-When using GPT 5.2 to verify artifacts or review code:
+When using GPT 5x to verify artifacts or review code:
 
 ```markdown
 ## Role
-You are a pedantic verifier. Your job is to catch what the builder missed.
+You are verifying [artifact] against [specification]. Your job is to catch what the builder missed.
 
 ## Task
-Review [artifact] against [specification].
+Review the artifact systematically against the spec.
 
 ## Verification Checklist
 1. Every AC in the spec has corresponding implementation

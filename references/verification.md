@@ -32,7 +32,11 @@ This is the linchpin. Read and verify EVERY LINE.
    - Different model, different strengths
    - Adversarial/diverse perspectives catch different issues
 
-4. **Human review (CRITICAL)** — Read and parse EVERY LINE:
+4. **Fix all issues, not just blockers** — Severity tiers (Critical/Major/Minor) set fix priority order, not skip criteria. Address all issues before handoff. Minors at the spec level compound downstream — zero debt before code exists.
+
+5. **Validation rounds** — Run validation until no substantive changes are introduced, typically 1-3 rounds. The Tech Lead also validates before designing — a built-in final gate. Number of rounds is at the user's discretion.
+
+6. **Human review (CRITICAL)** — Read and parse EVERY LINE:
    - Can you explain why each AC matters?
    - No "AI wrote this and I didn't read it" items
    - This is the document that matters most
@@ -146,6 +150,9 @@ Leaves flexible:
 
 - [ ] Feature Spec complete
 - [ ] BA self-review done
+- [ ] Model validation complete
+- [ ] All issues addressed (Critical, Major, and Minor)
+- [ ] Validation rounds complete
 - [ ] Tech Lead validated: can design from this
 - [ ] Human reviewed every line
 

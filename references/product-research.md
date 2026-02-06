@@ -22,6 +22,8 @@
 
 Most work **skips this phase entirely** and goes straight to Feature Specification with "here's the feature I need."
 
+**However, even a lean PRD pays for itself during validation.** Validators use the PRD to catch missing flows, metric mismatches, and scope drift. Without a PRD, validators can only check the spec's internal consistency — they can't verify alignment with product intent. Keep PRD-to-spec correlation loose; the PRD is directional, not a traceability anchor.
+
 ---
 
 ## PRD Structure

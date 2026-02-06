@@ -256,7 +256,7 @@ The same reference info, the same context, but different role and focus.
 | Implementation | Create/modify code | Builder |
 | Verification | Check against spec | Auditor |
 
-Same material, different lens. The verifier prompt should be pedantic — that's the point.
+Same material, different lens. The verifier prompt should be thorough — that's the point.
 
 ---
 
