@@ -1,6 +1,6 @@
 # State Management
 
-SDD uses state files to maintain continuity across sessions and agents.
+Liminal Spec uses state files to maintain continuity across sessions and agents.
 
 ## Project State File
 

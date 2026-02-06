@@ -1,66 +1,43 @@
 ---
 name: liminal-spec
 description: |
-  Spec-Driven Development for agentic coding. SDLC-phased pipeline with context isolation 
-  and artifact handoff. Use when building features that need full traceability, 
-  multi-agent coordination, or enterprise rigor. SDD either runs full or not at all — 
+  Spec-driven development for agentic coding. SDLC-phased pipeline with context isolation
+  and artifact handoff. Use when building features with detailed requirements, complex
+  integrations, or multi-agent coordination. Liminal Spec either runs full or not at all —
   no "lite" versions.
 ---
 
-# SDD: Spec-Driven Development
+# Liminal Spec
 
-SDD is a methodology for AI-assisted software development built on three ideas: **context isolation** (fresh agent contexts with artifact handoff), **artifact-driven phases** (each phase defined by what goes in and what comes out), and **verification gradient** (upstream work gets more scrutiny because errors compound downstream).
+A spec-driven development system for features with detailed requirements and complex integrations. Runs a rigorous, phased approach from specification through implementation — each phase produces an artifact the next phase reads cold. The traceability chain (requirement → test condition → test → code) means when tests go green, you have high confidence the implementation actually matches the spec.
 
-## When to Use SDD
+## The Phases
 
-**Use SDD for:**
-- New features with multiple components or flows
-- Complex integrations with external systems
-- Clear requirements that can be broken into verifiable acceptance criteria
+| Phase | Entry | Exit | Start Here If... |
+|-------|-------|------|-------------------|
+| **1. Product Research** | Vision, idea | PRD | You need to explore product direction first |
+| **2. Feature Specification** | Requirements or direct need | Feature Spec | **Most common entry point.** You know what you want to build |
+| **3. Tech Design** | Feature Spec | Tech Design | You have a complete spec ready for architecture |
+| **4. Story Sharding** | Spec + Design | Stories + Prompt Packs | Design is done, ready to break into executable work |
+| **5. Execution** | Stories + Prompts | Verified code | Stories are sharded, ready to implement |
 
-**Skip SDD for:**
-- Bug fixes under 2 hours
-- Single-file changes with obvious implementation
-- Exploratory spikes or proof-of-concepts
-- Emergency production fixes
+Most work starts at **Phase 2**. Tell me what you want to build and which phase you're starting from.
 
-**SDD is SDD.** If context can't support the full methodology, switch workflows entirely. No "SDD lite" — the rigor IS the point.
+## When to Use
 
----
+- New features with multiple components or integration points
+- Complex business logic where requirements need precision
+- Multi-agent builds where context isolation matters
 
-## Quickstart: Your First Feature
+Not for: quick bug fixes, single-file changes, spikes, or emergency patches. Either run the full methodology or use a lighter workflow.
 
-Already know what you want to build? Start here.
-
-**1. Write the Feature Spec** (Phase 2 — most projects start here)
-
-Load `references/feature-specification.md` and `references/writing-style.md`. Write a spec covering:
-- **User Profile** — Who, context, mental model, key constraint
-- **Feature Overview** — What they can do after that they can't do now
-- **Scope** — In/out/assumptions
-- **Flows with ACs and TCs** — Each flow groups its acceptance criteria, each AC groups its test conditions (Given/When/Then)
-- **Data Contracts** — Typed shapes for APIs and responses
-- **Recommended Story Breakdown** — Story 0 (infrastructure) + feature stories
-
-Target: ~300 lines. Every AC testable, every AC has at least one TC.
-
-**2. Validate** — Have a fresh agent read the spec and confirm they could design from it without asking questions. If they can't, fix the spec.
-
-**3. Tech Design** (Phase 3) — Load `references/tech-design.md` and `templates/tech-design.template.md`. Transform the spec into architecture, interfaces, and test mapping (~2000 lines).
-
-**4. Story Sharding** (Phase 4) — Load `references/story-sharding.md` and `references/story-prompts.md`. Break into stories, write self-contained prompt packs.
-
-**5. Execute** (Phase 5) — Load `references/implementation.md` and `references/execution-orchestration.md`. Execute prompts in fresh agent contexts: Skeleton → TDD Red → TDD Green → Gorilla → Verify.
-
-Each phase uses a **fresh context** that reads the previous phase's artifact cold. That's the core of SDD — context isolation with artifact handoff.
-
-→ Read the rest of this file for the full methodology. The sections below explain *why* each piece works.
+→ For the full methodology and reference material, read on.
 
 ---
 
 ## The Two Dimensions
 
-SDD operates on two dimensions that nest together:
+Liminal Spec operates on two dimensions that nest together:
 
 **Macro: The Five Phases** — SDLC-oriented stages defined by artifact entry/exit. Each phase transforms one artifact into another. Phases are named by where they sit in the software lifecycle, not by who does the work.
 
@@ -104,7 +81,7 @@ Phases are defined by artifact boundaries — what you need going in, what you p
 
 **The linchpin.** This is where requirements become precise. The Feature Spec gets the most scrutiny because errors here cascade everywhere.
 
-The spec author produces a complete specification: User Profile, Feature Overview, User Flows with co-located Acceptance Criteria and Test Conditions, Data Contracts, Scope Boundaries, and a recommended Story Breakdown. Approximately 300 lines that expand to ~2000 lines of tech design.
+The spec author produces a complete specification: User Profile, Feature Overview, User Flows with co-located Acceptance Criteria and Test Conditions, Data Contracts, Scope Boundaries, and a recommended Story Breakdown.
 
 → Reference: `references/feature-specification.md` — Feature spec creation, structure, and template
 → Reference: `references/writing-style.md` — Documentation principles for spec writing
@@ -178,7 +155,7 @@ Phase N+1 (fresh context)
 **Why this matters:**
 - **No negotiation baggage** — Fresh context reads artifact as-is
 - **Token efficiency** — Clean context vs bloated history
-- **Expansion ratios** — Each phase needs room (300 lines → 2000 lines)
+- **Expansion ratios** — Each phase needs room to expand the prior artifact
 - **Debuggable handoffs** — You can read exactly what was passed
 
 → Deep dive: `references/context-economics.md`
@@ -194,7 +171,7 @@ AC (requirement) → TC (test condition) → Test (code) → Implementation
 
 **Validation rule:** Can't write a TC? The AC is too vague. Can't write a test? The TC is too vague.
 
-This chain is what makes SDD traceable. When something breaks, you can trace from the failing test back to the TC, back to the AC, back to the requirement.
+This chain is what makes the methodology traceable. When something breaks, you can trace from the failing test back to the TC, back to the AC, back to the requirement.
 
 ---
 

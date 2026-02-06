@@ -1,6 +1,6 @@
 # Prompting GPT 5.2
 
-GPT 5.2 is the primary model for verification, code review, and detailed/finicky implementation in SDD. It excels at catching details Opus misses, pedantic verification, and disciplined execution.
+GPT 5.2 is the primary model for verification, code review, and detailed/finicky implementation in Liminal Spec. It excels at catching details Opus misses, pedantic verification, and disciplined execution.
 
 ## When to Use GPT 5.2
 
@@ -163,9 +163,9 @@ GPT 5.2 supports `reasoning_effort` parameter:
 | `high` | Complex debugging, thorough verification |
 | `xhigh` | Deep analysis, catching subtle issues |
 
-For SDD verification, use `medium` to `high`. Reserve `xhigh` for critical artifact review (Feature Spec, Tech Design).
+For verification, use `medium` to `high`. Reserve `xhigh` for critical artifact review (Feature Spec, Tech Design).
 
-## For SDD Verification
+## For Liminal Spec Verification
 
 When using GPT 5.2 to verify artifacts or review code:
 

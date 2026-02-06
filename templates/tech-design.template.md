@@ -12,7 +12,7 @@ This document translates feature requirements into implementable architecture. I
 
 **Prerequisite:** The feature spec must be complete (all ACs have TCs) before starting this document.
 
-**Expected Length:** A complete tech design typically runs 1500-2500 lines—approximately 6-7× the feature spec length. This expansion ratio is normal. The richness comes from redundant connections: the same concepts appearing at multiple altitudes, woven through functional and technical perspectives. Shorter usually means insufficient depth. Longer usually means scope creep.
+**Expected Length:** A complete tech design expands significantly from the feature spec — typically 6-7×. The richness comes from redundant connections: the same concepts appearing at multiple altitudes, woven through functional and technical perspectives. Shorter usually means insufficient depth. Longer usually means scope creep.
 
 ---
 

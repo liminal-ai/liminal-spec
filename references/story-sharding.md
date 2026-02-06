@@ -26,7 +26,7 @@ Once validated, produce:
 
 ## Story 0: Infrastructure Story
 
-Every SDD feature starts with Story 0. It establishes the shared foundation that all subsequent stories build on. Story 0 has no user-facing functionality and no TDD cycle — it's pure setup.
+Every feature starts with Story 0. It establishes the shared foundation that all subsequent stories build on. Story 0 has no user-facing functionality and no TDD cycle — it's pure setup.
 
 ### What Story 0 Contains
 

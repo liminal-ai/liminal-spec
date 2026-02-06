@@ -34,7 +34,7 @@ Both read:
 - All prompts (`prompt-X.1-skeleton-red.md`, `prompt-X.2-green.md`, `prompt-X.R-verify.md`)
 - Tech design (relevant sections)
 - Feature spec (relevant ACs/TCs)
-- SDD methodology references
+- Liminal Spec methodology references
 
 ### Validator Instructions Template
 

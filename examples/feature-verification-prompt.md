@@ -8,7 +8,7 @@ Use this prompt template to have an agent critically review a Feature Specificat
 
 **Critical Review: [Feature Name] Feature Specification**
 
-You are reviewing a Feature Specification for [brief description]. This is Phase 2 (Feature Specification) of an SDD pipeline.
+You are reviewing a Feature Specification for [brief description]. This is Phase 2 (Feature Specification) of a Liminal Spec pipeline.
 
 **Step 1: Load liminal-spec Skill Context**
 

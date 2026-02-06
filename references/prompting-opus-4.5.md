@@ -1,6 +1,6 @@
 # Prompting Claude Opus 4.5
 
-Opus 4.5 is the primary model for orchestration, story sharding, and prompt drafting in SDD. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
+Opus 4.5 is the primary model for orchestration, story sharding, and prompt drafting in Liminal Spec. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
 
 ## When to Use Opus 4.5
 
@@ -193,7 +193,7 @@ or explicitly requested. Incorporate items naturally into sentences.
 
 The formatting in your prompt influences response style. If you want less markdown, remove markdown from your prompt.
 
-## For SDD Prompt Writing
+## For Liminal Spec Prompt Writing
 
 When Opus 4.5 drafts prompts for execution (implementation, verification):
 

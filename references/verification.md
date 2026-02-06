@@ -92,7 +92,7 @@ Spot checks + automated tests.
 
 ## Multi-Agent Validation Pattern
 
-SDD uses this pattern throughout:
+Liminal Spec uses this pattern throughout:
 
 | Artifact | Author Reviews | Consumer Reviews |
 |----------|---------------|------------------|

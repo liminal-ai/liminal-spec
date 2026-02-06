@@ -1,10 +1,10 @@
-# SDD Terminology
+# Liminal Spec Terminology
 
 ## Methodology
 
 | Term | Definition |
 |------|------------|
-| **SDD** | Spec-Driven Development. The methodology. Full rigor or don't use it — no "lite" versions. |
+| **Liminal Spec** | Spec-driven development methodology. Full rigor or don't use it — no "lite" versions. |
 | **Confidence Chain** | AC → TC → Test → Code. Every line traces back to a requirement. |
 | **Context Isolation** | Using fresh agent contexts with artifact handoff instead of long conversations. NOT roleplay. |
 | **Artifact** | A document that captures decisions and serves as handoff between agents. |
@@ -27,8 +27,8 @@
 | Term | Definition |
 |------|------------|
 | **PRD** | Product Requirements Document. Multiple features sketched at high level. |
-| **Feature Spec** | Complete specification for one feature (~300 lines). ACs, TCs, data contracts, scope. |
-| **Tech Design** | Architecture, interfaces, test mapping, work plan (~2000 lines for 300-line spec). |
+| **Feature Spec** | Complete specification for one feature. ACs, TCs, data contracts, scope. |
+| **Tech Design** | Architecture, interfaces, test mapping, work plan. Expands significantly from the feature spec. |
 | **Story** | A discrete, independently executable vertical slice of functionality with its own prompt pack. Derived from tech design work breakdown. |
 | **Prompt Pack** | Self-contained instructions for executing one phase of a story. All context inlined. |
 
@@ -74,7 +74,7 @@
 | Term | Definition |
 |------|------------|
 | **Context Rot** | Degradation of agent attention as context grows. |
-| **Expansion Ratio** | How much an artifact expands (300-line spec → 2k-line design). |
+| **Expansion Ratio** | How much an artifact expands when the next phase elaborates it. |
 | **Planner/Coder Split** | Planning context (exploratory) vs execution context (precise). |
 | **State File** | JSON/Markdown files tracking project and agent state for recovery. |
 | **Checkpoint** | Saving state mid-session before compaction or break. |
@@ -88,5 +88,5 @@
 | **Hook Mocking** | Mocking hooks instead of API boundary. Hides integration bugs. |
 | **Negotiation Baggage** | Accumulated assumptions from long conversations that a fresh agent wouldn't know. |
 | **Spec Drift** | When implementation diverges from spec without updating the spec. |
-| **SDD Lite** | Attempting partial SDD. Either do full methodology or use a different approach. |
+| **Lite Mode** | Attempting partial Liminal Spec. Either do full methodology or use a different approach. |
 | **Agent as Roleplay** | Treating agents as personas instead of context isolation mechanism. |

@@ -1,8 +1,8 @@
 # Feature Specification
 
-**Purpose:** Transform requirements into a complete, traceable Feature Specification — the linchpin artifact of SDD.
+**Purpose:** Transform requirements into a complete, traceable Feature Specification — the linchpin artifact of Liminal Spec.
 
-The feature spec gets the most scrutiny because errors here cascade through every downstream phase. A complete spec is ~300 lines that a Tech Lead can design from without asking questions. It contains: User Profile, Feature Overview, Scope, Flows with Acceptance Criteria and Test Conditions, Data Contracts, and a recommended Story Breakdown.
+The feature spec gets the most scrutiny because errors here cascade through every downstream phase. A complete spec is one that a Tech Lead can design from without asking questions. It contains: User Profile, Feature Overview, Scope, Flows with Acceptance Criteria and Test Conditions, Data Contracts, and a recommended Story Breakdown.
 
 ---
 
@@ -109,7 +109,7 @@ Brief prose description of what this feature delivers and why it matters to the 
 
 ### Out of Scope
 
-- Excluded capability (see SDD-XXX if planned)
+- Excluded capability (see LS-XXX if planned)
 - Future enhancement (planned for Phase N)
 - Related but separate concern (handled by [other system/feature])
 
@@ -389,7 +389,7 @@ Brief prose description of what this feature delivers and why:
 
 ### Out of Scope
 
-- Excluded capability (see SDD-XXX if planned)
+- Excluded capability (see LS-XXX if planned)
 - Future enhancement (planned for Phase N)
 - Related but separate concern
 

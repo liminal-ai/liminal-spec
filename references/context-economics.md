@@ -1,6 +1,6 @@
 # Context Economics
 
-**Why SDD uses multiple agents with artifact handoff instead of one long conversation.**
+**Why Liminal Spec uses multiple agents with artifact handoff instead of one long conversation.**
 
 ## The Core Problem
 
@@ -16,7 +16,7 @@ AI agents have fundamental limitations:
 
 ## The Solution: Agents = Context Isolation
 
-**"Agents" in SDD doesn't mean roleplay personas. It means fresh context with artifact handoff.**
+**"Agents" doesn't mean roleplay personas. It means fresh context with artifact handoff.**
 
 ```
 Agent 1 (planning context)
@@ -54,8 +54,8 @@ Each phase expands the prior artifact:
 
 | Input | Output | Ratio |
 |-------|--------|-------|
-| Requirements (50 lines) | Feature Spec (300 lines) | 6x |
-| Feature Spec (300 lines) | Tech Design (2000 lines) | 7x |
+| Requirements | Feature Spec | ~6x |
+| Feature Spec | Tech Design | ~6-7x |
 | Tech Design chunk | Story + Prompts (500 lines) | varies |
 
 A single context trying to hold requirements + spec + design + implementation = bloat. Separate contexts give each phase room to breathe.

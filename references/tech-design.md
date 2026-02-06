@@ -296,11 +296,9 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 ---
 
-## Output: Tech Design (~2000 lines)
+## Output: Tech Design
 
-A complete tech design for a 300-line feature spec typically runs about 2000 lines.
-
-This expansion ratio (6-7x) is normal. The design includes:
+The tech design expands significantly from the feature spec — typically 6-7x. The design includes:
 - System context (external systems, data flow)
 - Module architecture (files, responsibilities, AC mapping)
 - Sequence diagrams (per flow)

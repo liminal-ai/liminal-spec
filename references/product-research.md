@@ -20,7 +20,7 @@
 - Single feature with clear scope
 - "Just build X" situations
 
-Most SDD work **skips this phase entirely** and goes straight to Feature Specification with "here's the feature I need."
+Most work **skips this phase entirely** and goes straight to Feature Specification with "here's the feature I need."
 
 ---
 
@@ -68,7 +68,7 @@ How we'll know this worked.
 | High-level ACs | Detailed ACs with TCs |
 | Explores scope | Defines scope precisely |
 | Stakeholder alignment | Implementation guidance |
-| Optional | Required for SDD |
+| Optional | Required for Liminal Spec |
 
 The PRD sketches features. The Feature Spec (Phase 2) elaborates one feature fully.
 
@@ -88,18 +88,18 @@ The Feature Spec supersedes the PRD for implementation details. PRD remains usef
 
 ## BMAD and External Product Tools
 
-**BMAD (or similar deep product research tools) is a separate workflow, not integrated into SDD.**
+**BMAD (or similar deep product research tools) is a separate workflow, not integrated into Liminal Spec.**
 
-For deep product research and ideation — user research, market analysis, competitive landscape, strategy — use dedicated product tools before SDD.
+For deep product research and ideation — user research, market analysis, competitive landscape, strategy — use dedicated product tools beforehand.
 
-SDD's PO phase is **lightweight**:
+The Product Research phase is **lightweight**:
 - Single agent
 - Product Brief → PRD
 - Often skipped entirely
 
 If you need extensive product discovery:
 1. Do that work separately (BMAD, interviews, research)
-2. Bring results into SDD as requirements
-3. Start SDD at PO or BA phase
+2. Bring results in as requirements
+3. Start at Product Research or Feature Specification phase
 
-**SDD picks up when you have requirements.** It doesn't do deep product discovery.
+**Liminal Spec picks up when you have requirements.** It doesn't do deep product discovery.
