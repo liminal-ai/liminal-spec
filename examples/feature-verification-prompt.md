@@ -35,9 +35,11 @@ Assess the feature spec against these criteria:
 
 2. **Completeness**
    - Does User Profile have all four fields (Primary User, Context, Mental Model, Key Constraint)?
+   - Is there a Feature Overview describing what the user can do after that they can't do today?
    - Do User Flows cover all paths including error cases?
    - Does every AC have at least one TC?
    - Are scope boundaries explicit (In Scope, Out of Scope, Assumptions)?
+   - Were Non-Functional Requirements considered (performance, security, observability)? If applicable, are they documented?
 
 3. **Traceability**
    - Can you trace from User Profile → Flows → ACs → TCs?
@@ -46,18 +48,23 @@ Assess the feature spec against these criteria:
 4. **Testability**
    - Can each AC be verified as true/false?
    - Are ACs specific (no "appropriate" or "properly")?
-   - Do TCs have clear Given/When/Then structure?
+   - Do TCs have clear structure? (Given/When/Then for behavioral checks, numbered steps for sequential flows, tables for input/output comparisons)
 
 5. **Alignment with Product Brief**
    - Does the feature spec deliver on the product brief's vision?
-   - Are the modes/priorities properly articulated?
    - Is broader context reflected appropriately?
 
 6. **Reference Implementation Consistency** (if applicable)
    - Does it follow proven patterns where applicable?
    - Similar ergonomics and conventions?
 
-7. **Tech Design Readiness**
+7. **Story Breakdown**
+   - Is there a Recommended Story Breakdown section?
+   - Does Story 0 (infrastructure) cover types, fixtures, and error classes?
+   - Do Feature Stories (1-N) cover all ACs?
+   - Do stories sequence logically (read before write, happy path before edge cases)?
+
+8. **Tech Design Readiness**
    - Could a Tech Lead design from this spec without asking clarifying questions?
    - Are technical unknowns identified but appropriately scoped?
    - Are data contracts clear enough to implement against?

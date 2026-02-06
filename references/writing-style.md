@@ -336,7 +336,7 @@ Step 4: Session routes to ModelClient and ToolRouter.
 
 By the final diagram, readers have *constructed* the understanding.
 
-### The Decadent Spiral
+### Conceptual Spiral
 
 Progressive construction applies to concepts, not just diagrams. Revisit from multiple angles, each pass adding detail:
 

@@ -15,10 +15,10 @@
 | Term | Definition |
 |------|------------|
 | **Agent** | A fresh context session that receives artifacts and produces artifacts. Means context isolation, not roleplay personas. |
-| **Product Research** | Optional phase. Product Brief → PRD. Often skipped. |
+| **Product Research** | Optional phase. Vision/idea → PRD. Often skipped. |
 | **Feature Specification** | Creates Feature Spec from requirements. The linchpin — most scrutiny here. |
 | **Tech Design** | Creates Tech Design from Feature Spec. Validates spec as downstream consumer. |
-| **Story Sharding / Orchestration** | Creates Stories and Prompts from Tech Design. Orchestrates but doesn't implement. |
+| **Story Sharding / Orchestration** | Creates Stories and Prompts from Spec + Tech Design. Orchestrates through Phase 4 (sharding) and Phase 5 (execution). |
 | **Implementation** | Executes implementation from prompt packs. Zero prior context. |
 | **Verification** | Validates artifacts and implementation. Different model for rigor (pedantic is the point). |
 
@@ -29,7 +29,7 @@
 | **PRD** | Product Requirements Document. Multiple features sketched at high level. |
 | **Feature Spec** | Complete specification for one feature (~300 lines). ACs, TCs, data contracts, scope. |
 | **Tech Design** | Architecture, interfaces, test mapping, work plan (~2000 lines for 300-line spec). |
-| **Story** | A discrete unit of work with its own prompt pack. Maps to tech design chunk. |
+| **Story** | A discrete, independently executable vertical slice of functionality with its own prompt pack. Derived from tech design work breakdown. |
 | **Prompt Pack** | Self-contained instructions for executing one phase of a story. All context inlined. |
 
 ## Feature Spec Hierarchy
@@ -37,15 +37,19 @@
 | Term | Definition |
 |------|------------|
 | **User Profile** | Who the feature is for and their mental model. |
+| **Feature Overview** | What the user can do after this feature ships that they can't do today. Follows User Profile. |
 | **User Flow** | A sequence of steps through the feature. |
 | **AC (Acceptance Criteria)** | A testable requirement. "The system shall..." |
-| **TC (Test Condition)** | Given/When/Then statement for verifying an AC. |
+| **TC (Test Condition)** | Verifiable condition for an AC. Formats: Given/When/Then, numbered sequential steps, or input/output comparison tables. |
 | **Data Contract** | TypeScript interface defining data shapes. |
+| **Non-Functional Requirement (NFR)** | Cross-cutting constraint (performance, security, observability) that affects how things are built. Becomes Tech Design constraints, not TCs. Optional section. |
 
 ## Execution
 
 | Term | Definition |
 |------|------------|
+| **Story 0** | Infrastructure story. Types, fixtures, error classes, test utilities. No TDD cycle — pure setup. Always first. |
+| **Feature 0** | Stack standup story for new stacks. Auth, connectivity, integrated skeleton with no product functionality. |
 | **Skeleton Phase** | Create stubs that throw NotImplementedError. Structure without logic. |
 | **TDD Red Phase** | Write tests asserting behavior. Tests ERROR because stubs throw. |
 | **TDD Green Phase** | Implement to make tests pass. |
@@ -59,8 +63,11 @@
 |------|------------|
 | **Downstream Consumer** | The agent who uses an artifact validates it (Tech Lead validates Feature Spec). |
 | **Multi-Agent Validation** | Author self-review + downstream consumer review + different model review. |
+| **Dual-Validator Pattern** | Launching two validators in parallel with different cognitive profiles (builder + pedantic) for complementary coverage. |
 | **Running Total** | Cumulative test count across stories. Previous tests must keep passing. |
-| **Decadent Spiral** | Tech design writing style: verbose, weaving functional↔technical, redundant connections. |
+| **Service Mocks** | In-process tests at public entry points that mock only at external boundaries. The primary test layer — where TDD lives. |
+| **Wide Integration Tests** | Few, slower tests against deployed environment. Verify wiring and configuration. Run locally and post-CD, not on CI. |
+| **Progressive Depth** | Documentation style: revisit concepts from multiple angles with increasing depth. Creates redundant connections across functional↔technical perspectives so readers can enter at any point. |
 
 ## Context Management
 

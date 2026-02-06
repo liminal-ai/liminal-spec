@@ -318,7 +318,7 @@ After TDD Green, before formal verification. Unstructured, interactive, catches 
 
 ---
 
-## Writing Style: The Decadent Spiral
+## Writing Style: Progressive Depth
 
 Documentation fails when it's flat — lists of equal-weight items, uniform depth everywhere. Good documentation operates in three dimensions: **hierarchy** (sections), **network** (cross-references), and **narrative** (temporal/causal flow).
 
@@ -364,6 +364,7 @@ Before writing the next section:
 1. This file (overview)
 2. `references/feature-specification.md`
 3. `references/writing-style.md`
+4. `examples/feature-verification-prompt.md` (for spec validation before handoff)
 
 ### Phase 3: Tech Design
 1. `references/tech-design.md`
@@ -383,6 +384,7 @@ Before writing the next section:
 ### Understanding the Why
 1. `references/context-economics.md`
 2. `references/verification.md`
+3. `references/terminology.md` (glossary, when terms are unclear)
 
 ### Resuming Work
 1. `references/state-management.md`
@@ -417,3 +419,6 @@ Before writing the next section:
 
 **Templates:**
 - `templates/tech-design.template.md` — Phase 3 artifact template
+
+**Examples:**
+- `examples/feature-verification-prompt.md` — Ready-to-use prompt for Phase 2→3 spec validation

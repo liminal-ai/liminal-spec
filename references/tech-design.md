@@ -128,7 +128,7 @@ sequenceDiagram
 
 ---
 
-## Tech Design Writing Style: The Decadent Spiral
+## Tech Design Writing Style: Rich, Layered Context
 
 **Tech designs are verbose and intentionally rich.**
 
@@ -139,7 +139,7 @@ This is NOT about being minimal. Build a sophisticated web of context.
 - **Functional ↔ Technical** — Repeatedly connect requirements to implementation. Don't just list interfaces — show how they fulfill ACs.
 - **High level ↔ Low level** — Spiral through abstraction layers. Go high → low → back to high → lower. Not a linear descent.
 - **Back and forth** — Revisit topics from different angles. Mention the same concept in system context, in module breakdown, in interface definitions.
-- **"Decadent"** — Rich, layered, redundant connections.
+- **Redundant connections** — Rich, layered, multiple paths to the same information.
 
 ### Why This Works
 
@@ -158,7 +158,7 @@ If someone enters the design at the interface section, they should still underst
 - Interface: LocationListProps
 ```
 
-### Pattern: Decadent Spiral
+### Pattern: Woven Context
 
 ```markdown
 ## Better: Rich connections
