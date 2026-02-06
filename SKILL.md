@@ -1,5 +1,5 @@
 ---
-name: sdd
+name: liminal-spec
 description: |
   Spec-Driven Development for agentic coding. SDLC-phased pipeline with context isolation 
   and artifact handoff. Use when building features that need full traceability, 
