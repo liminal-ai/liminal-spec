@@ -94,7 +94,7 @@ describe("plugin output", () => {
       join(DIST_PLUGIN, ".claude-plugin", "plugin.json")
     ).json();
     expect(data.name).toBe("liminal-spec");
-    expect(data.version).toBe("0.1.0");
+    expect(data.version).toBe("0.2.0");
   });
 
   test("creates marketplace.json with required fields", async () => {
