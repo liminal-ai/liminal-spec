@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/liminal-ai/liminal-spec/compare/v0.1.0...v0.2.0) (2026-02-14)
+
+
+### Features
+
+* v0.2.0 — self-contained release workflow ([ed44636](https://github.com/liminal-ai/liminal-spec/commit/ed44636f0b0ac359c3d2b8e341ec77645b9b3180))
+
+
+### Bug Fixes
+
+* release workflow creates release if it doesn't exist ([bfcb2de](https://github.com/liminal-ai/liminal-spec/commit/bfcb2de533bbd1f34bcf57e329904fe2401f2c4a))
+
 ## v2.0.0 — Plugin Restructure (2026-02-14)
 
 Restructured from a single progressive-disclosure skill into a composable plugin with build pipeline.
