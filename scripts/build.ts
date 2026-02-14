@@ -13,7 +13,7 @@
  *   dist/standalone/liminal-{name}.md    -- Frontmatter-stripped skills
  */
 
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,15 @@ const SRC = join(ROOT, "src");
 const DIST = join(ROOT, "dist");
 const DIST_PLUGIN = join(DIST, "plugin");
 const DIST_STANDALONE = join(DIST, "standalone");
+const SKILL_STAGING = join(DIST_STANDALONE, ".skill-staging");
+
+/** Maps internal skill keys to descriptive filenames for standalone release artifacts. */
+const STANDALONE_NAMES: Record<string, string> = {
+  epic: "feature-specification",
+  "tech-design": "technical-design",
+  story: "story-sharding",
+  impl: "implementation",
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -219,13 +228,32 @@ async function build(): Promise<void> {
     await mkdir(skillDir, { recursive: true });
     await Bun.write(join(skillDir, "SKILL.md"), composed);
 
-    // Standalone output (no frontmatter)
+    // Standalone .md output (no frontmatter, for paste-into-chat)
     const standalone = stripFrontmatter(composed);
-    await Bun.write(join(DIST_STANDALONE, `liminal-${key}.md`), standalone);
+    const standaloneName = STANDALONE_NAMES[key] ?? key;
+    const mdFileName = `${standaloneName}-skill.md`;
+    await Bun.write(join(DIST_STANDALONE, mdFileName), standalone);
+
+    // .skill package (zipped directory with SKILL.md + frontmatter)
+    const skillPkgDir = join(SKILL_STAGING, standaloneName);
+    await mkdir(skillPkgDir, { recursive: true });
+    const skillMd =
+      buildFrontmatter(standaloneName, skill.description) + "\n\n" + standalone;
+    await Bun.write(join(skillPkgDir, "SKILL.md"), skillMd);
+
+    const skillPath = join(DIST_STANDALONE, `${standaloneName}.skill`);
+    const zipProc = Bun.spawn(
+      ["zip", "-r", skillPath, standaloneName],
+      { cwd: SKILL_STAGING, stdout: "pipe", stderr: "pipe" }
+    );
+    await zipProc.exited;
 
     summary.skills.push({ name: key, lines: lineCount });
     console.log(`  skill: ${key} (${lineCount} lines)`);
   }
+
+  // Clean up staging directory
+  await rm(SKILL_STAGING, { recursive: true, force: true });
 
   // ----- Agents -----
   for (const agent of manifest.agents) {

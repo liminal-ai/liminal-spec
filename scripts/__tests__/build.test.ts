@@ -160,31 +160,52 @@ describe("skill content", () => {
 // -------------------------------------------------------------------------
 
 describe("standalone output", () => {
-  const expectedFiles = [
-    "liminal-epic.md",
-    "liminal-tech-design.md",
-    "liminal-story.md",
-    "liminal-impl.md",
+  const expectedMdFiles = [
+    "feature-specification-skill.md",
+    "technical-design-skill.md",
+    "story-sharding-skill.md",
+    "implementation-skill.md",
   ];
 
-  for (const file of expectedFiles) {
+  const expectedSkillFiles = [
+    "feature-specification.skill",
+    "technical-design.skill",
+    "story-sharding.skill",
+    "implementation.skill",
+  ];
+
+  for (const file of expectedMdFiles) {
     test(`creates ${file}`, async () => {
       const exists = await Bun.file(join(DIST_STANDALONE, file)).exists();
       expect(exists).toBe(true);
     });
   }
 
-  test("standalone files do not have YAML frontmatter", async () => {
-    for (const file of expectedFiles) {
+  test("standalone md files do not have YAML frontmatter", async () => {
+    for (const file of expectedMdFiles) {
       const content = await Bun.file(join(DIST_STANDALONE, file)).text();
       expect(content.startsWith("---")).toBe(false);
     }
   });
 
-  test("standalone files have content", async () => {
-    for (const file of expectedFiles) {
+  test("standalone md files have content", async () => {
+    for (const file of expectedMdFiles) {
       const content = await Bun.file(join(DIST_STANDALONE, file)).text();
       expect(content.trim().length).toBeGreaterThan(100);
+    }
+  });
+
+  for (const file of expectedSkillFiles) {
+    test(`creates ${file}`, async () => {
+      const exists = await Bun.file(join(DIST_STANDALONE, file)).exists();
+      expect(exists).toBe(true);
+    });
+  }
+
+  test("skill files are non-empty zips", async () => {
+    for (const file of expectedSkillFiles) {
+      const bunFile = Bun.file(join(DIST_STANDALONE, file));
+      expect(bunFile.size).toBeGreaterThan(0);
     }
   });
 });

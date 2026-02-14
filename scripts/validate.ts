@@ -111,6 +111,7 @@ interface ValidationResult {
   skillsValid: number;
   agentsValid: number;
   standaloneValid: number;
+  skillFilesValid: number;
   errors: string[];
 }
 
@@ -118,6 +119,7 @@ const result: ValidationResult = {
   skillsValid: 0,
   agentsValid: 0,
   standaloneValid: 0,
+  skillFilesValid: 0,
   errors: [],
 };
 
@@ -253,9 +255,10 @@ async function validateAgents(): Promise<void> {
 }
 
 async function validateStandalone(): Promise<void> {
-  const glob = new Glob("*.md");
+  // Validate -skill.md files
+  const mdGlob = new Glob("*-skill.md");
 
-  for await (const match of glob.scan({
+  for await (const match of mdGlob.scan({
     cwd: DIST_STANDALONE,
     absolute: true,
   })) {
@@ -276,6 +279,26 @@ async function validateStandalone(): Promise<void> {
 
     console.log(`  standalone: ${fileName}`);
     result.standaloneValid++;
+  }
+
+  // Validate .skill (zipped) files
+  const skillGlob = new Glob("*.skill");
+
+  for await (const match of skillGlob.scan({
+    cwd: DIST_STANDALONE,
+    absolute: true,
+  })) {
+    const fileName = match.split("/").pop() ?? "unknown";
+    const file = Bun.file(match);
+    const size = file.size;
+
+    if (size === 0) {
+      result.errors.push(`Skill file '${fileName}': file is empty`);
+      continue;
+    }
+
+    console.log(`  skill file: ${fileName} (${size} bytes)`);
+    result.skillFilesValid++;
   }
 }
 
@@ -334,7 +357,7 @@ async function validate(): Promise<void> {
   }
 
   console.log(
-    `\nValidation passed: ${result.skillsValid} skills, ${result.agentsValid} agents, ${result.standaloneValid} standalone files`
+    `\nValidation passed: ${result.skillsValid} skills, ${result.agentsValid} agents, ${result.standaloneValid} standalone files, ${result.skillFilesValid} skill files`
   );
 }
 
