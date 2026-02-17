@@ -59,11 +59,21 @@ This gives you:
 | `/ls-story` | Phase 4 — shard into stories and generate prompt packs |
 | `/ls-impl` | Phase 5 — execute stories with TDD and verification |
 
+`ls-` command prefixes are intentional: they make slash-command autocomplete clearer and avoid collisions with generic command names like `/epic` or `/story`.
+
 The plugin also includes a **senior-engineer agent** for TDD implementation — rigorous TypeScript development with quality gates (format, lint, typecheck, test).
 
 Start with `/liminal-spec` and it will guide you to the right phase.
 
-### For non-Claude-Code users (BA/PO)
+### Distribution Formats
+
+| Format | Audience | Install/use mode | Contents |
+|--------|----------|------------------|----------|
+| Claude Code Plugin | Engineers, Tech Leads | `/plugin install liminal-spec@liminal-plugins` | Router command, `ls-*` phase skills, senior-engineer agent |
+| Standalone `.md` files | BA, PO, PM, non-plugin users | Download release artifact, paste into chat | One self-contained skill per file |
+| `.skill` files | Users who want installable individual phase packs | Download release artifact and install selected skill | Packaged single-skill distributions |
+
+### For non-Claude-Code users (BA/PO/PM)
 
 Download standalone files from [GitHub Releases](https://github.com/liminal-ai/liminal-spec/releases). Each file is self-contained and can be pasted directly into Claude Enterprise Chat or any AI assistant.
 
@@ -74,6 +84,17 @@ Download standalone files from [GitHub Releases](https://github.com/liminal-ai/l
 | `technical-design-skill.md` | Senior Dev, Tech Lead | Creating tech designs from a spec |
 | `story-sharding-skill.md` | Tech Lead, Engineers | Breaking features into stories and prompts |
 | `implementation-skill.md` | Engineers | Executing stories with TDD |
+
+## Execution SOP (Story Phases)
+
+For story execution (`/ls-story` + `/ls-impl`), the standard flow is:
+1. Run `skeleton-red` prompt.
+2. Run required post-Red self-review follow-up prompt (same implementation session).
+3. Run `tdd-green` prompt.
+4. Run required post-Green self-review follow-up prompt (same implementation session).
+5. Run Gorilla testing (human) and then dual verification.
+
+These two self-review checkpoints are now part of normal orchestration, not optional extras.
 
 ### From source (for development)
 
@@ -96,7 +117,25 @@ bun run verify      # Build + validate + test
 bun run check       # Build + validate
 ```
 
+`bun run verify` is the primary local quality gate before commit/push.
+
 Edit content in `src/`, never in `dist/`. The build composes phase content with shared references per the manifest and outputs a Claude Code plugin (`dist/plugin/`) and standalone markdown files (`dist/standalone/`). See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
+
+## Versioning and Release Tracking
+
+Liminal Spec uses one release version across plugin + marketplace + artifacts (not per-skill versioning).
+
+Tracked version fields:
+- `version.txt`
+- `manifest.json`
+- `package.json`
+- `.claude-plugin/marketplace.json` (`plugins[0].version`)
+
+Release flow:
+1. Bump version in all tracked fields.
+2. Run `bun run verify`.
+3. Merge/push to `main` and wait for CI.
+4. Tag `vX.Y.Z` and push tag to trigger release artifact publishing.
 
 ## Project Structure
 
@@ -112,7 +151,7 @@ scripts/
   build.ts         — Compose src/ into dist/
   validate.ts      — Validate build output
 manifest.json      — Maps which shared files each phase skill needs
-docs/              — Reference material not yet in the build
+docs/              — Long-form reference material and supporting notes
 plugins/           — Committed marketplace-installable plugin directories
 ```
 

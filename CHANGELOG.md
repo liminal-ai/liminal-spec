@@ -1,6 +1,23 @@
 # Changelog
 
-## v2.0.0 — Plugin Restructure (2026-02-14)
+## Unreleased
+
+### Added
+
+- **Phase 1 restored:** Product Research is now a first-class plugin phase (`/ls-research`) and included in standalone release artifacts.
+- **Command namespace clarity:** Phase skills now use explicit `ls-*` names for better slash-command discovery and reduced naming collisions.
+- **Execution SOP hardening:** Story/implementation guidance now requires post-`skeleton-red` and post-`tdd-green` self-review follow-up prompts before phase transitions.
+- **Verification ergonomics:** Added `bun run verify` as a single local gate (`build + validate + test`).
+- **Build/test isolation controls:** `build.ts` and `validate.ts` now support env-configurable output and optional marketplace sync/check behavior for less brittle test runs.
+
+### Changed
+
+- Build integration tests now run against isolated temp output paths and read expected version dynamically from `manifest.json`.
+- README now documents distribution formats, command namespace rationale, execution SOP checkpoints, and release/version tracking.
+
+---
+
+## v0.2.0 — Plugin Restructure (2026-02-14)
 
 Restructured from a single progressive-disclosure skill into a composable plugin with build pipeline.
 
@@ -16,6 +33,7 @@ Restructured from a single progressive-disclosure skill into a composable plugin
 | Skill | Phase | Content |
 |-------|-------|---------|
 | `/liminal-spec` | Router | Presents phase menu, routes to appropriate skill |
+| `/ls-research` | 1 (optional) | Product Research |
 | `/ls-epic` | 2 | Feature Specification |
 | `/ls-tech-design` | 3 | Tech Design |
 | `/ls-story` | 4 | Story Sharding + Prompt Drafting |
@@ -25,8 +43,8 @@ Restructured from a single progressive-disclosure skill into a composable plugin
 
 - `bun run build` — compose source into dist/
 - `bun run validate` — validate output structure and frontmatter
-- `bun test` — 23 integration tests
-- GitHub Actions: PR validation, release-please, tag-triggered artifact publishing
+- `bun test` — integration test suite
+- GitHub Actions: PR validation and tag-triggered artifact publishing
 
 ### Removed
 
