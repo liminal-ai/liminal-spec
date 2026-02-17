@@ -525,28 +525,44 @@ Launch Senior Engineer with both prompts sequentially:
    - Expected: Tests ERROR (stubs throw NotImplementedError)
    - Run `red-verify` (or equivalent) — format, lint, typecheck must pass
    - Commit checkpoint before proceeding to Green
+   - Run required **Red Self-Review follow-up prompt** in the same session
 
 2. **Green** — Implements to pass tests
    - Expected: All tests PASS, no test files modified
    - Run `green-verify` (or equivalent) — full verify + test immutability check
+   - Run required **Green Self-Review follow-up prompt** in the same session
 
 ### Self-Review
 
-After each major phase (Red complete, Green complete), the implementing agent reviews its own work in the same session. The self-review prompt should trust the model's project knowledge rather than enumerating specific checks:
+After each major phase (Red complete, Green complete), the implementing agent reviews its own work in the same session.
 
-```
-You just completed the [phase name] phase. Now do a thorough critical
+Use this exact prompt after Skeleton+Red:
+
+```text
+You just completed the skeleton-red phase. Now do a thorough critical
 review of your own implementation.
 
 If you find issues and the fix is not controversial or requiring a
 judgment call, fix them. Then report back: what issues you encountered,
 what you fixed, and any issues you encountered but didn't fix and why.
 
-Do a thorough assessment for readiness to move to the next phase.
-Final verdict: READY or NOT READY for [next phase].
+Do a thorough assessment for readiness to move to the tdd-green phase
 ```
 
-High-reasoning models already know the project standards. The prompt tells them to go deep and be critical — it doesn't need to enumerate what "deep" means.
+Use this exact prompt after TDD Green:
+
+```text
+You just completed the tdd green phase. Now do a thorough critical
+review of your own implementation.
+
+If you find issues and the fix is not controversial or requiring a
+judgment call, fix them. Then report back: what issues you encountered,
+what you fixed, and any issues you encountered but didn't fix and why.
+
+Do a thorough assessment for readiness to move to the full story dual verification phase
+```
+
+If self-review returns `NOT READY`, do not advance. Fix, then re-run the same self-review prompt.
 
 ### Gorilla Testing (Human)
 
@@ -755,11 +771,12 @@ Problems:
 - [ ] Tests ERROR as expected
 - [ ] `red-verify` passes (format + lint + typecheck)
 - [ ] Red commit checkpoint created
+- [ ] Red self-review prompt executed
 - [ ] Green executed
 - [ ] Tests PASS
 - [ ] No test files modified (or modifications justified)
 - [ ] `green-verify` passes
-- [ ] Self-review done
+- [ ] Green self-review prompt executed
 
 ### Verification
 - [ ] Gorilla testing done (human)

@@ -131,7 +131,9 @@ What this story delivers. What user can do after.
 | Phase | File | Purpose |
 |-------|------|---------|
 | Skeleton+Red | prompt-N.1-skeleton-red.md | Stubs + tests |
+| Red Self-Review | Inline follow-up prompt (same session) | Readiness gate before TDD Green |
 | Green | prompt-N.2-green.md | Implementation |
+| Green Self-Review | Inline follow-up prompt (same session) | Readiness gate before dual verification |
 | Verify | prompt-N.R-verify.md | Verification checklist |
 ```
 
@@ -257,11 +259,42 @@ For the full validation pattern — dual-validator, parallel validation, fix cyc
 For each story:
 1. Provide Skeleton+Red prompt → Fresh session executes
 2. Verify Red state (tests ERROR)
-3. Provide Green prompt → Fresh session executes
-4. Verify Green state (tests PASS)
-5. Human does Gorilla testing
-6. Provide Verify prompt → Fresh session validates
-7. Story complete
+3. Send **Red Self-Review prompt** in the same implementation session
+4. If self-review verdict is ready, provide Green prompt
+5. Verify Green state (tests PASS)
+6. Send **Green Self-Review prompt** in the same implementation session
+7. If self-review verdict is ready, proceed to Gorilla + Verify
+8. Human does Gorilla testing
+9. Provide Verify prompt → Fresh session validates
+10. Story complete
+
+### Standard Self-Review Follow-ups (Required)
+
+After `prompt-N.1-skeleton-red.md`, the orchestrator sends this prompt in the same session:
+
+```text
+You just completed the skeleton-red phase. Now do a thorough critical
+review of your own implementation.
+
+If you find issues and the fix is not controversial or requiring a
+judgment call, fix them. Then report back: what issues you encountered,
+what you fixed, and any issues you encountered but didn't fix and why.
+
+Do a thorough assessment for readiness to move to the tdd-green phase.
+```
+
+After `prompt-N.2-green.md`, the orchestrator sends this prompt in the same session:
+
+```text
+You just completed the tdd green phase. Now do a thorough critical
+review of your own implementation.
+
+If you find issues and the fix is not controversial or requiring a
+judgment call, fix them. Then report back: what issues you encountered,
+what you fixed, and any issues you encountered but didn't fix and why.
+
+Do a thorough assessment for readiness to move to the full story dual verification phase.
+```
 
 ### Handling Issues
 
@@ -316,7 +349,7 @@ Don't expect one-shot perfection. The structure supports iteration.
 For a typical feature, you produce:
 - Story 0: Infrastructure setup
 - Stories 1-N: Feature stories with full TDD cycle
-- Each story has: overview (story.md), skeleton-red prompt, green prompt, verify prompt
+- Each story has: overview (story.md), skeleton-red prompt, green prompt, verify prompt, and two inline self-review follow-ups (post-Red and post-Green)
 
 Each prompt pack is self-contained. Senior Engineers execute with zero prior context.
 
@@ -358,6 +391,10 @@ story-N-{description}/
 ├── prompt-N.2-green.md          # Implementation
 └── prompt-N.R-verify.md         # Verification
 ```
+
+Operational follow-ups (not separate files):
+- Post-Red self-review prompt (same implementation session)
+- Post-Green self-review prompt (same implementation session)
 
 ---
 
@@ -455,6 +492,8 @@ Red prompts must include a verification step that runs the full quality pipeline
 
 Red prompts must end with a commit instruction: commit all work before proceeding to Green. This creates the audit trail and rollback point between the test contract and the implementation.
 
+After Red completes, the orchestrator must send the standard Red Self-Review follow-up prompt before advancing.
+
 ```markdown
 ## Verification
 1. Run: `bun run red-verify` (or: format check + lint + typecheck)
@@ -470,6 +509,8 @@ Green prompts must explicitly state that Red tests are immutable:
 - If a test seems wrong, stop and surface it to the orchestrator rather than editing the test.
 
 Green verification must include a test-immutability check. If the project defines a `green-verify` script, use it. Otherwise, specify the verification pipeline plus a manual check that no test files changed.
+
+After Green completes, the orchestrator must send the standard Green Self-Review follow-up prompt before moving to dual verification.
 
 ```markdown
 ## Verification
