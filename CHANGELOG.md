@@ -17,6 +17,16 @@
 
 ---
 
+## v0.3.1 — Router Layout Readability (2026-02-17)
+
+### Changed
+
+- Restored `/liminal-spec` router phase matrix to a compact 3-column layout (`Phase`, `Skill`, `Start Here If...`) for terminal readability.
+- Removed `Entry`/`Exit` router columns and kept current `ls-*` command names.
+- Preserved existing router guidance text; this revision is a presentation fix only.
+
+---
+
 ## v0.2.0 — Plugin Restructure (2026-02-14)
 
 Restructured from a single progressive-disclosure skill into a composable plugin with build pipeline.

@@ -16,13 +16,21 @@ The traceability chain (requirement -> test condition -> test -> code) means tha
 
 ## The Phases
 
-| Phase | Skill | Entry | Exit | Start Here If... |
-|-------|-------|-------|------|------------------|
-| **1. Product Research** | `/ls-research` | Vision, idea | PRD | You need to explore direction before defining a feature |
-| **2. Epic** | `/ls-epic` | PRD or direct need | Epic | **Most common entry point.** You know what you want to build |
-| **3. Tech Design** | `/ls-tech-design` | Epic | Tech Design | You have a complete epic ready for architecture |
-| **4. Story Sharding** | `/ls-story` | Epic + Tech Design | Stories + Prompt Packs | Design is done, ready to break into executable work |
-| **5. Execution** | `/ls-impl` | Stories + Prompts | Verified code | Stories are sharded, ready to implement |
+┌─────────────────────┬───────────────────────────┬───────────────────────────────────────────────────────┐
+│        Phase        │           Skill           │                   Start Here If...                    │
+├─────────────────────┼───────────────────────────┼───────────────────────────────────────────────────────┤
+│ 1. Product Research │ /ls-research              │ You need to explore direction before defining a       │
+│                     │                           │ feature                                               │
+├─────────────────────┼───────────────────────────┼───────────────────────────────────────────────────────┤
+│ 2. Epic             │ /ls-epic                  │ Most common entry point. You know what you want to   │
+│                     │                           │ build                                                 │
+├─────────────────────┼───────────────────────────┼───────────────────────────────────────────────────────┤
+│ 3. Tech Design      │ /ls-tech-design           │ You have a complete epic ready for architecture       │
+├─────────────────────┼───────────────────────────┼───────────────────────────────────────────────────────┤
+│ 4. Story Sharding   │ /ls-story                 │ Design is done, ready to break into executable work   │
+├─────────────────────┼───────────────────────────┼───────────────────────────────────────────────────────┤
+│ 5. Execution        │ /ls-impl                  │ Stories are sharded, ready to implement               │
+└─────────────────────┴───────────────────────────┴───────────────────────────────────────────────────────┘
 
 Most work starts at **Phase 2**. Tell me what you are building and which phase you are starting from.
 

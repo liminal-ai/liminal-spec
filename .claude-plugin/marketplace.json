@@ -12,7 +12,7 @@
       "name": "liminal-spec",
       "source": "./plugins/liminal-spec",
       "description": "Spec-driven development methodology for agentic coding",
-      "version": "0.3.0"
+      "version": "0.3.1"
     }
   ]
 }
