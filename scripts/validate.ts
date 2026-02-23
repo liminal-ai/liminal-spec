@@ -83,6 +83,8 @@ const DIST_DIR = process.env.DIST_DIR?.trim() || "dist";
 const DIST = isAbsolute(DIST_DIR) ? DIST_DIR : join(ROOT, DIST_DIR);
 const DIST_PLUGIN = join(DIST, "plugin");
 const DIST_STANDALONE = join(DIST, "standalone");
+const SKILL_PACK_ZIP = "liminal-spec-skill-pack.zip";
+const MARKDOWN_PACK_ZIP = "liminal-spec-markdown-pack.zip";
 const MARKETPLACE_MANIFEST = join(ROOT, ".claude-plugin", "marketplace.json");
 const EXPECTED_MARKETPLACE_SOURCE = "./plugins/liminal-spec";
 const VALIDATE_MARKETPLACE_SOURCE =
@@ -121,7 +123,7 @@ interface ValidationResult {
   skillsValid: number;
   agentsValid: number;
   standaloneValid: number;
-  skillFilesValid: number;
+  standalonePacksValid: number;
   errors: string[];
 }
 
@@ -129,7 +131,7 @@ const result: ValidationResult = {
   skillsValid: 0,
   agentsValid: 0,
   standaloneValid: 0,
-  skillFilesValid: 0,
+  standalonePacksValid: 0,
   errors: [],
 };
 
@@ -308,24 +310,38 @@ async function validateStandalone(): Promise<void> {
     result.standaloneValid++;
   }
 
-  // Validate .skill (zipped) files
-  const skillGlob = new Glob("*.skill");
-
-  for await (const match of skillGlob.scan({
-    cwd: DIST_STANDALONE,
-    absolute: true,
-  })) {
-    const fileName = match.split("/").pop() ?? "unknown";
-    const file = Bun.file(match);
-    const size = file.size;
-
-    if (size === 0) {
-      result.errors.push(`Skill file '${fileName}': file is empty`);
+  // Validate standalone zip packs
+  const packFiles = [SKILL_PACK_ZIP, MARKDOWN_PACK_ZIP];
+  for (const fileName of packFiles) {
+    const fullPath = join(DIST_STANDALONE, fileName);
+    if (!(await fileExists(fullPath))) {
+      result.errors.push(`Missing standalone pack: ${fileName}`);
       continue;
     }
 
-    console.log(`  skill file: ${fileName} (${size} bytes)`);
-    result.skillFilesValid++;
+    const file = Bun.file(fullPath);
+    if (file.size === 0) {
+      result.errors.push(`Standalone pack '${fileName}' is empty`);
+      continue;
+    }
+
+    console.log(`  standalone pack: ${fileName} (${file.size} bytes)`);
+    result.standalonePacksValid++;
+  }
+
+  // Legacy artifact guard: .skill files should not be emitted.
+  const legacySkillGlob = new Glob("*.skill");
+  const legacySkillFiles: string[] = [];
+  for await (const match of legacySkillGlob.scan({
+    cwd: DIST_STANDALONE,
+    absolute: true,
+  })) {
+    legacySkillFiles.push(match.split("/").pop() ?? "unknown");
+  }
+  if (legacySkillFiles.length > 0) {
+    result.errors.push(
+      `Legacy .skill artifacts detected: ${legacySkillFiles.join(", ")}`
+    );
   }
 }
 
@@ -486,7 +502,7 @@ async function validate(): Promise<void> {
   }
 
   console.log(
-    `\nValidation passed: ${result.skillsValid} skills, ${result.agentsValid} agents, ${result.standaloneValid} standalone files, ${result.skillFilesValid} skill files`
+    `\nValidation passed: ${result.skillsValid} skills, ${result.agentsValid} agents, ${result.standaloneValid} standalone files, ${result.standalonePacksValid} standalone packs`
   );
 }
 

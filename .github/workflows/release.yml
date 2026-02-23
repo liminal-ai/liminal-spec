@@ -23,14 +23,16 @@ jobs:
       - name: Validate
         run: bun run validate
 
+      - name: Test
+        run: bun test
+
       - name: Package release artifacts
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           mkdir -p release
           cd dist/plugin && zip -r ../../release/liminal-spec-plugin-v${VERSION}.zip . && cd ../..
-          cd dist/standalone && zip -r ../../release/liminal-spec-standalone-v${VERSION}.zip *-skill.md && cd ../..
-          cp dist/standalone/*-skill.md release/
-          cp dist/standalone/*.skill release/
+          cp dist/standalone/liminal-spec-skill-pack.zip release/liminal-spec-skill-pack-v${VERSION}.zip
+          cp dist/standalone/liminal-spec-markdown-pack.zip release/liminal-spec-markdown-pack-v${VERSION}.zip
 
       - name: Create or update Release
         env:
@@ -39,15 +41,13 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           gh release create "$TAG" \
             release/liminal-spec-plugin-*.zip \
-            release/liminal-spec-standalone-*.zip \
-            release/*-skill.md \
-            release/*.skill \
+            release/liminal-spec-skill-pack-*.zip \
+            release/liminal-spec-markdown-pack-*.zip \
             --title "$TAG" \
             --generate-notes \
             2>/dev/null \
           || gh release upload "$TAG" \
             release/liminal-spec-plugin-*.zip \
-            release/liminal-spec-standalone-*.zip \
-            release/*-skill.md \
-            release/*.skill \
+            release/liminal-spec-skill-pack-*.zip \
+            release/liminal-spec-markdown-pack-*.zip \
             --clobber

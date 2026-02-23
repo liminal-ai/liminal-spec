@@ -69,15 +69,21 @@ Start with `/liminal-spec` and it will guide you to the right phase.
 
 ### Distribution Formats
 
-| Format | Audience | Install/use mode | Contents |
-|--------|----------|------------------|----------|
-| Claude Code Plugin | Engineers, Tech Leads | `claude plugin install liminal-spec@liminal-plugins` | Router command, `ls-*` phase skills, senior-engineer agent |
-| Standalone `.md` files | BA, PO, PM, non-plugin users | Download release artifact, paste into chat | One self-contained skill per file |
-| `.skill` files | Users who want installable individual phase packs | Download release artifact and install selected skill | Packaged single-skill distributions |
+| Format | Audience | Install | Contents |
+|--------|----------|---------|----------|
+| Plugin | Engineers, Tech Leads | `claude plugin install liminal-spec@liminal-plugins` | Router, phase skills, senior-engineer agent |
+| Skill Pack | Per-phase skill installation | Download from [Releases](https://github.com/liminal-ai/liminal-spec/releases) | One skill directory per phase |
+| Markdown Pack | BA, PO, PM, Claude Enterprise | Download from [Releases](https://github.com/liminal-ai/liminal-spec/releases) | One self-contained markdown per phase |
 
-### For non-Claude-Code users (BA/PO/PM)
+### Skill Pack
 
-Download standalone files from [GitHub Releases](https://github.com/liminal-ai/liminal-spec/releases). Each file is self-contained and can be pasted directly into Claude Enterprise Chat or any AI assistant.
+Download `liminal-spec-skill-pack-vX.Y.Z.zip` from Releases. Contains one directory per phase (`product-research/`, `epic/`, `technical-design/`, `story-sharding/`, `implementation/`), each with a `SKILL.md`. Copy the phases you need into your project's `.claude/skills/` directory.
+
+The plugin includes the router command and senior-engineer agent that the skill pack doesn't. Use the plugin if your environment supports it.
+
+### Markdown Pack
+
+Download `liminal-spec-markdown-pack-vX.Y.Z.zip` from [Releases](https://github.com/liminal-ai/liminal-spec/releases). Each file is self-contained — paste directly into Claude Enterprise Chat or any AI assistant.
 
 | File | For | Use when |
 |------|-----|----------|
@@ -86,35 +92,6 @@ Download standalone files from [GitHub Releases](https://github.com/liminal-ai/l
 | `technical-design-skill.md` | Senior Dev, Tech Lead | Creating tech designs from a spec |
 | `story-sharding-skill.md` | Tech Lead, Engineers | Breaking features into stories and prompts |
 | `implementation-skill.md` | Engineers | Executing stories with TDD |
-
-### Troubleshooting: Marketplace Config Corruption (`source.source: Invalid input`)
-
-If Claude Code fails at startup with an error like:
-
-```
-Marketplace configuration file is corrupted: liminal-plugins.source.source: Invalid input
-```
-
-you likely have an older marketplace source enum (`"dir"`) in your local Claude config. Newer Claude Code expects `"directory"`.
-
-Fix it by updating `~/.claude/plugins/known_marketplaces.json`, then restart Claude Code:
-
-```bash
-jq 'with_entries(
-  if .key == "liminal-plugins" and .value.source.source == "dir"
-  then .value.source.source = "directory"
-  else .
-  end
-)' ~/.claude/plugins/known_marketplaces.json > /tmp/known_marketplaces.fixed.json \
-  && mv /tmp/known_marketplaces.fixed.json ~/.claude/plugins/known_marketplaces.json
-```
-
-Then refresh/install again:
-
-```bash
-claude plugin marketplace update liminal-plugins
-claude plugin install liminal-spec@liminal-plugins
-```
 
 ## Execution SOP (Story Phases)
 
@@ -125,9 +102,11 @@ For story execution (`/ls-story` + `/ls-impl`), the standard flow is:
 4. Run required post-Green self-review follow-up prompt (same implementation session).
 5. Run Gorilla testing (human) and then dual verification.
 
-These two self-review checkpoints are now part of normal orchestration, not optional extras.
+Self-review checkpoints are part of standard orchestration, not optional extras.
 
-### From source (for development)
+## Development
+
+### From source
 
 ```bash
 git clone https://github.com/liminal-ai/liminal-spec.git
@@ -136,8 +115,6 @@ bun install
 bun run build
 claude --plugin-dir ./dist/plugin
 ```
-
-## Development
 
 ```bash
 bun install
@@ -150,7 +127,7 @@ bun run check       # Build + validate
 
 `bun run verify` is the primary local quality gate before commit/push.
 
-Edit content in `src/`, never in `dist/`. The build composes phase content with shared references per the manifest and outputs a Claude Code plugin (`dist/plugin/`) and standalone markdown files (`dist/standalone/`). See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
+Edit content in `src/`, never in `dist/`. The build composes phase content with shared references per the manifest and outputs a Claude Code plugin (`dist/plugin/`) and standalone files with pack zips (`dist/standalone/`). See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 
 ## Versioning and Release Tracking
 
@@ -164,9 +141,9 @@ Tracked version fields:
 
 Release flow:
 1. Bump version in all tracked fields.
-2. Run `bun run verify`.
-3. Merge/push to `main` and wait for CI.
-4. Tag `vX.Y.Z` and push tag to trigger release artifact publishing.
+2. Update the changelog header from "Unreleased" to the version and date.
+3. Run `bun run verify`.
+4. Commit, tag `vX.Y.Z`, and push to trigger release artifact publishing.
 
 ## Project Structure
 

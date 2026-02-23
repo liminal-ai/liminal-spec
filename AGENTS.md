@@ -58,6 +58,8 @@ Before opening or updating a PR:
 4. Content coherence (for methodology/content changes):
    - Spot-check affected `dist/plugin/skills/*/SKILL.md` for composition flow.
    - Spot-check affected `dist/standalone/*-skill.md` for paste-into-chat usability.
+   - Confirm standalone packs are generated: `dist/standalone/liminal-spec-skill-pack.zip` and `dist/standalone/liminal-spec-markdown-pack.zip`.
+   - Confirm legacy `dist/standalone/*.skill` artifacts are not emitted.
 5. Release-impact awareness:
    - If this PR is intended to release, version fields are updated consistently per release rules.
 
@@ -92,7 +94,7 @@ When adding a new skill:
 
 ## Release/Versioning Rules
 
-Before tagging a release, keep versions in sync:
+Before tagging a release, update versions in all four places:
 
 - `version.txt`
 - `manifest.json`
@@ -101,8 +103,8 @@ Before tagging a release, keep versions in sync:
 
 Then:
 
-1. Run `bun run verify`.
-2. Run `bun run build` (ensures `plugins/liminal-spec/` sync).
+1. Update the changelog: change "Unreleased" header to `vX.Y.Z (YYYY-MM-DD)`.
+2. Run `bun run verify` (builds, validates, tests, syncs `plugins/liminal-spec/`).
 3. Commit.
 4. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 

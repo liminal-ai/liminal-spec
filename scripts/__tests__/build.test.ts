@@ -250,12 +250,9 @@ describe("standalone output", () => {
     "implementation-skill.md",
   ];
 
-  const expectedSkillFiles = [
-    "product-research.skill",
-    "epic.skill",
-    "technical-design.skill",
-    "story-sharding.skill",
-    "implementation.skill",
+  const expectedStandalonePacks = [
+    "liminal-spec-skill-pack.zip",
+    "liminal-spec-markdown-pack.zip",
   ];
 
   for (const file of expectedMdFiles) {
@@ -279,18 +276,30 @@ describe("standalone output", () => {
     }
   });
 
-  for (const file of expectedSkillFiles) {
+  for (const file of expectedStandalonePacks) {
     test(`creates ${file}`, async () => {
       const exists = await Bun.file(join(DIST_STANDALONE, file)).exists();
       expect(exists).toBe(true);
     });
   }
 
-  test("skill files are non-empty zips", async () => {
-    for (const file of expectedSkillFiles) {
+  test("standalone packs are non-empty zips", async () => {
+    for (const file of expectedStandalonePacks) {
       const bunFile = Bun.file(join(DIST_STANDALONE, file));
       expect(bunFile.size).toBeGreaterThan(0);
     }
+  });
+
+  test("does not emit legacy .skill artifacts", async () => {
+    const glob = new Bun.Glob("*.skill");
+    const legacy: string[] = [];
+    for await (const match of glob.scan({
+      cwd: DIST_STANDALONE,
+      absolute: false,
+    })) {
+      legacy.push(match);
+    }
+    expect(legacy).toEqual([]);
   });
 });
 

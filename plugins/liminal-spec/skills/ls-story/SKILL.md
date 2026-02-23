@@ -377,13 +377,25 @@ tech design.
 These gates are the minimum; also look for unexpected regressions or
 mismatches with spec/contract beyond this list.
 
+File-touch allow-lists are optional — include them only when they add signal for
+this story. If included, treat deviations as audit inputs: require explanation
+and a brief risk assessment, and do not fail solely because extra files were
+touched unless it introduces regressions, spec drift, or unjustified scope
+expansion.
+
 Run the full verification pipeline. Check each TC from the story. Verify
 the implementation follows the tech design's patterns and constraints.
 
 If any test files were modified during Green, review git history on those
 files to confirm changes preserved AC/TC intent rather than weakening checks.
 
-Report: PASS or FAIL with TC-by-TC status.
+Run a shim/fudge audit as a required gate:
+
+- Flag temporary shims/placeholders in non-test code presented as final behavior
+- Flag internal-module mocking that bypasses real in-process integration
+- If any shim is intentionally temporary, require explicit owner + removal condition
+
+Report: PASS or FAIL with TC-by-TC status, plus shim audit status and findings.
 ```
 
 ### If Blocked or Uncertain
@@ -413,6 +425,38 @@ Before giving prompts to Senior Engineer, validate them. At minimum: self-review
 
 For the full validation pattern — dual-validator, parallel validation, fix cycles, and consolidation — use the Execution Orchestration guidance in Phase 5 (`/ls-impl`) for this project.
 
+### Final Dual Verification Gate (Required Before Execution)
+
+After all stories are sharded and all prompt packs are written, run one final
+feature-level dual verification pass before launching implementation sessions.
+This is the final round of verification and edits in Phase 4.
+
+Use two models in parallel:
+
+1. **Codex validator** (`gpt-5.2-codex` or newer available Codex model): detailed,
+   cross-story gap audit
+2. **Opus validator** (Opus 4.5+): verifies findings and synthesizes final gate
+   decision
+
+These are minimum gates, not the full scope:
+
+- End-to-end AC/TC coherence across all stories and prompts
+- Integration seam ownership across story boundaries
+- Deferred dependency integrity (no "done later" without explicit owner and valid sequence)
+- Prompt/reference coherence (story, epic, tech design pointers are correct and aligned)
+- Shim/fudge risk indicators in prompts and expected implementation flow
+
+Both validators are expected to find additional issues beyond this list. Do not
+constrain review to checklist-only auditing.
+
+If either validator returns blockers or unresolved major issues:
+
+1. Consolidate findings
+2. Apply edits to stories/prompts
+3. Re-run the dual verification gate
+
+Do not move to execution until this gate returns **READY**.
+
 ---
 
 ## TDD Principles in Prompts
@@ -437,11 +481,15 @@ The TDD cycle depends on a few non-negotiable principles. These should be commun
 
 - Checklist gates are the minimum — also look for unexpected regressions or mismatches beyond the checklist
 - If test files were modified during Green, the verifier reviews git history to confirm changes preserved AC/TC intent
+- Shim/fudge detection is required in verification; surface and fail unresolved shim risks
 - The verifier operates with an auditor's lens, not a builder's
 
 ---
 
 ## Orchestration
+
+Execution starts only after the Final Dual Verification Gate returns **READY**
+and all required edits are complete.
 
 ### Launching Senior Engineer Sessions
 

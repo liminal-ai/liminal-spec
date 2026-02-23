@@ -10,7 +10,7 @@ This is NOT a library or npm package. The build output is markdown files organiz
 
 **Marketplace install source** (`plugins/liminal-spec/`) — Committed, installable plugin layout used by `claude plugin install ...@liminal-plugins`. This directory is generated from `dist/plugin/` by the build.
 
-**Standalone** (`dist/standalone/`) — For non-Claude-Code users (BA, PO) who paste a single markdown file into Claude Enterprise Chat or any AI assistant. Each file is fully self-contained — no plugin infrastructure, no frontmatter, just the methodology content for one phase.
+**Standalone** (`dist/standalone/`) — For non-Claude-Code users (BA, PO) and custom/local skill workflows. Output includes per-phase markdown files (`*-skill.md`) plus two release packs: `liminal-spec-skill-pack.zip` (installable skill directories) and `liminal-spec-markdown-pack.zip` (paste-into-chat markdown bundle).
 
 Both outputs are composed from the same source files. The build handles the packaging differences.
 
@@ -55,7 +55,7 @@ manifest.json      — Maps which shared files each phase skill needs
 docs/              — Reference material not yet in the build pipeline
 dist/              — Build output (gitignored)
   plugin/          — Claude Code plugin (skills/ + agents/ + commands/ + marketplace)
-  standalone/      — Paste-ready MDs for non-Claude-Code users (BA/PO)
+  standalone/      — Paste-ready MDs + skill-pack and markdown-pack zips
 plugins/           — Committed marketplace-installable plugin directories
 ```
 
@@ -71,7 +71,7 @@ bun run verify      # Build + validate + tests
 
 ### How the Build Works
 
-`manifest.json` declares which shared files each phase skill needs. `scripts/build.ts` reads the manifest, concatenates phase content + shared content in declared order, wraps with SKILL.md YAML frontmatter, and outputs to `dist/plugin/skills/<name>/SKILL.md`. It also strips frontmatter and outputs to `dist/standalone/liminal-<name>.md` for paste-into-chat distribution.
+`manifest.json` declares which shared files each phase skill needs. `scripts/build.ts` reads the manifest, concatenates phase content + shared content in declared order, wraps with SKILL.md YAML frontmatter, and outputs to `dist/plugin/skills/<name>/SKILL.md`. It also strips frontmatter and outputs per-phase markdown files (`dist/standalone/*-skill.md`) plus pack zips (`liminal-spec-skill-pack.zip`, `liminal-spec-markdown-pack.zip`) for release distribution.
 
 The build also copies agents, commands, generates plugin.json + marketplace.json in `dist/plugin/.claude-plugin/`, then syncs a committed marketplace install source at `plugins/liminal-spec/`.
 
@@ -149,6 +149,7 @@ Before opening or updating a PR:
 4. For content/methodology edits:
    - spot-check affected `dist/plugin/skills/*/SKILL.md` for composition coherence
    - spot-check affected `dist/standalone/*-skill.md` for standalone usability
+   - confirm standalone packs exist (`dist/standalone/liminal-spec-skill-pack.zip`, `dist/standalone/liminal-spec-markdown-pack.zip`) and no legacy `*.skill` files are emitted
 5. If intended as release prep, keep version fields synchronized (see Release Process below).
 
 ### About `docs/`
@@ -166,16 +167,16 @@ The `docs/` directory holds long-form reference material that may or may not be 
 
 ## Release Process
 
-1. Push to main (directly or via PR merge) → CI runs build + validate + test
-2. When ready to release, update version in all five places:
+1. Push to main (directly or via PR merge).
+2. When ready to release, update version in all four places:
    - `version.txt`
    - `manifest.json`
    - `package.json`
    - `.claude-plugin/marketplace.json`
-   - `scripts/__tests__/build.test.ts` (version assertion in the plugin.json test)
-3. Run `bun run build` to sync `plugins/liminal-spec/` from source.
-4. Commit the version bump, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
-5. Tag triggers release workflow → builds, validates, packages plugin + standalone zips, creates GitHub Release with artifacts
+3. Update the changelog: change "Unreleased" header to `vX.Y.Z (YYYY-MM-DD)`.
+4. Run `bun run verify` (builds, validates, runs tests, syncs `plugins/liminal-spec/`).
+5. Commit the version bump + changelog, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
+6. Tag triggers release workflow → builds, validates, tests, packages plugin + skill-pack + markdown-pack zips, creates GitHub Release with artifacts
 
 The tag is the explicit "ship it" signal. Code can accumulate on main across multiple pushes without releasing.
 
@@ -203,7 +204,7 @@ This project IS the liminal-spec methodology. These principles govern how you wo
 
 Before tagging a release, verify content coherence:
 
-1. `bun run check` passes (structural validation)
+1. `bun run verify` passes (build + validate + test)
 2. Review each `dist/plugin/skills/*/SKILL.md` — does the inlined shared content flow naturally after the phase content?
 3. For significant content changes: run a cross-model comparison (e.g. Codex at high reasoning) against previous release output to catch unintended drift
 4. Spot-check a `dist/standalone/*.md` file — is it usable when pasted into a chat with no other context?

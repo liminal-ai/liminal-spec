@@ -10,7 +10,9 @@
  *   dist/plugin/commands/{command}.md     -- Command definitions
  *   dist/plugin/.claude-plugin/plugin.json
  *   dist/plugin/.claude-plugin/marketplace.json
- *   dist/standalone/liminal-{name}.md    -- Frontmatter-stripped skills
+ *   dist/standalone/{name}-skill.md      -- Frontmatter-stripped single skill markdown
+ *   dist/standalone/liminal-spec-skill-pack.zip
+ *   dist/standalone/liminal-spec-markdown-pack.zip
  *   plugins/liminal-spec/**               -- Marketplace-installable plugin layout
  *
  * Optional environment variables:
@@ -58,7 +60,15 @@ const DIST_DIR = process.env.DIST_DIR?.trim() || "dist";
 const DIST = isAbsolute(DIST_DIR) ? DIST_DIR : join(ROOT, DIST_DIR);
 const DIST_PLUGIN = join(DIST, "plugin");
 const DIST_STANDALONE = join(DIST, "standalone");
-const SKILL_STAGING = join(DIST_STANDALONE, ".skill-staging");
+const SKILL_PACK_DIR_NAME = "liminal-spec-skill-pack";
+const MARKDOWN_PACK_DIR_NAME = "liminal-spec-markdown-pack";
+const SKILL_PACK_DIR = join(DIST_STANDALONE, SKILL_PACK_DIR_NAME);
+const MARKDOWN_PACK_DIR = join(DIST_STANDALONE, MARKDOWN_PACK_DIR_NAME);
+const SKILL_PACK_ZIP = join(DIST_STANDALONE, `${SKILL_PACK_DIR_NAME}.zip`);
+const MARKDOWN_PACK_ZIP = join(
+  DIST_STANDALONE,
+  `${MARKDOWN_PACK_DIR_NAME}.zip`
+);
 const MARKETPLACE_DIR =
   process.env.MARKETPLACE_DIR?.trim() || "plugins/liminal-spec";
 const MARKETPLACE_PLUGIN_DIR = isAbsolute(MARKETPLACE_DIR)
@@ -112,6 +122,25 @@ function buildFrontmatter(name: string, description: string): string {
 function stripFrontmatter(content: string): string {
   const fmRegex = /^---\n[\s\S]*?\n---\n*/;
   return content.replace(fmRegex, "").trimStart();
+}
+
+async function zipDirectory(
+  archiveName: string,
+  directoryName: string,
+  cwd: string
+): Promise<void> {
+  const proc = Bun.spawn(["zip", "-r", archiveName, directoryName], {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const exitCode = await proc.exited;
+  if (exitCode !== 0) {
+    const stderr = await new Response(proc.stderr).text();
+    throw new Error(
+      `zip failed for ${archiveName} (exit ${exitCode}): ${stderr.trim()}`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +264,8 @@ async function build(): Promise<void> {
   // Create output directories
   await mkdir(join(DIST_PLUGIN, ".claude-plugin"), { recursive: true });
   await mkdir(DIST_STANDALONE, { recursive: true });
+  await mkdir(SKILL_PACK_DIR, { recursive: true });
+  await mkdir(MARKDOWN_PACK_DIR, { recursive: true });
 
   // ----- Skills -----
   for (const [key, skill] of Object.entries(manifest.skills)) {
@@ -251,27 +282,32 @@ async function build(): Promise<void> {
     const standaloneName = STANDALONE_NAMES[key] ?? key;
     const mdFileName = `${standaloneName}-skill.md`;
     await Bun.write(join(DIST_STANDALONE, mdFileName), standalone);
+    await Bun.write(join(MARKDOWN_PACK_DIR, mdFileName), standalone);
 
-    // .skill package (zipped directory with SKILL.md + frontmatter)
-    const skillPkgDir = join(SKILL_STAGING, standaloneName);
+    // Skill-pack content (directory with SKILL.md + frontmatter per skill)
+    const skillPkgDir = join(SKILL_PACK_DIR, standaloneName);
     await mkdir(skillPkgDir, { recursive: true });
     const skillMd =
       buildFrontmatter(standaloneName, skill.description) + "\n\n" + standalone;
     await Bun.write(join(skillPkgDir, "SKILL.md"), skillMd);
 
-    const skillPath = join(DIST_STANDALONE, `${standaloneName}.skill`);
-    const zipProc = Bun.spawn(
-      ["zip", "-r", skillPath, standaloneName],
-      { cwd: SKILL_STAGING, stdout: "pipe", stderr: "pipe" }
-    );
-    await zipProc.exited;
-
     summary.skills.push({ name: key, lines: lineCount });
     console.log(`  skill: ${key} (${lineCount} lines)`);
   }
 
-  // Clean up staging directory
-  await rm(SKILL_STAGING, { recursive: true, force: true });
+  // Create standalone packs
+  await zipDirectory(`${SKILL_PACK_DIR_NAME}.zip`, SKILL_PACK_DIR_NAME, DIST_STANDALONE);
+  await zipDirectory(
+    `${MARKDOWN_PACK_DIR_NAME}.zip`,
+    MARKDOWN_PACK_DIR_NAME,
+    DIST_STANDALONE
+  );
+  console.log(`  standalone pack: ${SKILL_PACK_ZIP}`);
+  console.log(`  markdown pack: ${MARKDOWN_PACK_ZIP}`);
+
+  // Clean up pack staging directories
+  await rm(SKILL_PACK_DIR, { recursive: true, force: true });
+  await rm(MARKDOWN_PACK_DIR, { recursive: true, force: true });
 
   // ----- Agents -----
   for (const agent of manifest.agents) {

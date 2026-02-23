@@ -1,19 +1,54 @@
 # Changelog
 
-## Unreleased
+## v0.4.1 (2026-02-23)
+
+Story Sharding adds a dual-model verification gate and shim/fudge audit. Release artifacts consolidated from individual files to two versioned packs. README and changelog rewritten for clarity.
 
 ### Added
 
-- **Phase 1 restored:** Product Research is now a first-class plugin phase (`/ls-research`) and included in standalone release artifacts.
-- **Command namespace clarity:** Phase skills now use explicit `ls-*` names for better slash-command discovery and reduced naming collisions.
-- **Execution SOP hardening:** Story/implementation guidance now requires post-`skeleton-red` and post-`tdd-green` self-review follow-up prompts before phase transitions.
-- **Verification ergonomics:** Added `bun run verify` as a single local gate (`build + validate + test`).
-- **Build/test isolation controls:** `build.ts` and `validate.ts` now support env-configurable output and optional marketplace sync/check behavior for less brittle test runs.
+- **Pre-execution verification gate:** All stories and prompt packs go through a dual-model pass with fix cycles before execution begins.
+- **Shim/fudge audit in verification:** Per-story verify now flags temporary shims, placeholder behavior, and internal-module mocking bypasses.
 
 ### Changed
 
-- Build integration tests now run against isolated temp output paths and read expected version dynamically from `manifest.json`.
-- README now documents distribution formats, command namespace rationale, execution SOP checkpoints, and release/version tracking.
+- **Standalone packaging:** Build emits two packs instead of per-skill `.skill` zips:
+  - `liminal-spec-skill-pack.zip` — installable skill directories
+  - `liminal-spec-markdown-pack.zip` — paste-into-chat markdown files
+  - Per-phase `*-skill.md` files still emitted alongside the packs
+- **Release workflow:** Publishes versioned pack artifacts instead of individual `.skill` and markdown files.
+- **Validation:** Enforces pack existence and rejects legacy `.skill` artifacts. Integration tests assert the same.
+- README rewritten: distribution formats, skill-pack instructions, structural cleanup.
+- Changelog restructured: v0.4.0 entry added, prior history rewritten as project evolution narrative.
+
+### Removed
+
+- Per-skill `.skill` artifacts from build output and release publishing.
+
+### Migration
+
+- Automation consuming `release/*.skill`: switch to `liminal-spec-skill-pack-vX.Y.Z.zip`.
+- Claude Enterprise distribution: use `liminal-spec-markdown-pack-vX.Y.Z.zip`.
+- Plugin installation unchanged.
+
+---
+
+## v0.4.0 (2026-02-19)
+
+Story and implementation phase guidance aligned. Product Research restored as a first-class phase. AGENTS.md added as contributor reference.
+
+### Added
+
+- **Product Research phase:** `/ls-research` restored as a first-class plugin skill, included in standalone artifacts.
+- **`ls-*` command namespace:** Phase skills use explicit prefixes for clearer autocomplete and fewer collisions.
+- **Self-review checkpoints:** Skeleton-red and tdd-green phases require a self-review follow-up prompt before advancing.
+- **`bun run verify`:** Single command for build + validate + test.
+- **Build/test isolation:** `build.ts` and `validate.ts` support env-configurable output paths and optional marketplace sync for test isolation.
+- **AGENTS.md:** Contributor reference with PR checklist, build commands, and release process.
+
+### Changed
+
+- **Story/impl guidance alignment:** Story sharding and implementation phases updated for consistency in prompt structure, self-review language, and verification flow.
+- Build tests run against isolated temp output and read version from `manifest.json`.
 
 ---
 
@@ -23,7 +58,7 @@
 
 - Restored `/liminal-spec` router phase matrix to a compact 3-column layout (`Phase`, `Skill`, `Start Here If...`) for terminal readability.
 - Removed `Entry`/`Exit` router columns and kept current `ls-*` command names.
-- Preserved existing router guidance text; this revision is a presentation fix only.
+- Preserved existing router guidance text; presentation fix only.
 
 ---
 
@@ -71,275 +106,28 @@ Restructured from a single progressive-disclosure skill into a composable plugin
 
 ## Prior History (v1 → v1.x)
 
-The following documents changes during the original single-skill development.
+Liminal Spec started as a single SKILL.md file — one document covering all phases, loaded whole into context. The methodology evolved through several rounds of refinement as real usage exposed what worked and what didn't.
 
----
+### Early structure
 
-# Changelog: v8-reworked vs v2-full
+The initial versions established the core pipeline (BA → Tech Lead → Scrum Master → Senior Engineer → Verifier) and the confidence chain (AC → TC → Test → Code). Phase execution, mock-at-API-boundary testing, and state management were solid from early on. The Product Owner phase existed but was marked "often skipped" — most work entered at the BA phase with requirements already in hand.
 
-This document tracks what changed from v2-full to v8-reworked based on the brain dump from 2026-01-29.
+### Conceptual clarifications
 
-## Summary of Key Changes
+Several rounds of real-world use surfaced concepts that the early versions either missed or left implicit:
 
-The brain dump clarified several concepts that v2-full either missed or didn't emphasize enough. The main themes:
+- **Agents = context isolation, not roleplay.** The original framing suggested "personas" — be the BA, be the Tech Lead. In practice, what mattered was fresh context windows with artifact handoff. The role labels were convenient shorthand, but the mechanism was context isolation. This distinction was made explicit throughout.
 
-1. **Agents = Context Isolation, Not Roleplay** — Made explicit throughout
-2. **Verification Gradient** — Elevated to core concept with dedicated reference file
-3. **Feature Spec Hierarchy** — User Profile → Flows → ACs → TCs cascade explained
-4. **Decadent Spiral Writing** — Tech design writing style made explicit
-5. **Multi-Agent Validation Pattern** — Author + downstream consumer + different model
-6. **BMAD Clearly External** — SDD's PO is lightweight, BMAD is separate workflow
-7. **Gorilla Testing** — Emphasized as legitimate phase, not afterthought
+- **Verification gradient.** Upstream phases deserve more scrutiny because errors cascade. The feature spec gets the most review because if it's wrong, everything downstream is wrong. This was implicit in the pipeline design but never stated as a principle.
 
----
+- **Feature spec hierarchy.** User Profile → Flows → ACs → TCs isn't just a template — it's a cascade where each level depends on the one above. You can't write a good TC without a clear AC. You can't write a good AC without understanding the flow. Making this dependency chain explicit changed how specs were written.
 
-## SKILL.md Changes
+- **Spiral writing style for tech designs.** Tech designs that descended linearly (system → module → interface) produced thin context that agents struggled with. The spiral pattern — functional ↔ technical, high ↔ low, revisiting topics from multiple angles — created redundant connections that both humans and models could navigate. This became a core writing principle.
 
-### Added
+- **Multi-agent validation.** Using a single model to both write and validate an artifact missed things. The author + downstream consumer + different model pattern caught more issues. This became the dual-validator pattern used throughout.
 
-- **"SDD is SDD"** section — No "lite" versions. Either full rigor or different workflow.
-- **"Core Concept: Agents = Context Isolation"** — Dedicated section explaining this is about fresh context, not roleplay.
-- **"Writing Style: The Decadent Spiral"** — Prominent section on tech design writing approach.
-- **BMAD clarification** — Explicit note that BMAD is external, not integrated into SDD.
-- **Expansion ratios** — "300-line feature spec → 2k lines tech design" made explicit.
-- **Flexibility note** on verification — "Describes WHAT/WHEN, leaves HOW flexible"
+- **Gorilla testing.** Ad-hoc manual testing between TDD Green and formal verification was happening informally. Making it a named phase legitimized unstructured exploration within the structured process — a recognition that humans catch things automation doesn't.
 
-### Changed
+### Structural shift (v1.x → v0.2.0)
 
-- **Description** — Added "SDD either runs full or not at all — no 'lite' versions."
-- **Agent table** — Added output sizes (Feature Spec ~300 lines, Tech Design ~2k lines)
-- **Story Execution Cycle** — Gorilla testing emphasized with explanation of why it exists
-- **Verification Gradient** — Added "Flexibility" note about describing checkpoints vs prescribing orchestration
-- **Multi-Agent Validation table** — Added "Consumer Reviews" column clarity
-
-### Removed
-
-- Nothing significant removed — v2-full had good structure
-
----
-
-## New Reference File: verification.md
-
-Created dedicated file for verification patterns. From brain dump:
-
-> "The feature spec gets the most attention because: More on track here → everything else on track. More off here → everything downstream is off."
-
-Covers:
-- The scrutiny gradient with visual representation
-- Feature Spec verification steps (self-review → Tech Lead → additional model → human)
-- Multi-agent validation pattern (Author + Downstream Consumer table)
-- Orchestration flexibility note
-- Verification checkpoints for each phase transition
-
----
-
-## business-analyst.md Changes
-
-### Added
-
-- **"Why this hierarchy matters"** — Explicit explanation of User Profile → Flows → ACs → TCs cascade
-- **"The cascade"** — "You can't write a good TC without a clear AC..."
-- **Self-review checkpoint** — Added to validation checklist
-- **Downstream consumer pattern** — Tech Lead validates by confirming they can design from it
-- **Output section** — Feature Spec ~300 lines, expands to ~2000 lines tech design
-
-### Changed
-
-- Reorganized to emphasize hierarchy first
-- Each section now has "Why it matters" explanation
-- Validation section split into self-review and human review
-
----
-
-## tech-lead.md Changes
-
-### Added
-
-- **"Tech Design Writing Style: The Decadent Spiral"** — Major new section from brain dump
-- **The Spiral Pattern** — Functional↔Technical, High↔Low, Back and forth, "Decadent"
-- **"Why This Works"** — "Redundant connections — multiple paths through the material"
-- **"Web of weights, not thin thread"** — Key metaphor from brain dump
-- **Anti-pattern example** — "Thin Linear Design" vs "Decadent Spiral"
-- **Self-review checkpoint** — "Is the spiral pattern present?"
-- **Output section** — Tech Design ~2000 lines for 300-line spec
-
-### Changed
-
-- Renamed "Work Plan" section to "Chunking for Stories" for clarity
-- Added "Chunk" terminology (aligns with brain dump)
-- Validation emphasizes decadent spiral check
-
----
-
-## scrum-master.md Changes
-
-### Added
-
-- **"Prompt Validation (Multi-Agent)"** — Major new section from brain dump
-  - Self-review → SE preview → Different model review → Cross-check
-  - Validation pattern diagram
-  - Adversarial/diverse perspectives concept
-- **"Key Point: Inline Content"** — Tech design content IN the prompt, not just referenced
-- **"Impl vs Verifier Prompts"** section — Same material, different lens
-- **"Iteration is Expected"** section — Multiple rounds is normal
-
-### Changed
-
-- Prompt structure now shows composable layers (Product → Project → Feature → Story → Task)
-- Anti-patterns table updated with "See tech design for details" → inline
-- Expanded orchestration section
-
----
-
-## product-owner.md Changes
-
-### Added
-
-- **"BMAD and External Product Tools"** — Dedicated section making clear:
-  - BMAD is separate workflow, not integrated
-  - SDD's PO is lightweight (single agent, Product Brief → PRD)
-  - "SDD picks up when you have requirements"
-
-### Changed
-
-- Made "often skipped" more prominent
-- Added "Most SDD work skips PO entirely" statement
-
----
-
-## context-economics.md Changes
-
-### Added
-
-- **"Treating agents as roleplay"** anti-pattern — "'Be the BA persona' is not the point"
-- Clarified "Artifact as Interface" with emphasis on completeness
-
-### Changed
-
-- Opening reworded to emphasize "doesn't mean roleplay personas"
-- Added explicit note about what "Agent" means in SDD
-
----
-
-## senior-engineer.md Changes
-
-### Added
-
-- **Gorilla Testing section** — "Legitimizes unstructured exploration within structured process"
-- **"The Prompt Pack is Your World"** section — Trust the prompt, references are for humans
-
-### Changed
-
-- Minor wording updates for consistency
-
----
-
-## phase-execution.md Changes
-
-### Added
-
-- **Extended Gorilla Testing section** — "Why This Phase Exists"
-  - "Legitimizes unstructured exploration"
-  - "Not a failure of rigor — recognition that humans catch things automation doesn't"
-- **TDD Red anti-pattern explanation** — Why testing NotImplementedError is dangerous
-
-### Changed
-
-- Minor wording updates for consistency
-
----
-
-## terminology.md Changes
-
-### Added
-
-- **SDD definition** — "Full rigor or don't use it — no 'lite' versions"
-- **Verification Gradient** term
-- **Multi-Agent Validation** term
-- **Decadent Spiral** term
-- **Downstream Consumer** term
-- **Artifact as Interface** term
-- **SDD Lite** anti-pattern
-- **Agent as Roleplay** anti-pattern
-
-### Changed
-
-- Agent definition now explicitly says "Means context isolation, not roleplay personas"
-- BA definition adds "most scrutiny here"
-- Verifier definition adds "pedantic is the point"
-
----
-
-## story-prompts.md Changes
-
-### Added
-
-- **Composable prompt pack structure** — Shows layered summary approach
-- **"Content IN the Prompt"** section — Don't require model to read other docs
-- **"Impl vs Verifier Prompts"** section
-
-### Changed
-
-- Minor reorganization for clarity
-
----
-
-## testing.md Changes
-
-### Added
-
-- **"Critical Rule: Assert Behavior, Not Errors"** — Elevated to prominent section
-- **Explanation of why anti-pattern is dangerous**
-- **Test count tracking** section
-
-### Changed
-
-- Minor updates for consistency
-
----
-
-## state-management.md Changes
-
-### Changed
-
-- Minor wording updates only — v2-full was solid
-
----
-
-## What Was Kept From v2-full
-
-v2-full had good structure and captured many core concepts correctly:
-
-- Overall agent pipeline
-- Confidence chain (AC → TC → Test → Code)
-- Phase execution cycle
-- Mock at API boundary principle
-- State management approach
-- Progressive disclosure organization
-
-The rework built on this foundation rather than replacing it.
-
----
-
-## Key Brain Dump Insights Now Captured
-
-From the brain dump inventory:
-
-1. ✅ **Key principles** — SDD is SDD, no lite versions, no diagnostics filler, agents = context isolation
-2. ✅ **Real agent flow** — PO (often skipped) → BA → Tech Lead → Scrum Master → Senior Engineer → Verifier
-3. ✅ **Feature spec hierarchy** — User Profile → Flows → ACs → TCs, WHY each level matters
-4. ✅ **Story execution cycle** — Skeleton → TDD Red → TDD Green → Gorilla Testing → Verification
-5. ✅ **Prompt structure** — Composable packs, self-contained, layered summaries
-6. ✅ **Context economics** — Expansion ratios, fresh context advantage, artifact as interface
-7. ✅ **BMAD integration** — External, SDD picks up at BA (or PO if needed)
-8. ✅ **Architecture standup** — Story 0 for infrastructure
-9. ✅ **Verification gradient** — Upstream = more scrutiny, feature spec gets MOST attention
-10. ✅ **Tech design writing** — Verbose, spiral/weave, functional↔technical, decadent redundancy
-11. ✅ **Multi-agent validation** — Author + downstream consumer pattern
-
----
-
-## Version Notes
-
-- **v2-full**: Solid foundation, good structure, captured main concepts
-- **v8-reworked**: Incorporates all brain dump insights, emphasizes key concepts that were implicit or understated
+The single-file approach hit practical limits. Skills exceeded reasonable context sizes, shared concepts were duplicated across sections, and updating one concept meant finding every place it appeared. The v0.2.0 restructure moved to source-based composition: modular source files in `src/`, a build that composes them per `manifest.json`, and self-contained output per phase. The conceptual work from v1.x carried forward intact — the restructure changed packaging, not methodology.
