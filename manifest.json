@@ -1,5 +1,5 @@
 {
-  "version": "0.5.1",
+  "version": "0.6.0",
   "skills": {
     "ls-research": {
       "name": "ls-research",
@@ -91,5 +91,19 @@
   "agents": [
     "senior-engineer"
   ],
-  "command": "liminal-spec"
+  "command": "liminal-spec",
+  "individualPlugins": {
+    "ls-epic": {
+      "description": "Phase 2: Epic writing with acceptance criteria, test conditions, and story breakdown"
+    },
+    "ls-tech-design": {
+      "description": "Phase 3: Transform epics into implementable technical designs"
+    },
+    "ls-story": {
+      "description": "Phase 4: Break epics into functional stories with full acceptance criteria"
+    },
+    "ls-story-tech": {
+      "description": "Phase 4b: Add technical implementation sections to functional stories"
+    }
+  }
 }

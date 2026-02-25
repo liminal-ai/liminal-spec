@@ -11,8 +11,32 @@
     {
       "name": "liminal-spec",
       "source": "./plugins/liminal-spec",
-      "description": "Spec-driven development methodology for agentic coding",
-      "version": "0.5.1"
+      "description": "Spec-driven development methodology for agentic coding — full suite",
+      "version": "0.6.0"
+    },
+    {
+      "name": "ls-epic",
+      "source": "./plugins/ls-epic",
+      "description": "Phase 2: Epic writing with acceptance criteria, test conditions, and story breakdown",
+      "version": "0.6.0"
+    },
+    {
+      "name": "ls-tech-design",
+      "source": "./plugins/ls-tech-design",
+      "description": "Phase 3: Transform epics into implementable technical designs",
+      "version": "0.6.0"
+    },
+    {
+      "name": "ls-story",
+      "source": "./plugins/ls-story",
+      "description": "Phase 4: Break epics into functional stories with full acceptance criteria",
+      "version": "0.6.0"
+    },
+    {
+      "name": "ls-story-tech",
+      "source": "./plugins/ls-story-tech",
+      "description": "Phase 4b: Add technical implementation sections to functional stories",
+      "version": "0.6.0"
     }
   ]
 }

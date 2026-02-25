@@ -1,7 +1,7 @@
 {
-  "name": "liminal-spec",
+  "name": "ls-story-tech",
   "version": "0.6.0",
-  "description": "Spec-driven development methodology for agentic coding",
+  "description": "Phase 4b: Add technical implementation sections to functional stories",
   "author": {
     "name": "liminal-ai"
   },

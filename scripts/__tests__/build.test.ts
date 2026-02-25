@@ -16,6 +16,7 @@ const TEST_MARKETPLACE_REL = `${TEST_ROOT_REL}/marketplace`;
 const TEST_ROOT = join(ROOT, TEST_ROOT_REL);
 const DIST = join(ROOT, TEST_DIST_REL);
 const DIST_PLUGIN = join(DIST, "plugin");
+const DIST_INDIVIDUAL = join(DIST, "individual");
 const DIST_STANDALONE = join(DIST, "standalone");
 const MARKETPLACE_PLUGIN = join(ROOT, TEST_MARKETPLACE_REL);
 
@@ -76,6 +77,13 @@ describe("build script", () => {
     expect(buildOutput).toContain("agent: senior-engineer");
     expect(buildOutput).toContain("command: liminal-spec");
   });
+
+  test("prints individual plugin summary", () => {
+    expect(buildOutput).toContain("individual plugin: ls-epic");
+    expect(buildOutput).toContain("individual plugin: ls-tech-design");
+    expect(buildOutput).toContain("individual plugin: ls-story");
+    expect(buildOutput).toContain("individual plugin: ls-story-tech");
+  });
 });
 
 // -------------------------------------------------------------------------
@@ -123,13 +131,19 @@ describe("plugin output", () => {
     expect(data.version).toBe(expectedVersion);
   });
 
-  test("creates marketplace.json with required fields", async () => {
+  test("creates marketplace.json with full suite and individual plugins", async () => {
     const data = await Bun.file(
       join(DIST_PLUGIN, ".claude-plugin", "marketplace.json")
     ).json();
     expect(data.name).toBe("liminal-plugins");
     expect(data.owner.name).toBe("liminal-ai");
-    expect(data.plugins.length).toBeGreaterThan(0);
+    const names = data.plugins.map((p: { name: string }) => p.name);
+    expect(names).toContain("liminal-spec");
+    expect(names).toContain("ls-epic");
+    expect(names).toContain("ls-tech-design");
+    expect(names).toContain("ls-story");
+    expect(names).toContain("ls-story-tech");
+    expect(names.length).toBe(5);
   });
 });
 
@@ -326,6 +340,87 @@ describe("standalone output", () => {
       legacy.push(match);
     }
     expect(legacy).toEqual([]);
+  });
+});
+
+// -------------------------------------------------------------------------
+// Individual plugin output
+// -------------------------------------------------------------------------
+
+describe("individual plugins", () => {
+  const expectedIndividual = [
+    "ls-epic",
+    "ls-tech-design",
+    "ls-story",
+    "ls-story-tech",
+  ];
+
+  for (const name of expectedIndividual) {
+    test(`creates ${name} plugin with SKILL.md and plugin.json`, async () => {
+      const pluginJson = join(
+        DIST_INDIVIDUAL,
+        name,
+        ".claude-plugin",
+        "plugin.json"
+      );
+      const skillMd = join(DIST_INDIVIDUAL, name, "skills", name, "SKILL.md");
+      expect(await Bun.file(pluginJson).exists()).toBe(true);
+      expect(await Bun.file(skillMd).exists()).toBe(true);
+    });
+  }
+
+  test("individual plugin.json has correct name and version", async () => {
+    for (const name of expectedIndividual) {
+      const data = await Bun.file(
+        join(DIST_INDIVIDUAL, name, ".claude-plugin", "plugin.json")
+      ).json();
+      expect(data.name).toBe(name);
+      expect(data.version).toBe(expectedVersion);
+    }
+  });
+
+  test("individual SKILL.md matches full suite SKILL.md", async () => {
+    for (const name of expectedIndividual) {
+      const individual = await Bun.file(
+        join(DIST_INDIVIDUAL, name, "skills", name, "SKILL.md")
+      ).text();
+      const fullSuite = await Bun.file(
+        join(DIST_PLUGIN, "skills", name, "SKILL.md")
+      ).text();
+      expect(individual).toBe(fullSuite);
+    }
+  });
+
+  test("individual plugins do not include commands/", async () => {
+    for (const name of expectedIndividual) {
+      const commandsDir = join(DIST_INDIVIDUAL, name, "commands");
+      let exists = false;
+      try {
+        const stat = await Bun.file(
+          join(commandsDir, "liminal-spec.md")
+        ).exists();
+        exists = stat;
+      } catch {
+        exists = false;
+      }
+      expect(exists).toBe(false);
+    }
+  });
+
+  test("individual plugins do not include agents/ (none declared)", async () => {
+    for (const name of expectedIndividual) {
+      const agentsDir = join(DIST_INDIVIDUAL, name, "agents");
+      let exists = false;
+      try {
+        const stat = await Bun.file(
+          join(agentsDir, "senior-engineer.md")
+        ).exists();
+        exists = stat;
+      } catch {
+        exists = false;
+      }
+      expect(exists).toBe(false);
+    }
   });
 });
 

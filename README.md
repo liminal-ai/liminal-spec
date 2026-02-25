@@ -41,17 +41,21 @@ Within Phase 5, the recommended cycle is: **Skeleton -> TDD Red -> TDD Green -> 
 
 ## Installation
 
-### As a Claude Code Plugin (recommended)
+### Add the Marketplace
+
+All plugins (full suite and individual) are distributed through a single marketplace:
 
 ```bash
-# Add the marketplace
 claude plugin marketplace add liminal-ai/liminal-spec
+```
 
-# Install the plugin
+### Full Suite (recommended for most users)
+
+```bash
 claude plugin install liminal-spec@liminal-plugins
 ```
 
-This gives you:
+This gives you everything:
 
 | Command | What it does |
 |---------|-------------|
@@ -63,18 +67,61 @@ This gives you:
 | `/ls-story-tech` | Phase 4b -- add technical sections to functional stories |
 | `/ls-impl` | Phase 5 -- implement from complete stories with TDD |
 
-`ls-` command prefixes are intentional: they make slash-command autocomplete clearer and avoid collisions with generic command names like `/epic` or `/story`.
+Plus a **senior-engineer agent** (rigorous TypeScript development with quality gates and TDD as the default approach) and the `/liminal-spec` router that guides you to the right phase.
 
-The plugin also includes a **senior-engineer agent** -- rigorous TypeScript development with quality gates (format, lint, typecheck, test) and TDD as the default implementation approach.
+### Individual Plugins (à la carte)
 
-Start with `/liminal-spec` and it will guide you to the right phase.
+Install only the phases you need. Each individual plugin contains a single self-contained skill -- the same composed content as the full suite, just packaged separately.
+
+```bash
+# Install one phase
+claude plugin install ls-epic@liminal-plugins
+
+# Install multiple phases
+claude plugin install ls-epic@liminal-plugins
+claude plugin install ls-tech-design@liminal-plugins
+
+# Or install a role-appropriate set
+claude plugin install ls-story@liminal-plugins ls-story-tech@liminal-plugins
+```
+
+Available individual plugins:
+
+| Plugin | Phase | Skill command | For |
+|--------|-------|---------------|-----|
+| `ls-epic` | 2 | `/ls-epic:ls-epic` | BA, PO -- feature specifications |
+| `ls-tech-design` | 3 | `/ls-tech-design:ls-tech-design` | Tech Lead -- technical designs |
+| `ls-story` | 4 | `/ls-story:ls-story` | BA, SM -- story sharding |
+| `ls-story-tech` | 4b | `/ls-story-tech:ls-story-tech` | Tech Lead -- story technical enrichment |
+
+Individual plugins do not include the router command, the senior-engineer agent, or the `/ls-research` and `/ls-impl` skills. Those are available in the full suite.
+
+### Team Role Setup
+
+For teams dividing the pipeline across roles:
+
+```bash
+# Product Owner / Business Analyst
+claude plugin install ls-epic@liminal-plugins
+
+# Tech Lead
+claude plugin install ls-tech-design@liminal-plugins
+claude plugin install ls-story-tech@liminal-plugins
+
+# Scrum Master / BA (story sharding)
+claude plugin install ls-story@liminal-plugins
+
+# Engineer (use full suite for impl + agent + router)
+claude plugin install liminal-spec@liminal-plugins
+```
 
 ### Distribution Formats
 
-| Format | Audience | Install | Contents |
-|--------|----------|---------|----------|
-| Plugin | Engineers, Tech Leads | `claude plugin install liminal-spec@liminal-plugins` | Router, phase skills, senior-engineer agent |
-| Skill Pack | Per-phase skill installation | Download from [Releases](https://github.com/liminal-ai/liminal-spec/releases) | One skill directory per phase |
+| Format | Audience | How to get it | Contents |
+|--------|----------|---------------|----------|
+| Full suite plugin | Engineers, full team | `claude plugin install liminal-spec@liminal-plugins` | All 6 skills, router, senior-engineer agent |
+| Individual plugins | Role-specific | `claude plugin install ls-epic@liminal-plugins` | Single skill per plugin |
+| Skill Pack | Manual skill installation | Download from [Releases](https://github.com/liminal-ai/liminal-spec/releases) | One skill directory per phase |
 | Markdown Pack | BA, PO, PM, Claude Enterprise | Download from [Releases](https://github.com/liminal-ai/liminal-spec/releases) | One self-contained markdown per phase |
 
 ### Skill Pack
@@ -130,7 +177,7 @@ bun run check       # Build + validate
 
 `bun run verify` is the primary local quality gate before commit/push.
 
-Edit content in `src/`, never in `dist/`. The build composes phase content with shared references per the manifest and outputs a Claude Code plugin (`dist/plugin/`) and standalone files with pack zips (`dist/standalone/`). See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
+Edit content in `src/`, never in `dist/`. The build composes phase content with shared references per the manifest and outputs a full suite plugin (`dist/plugin/`), individual skill plugins (`dist/individual/`), and standalone files with pack zips (`dist/standalone/`). See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 
 ## Versioning and Release Tracking
 
@@ -140,7 +187,7 @@ Tracked version fields:
 - `version.txt`
 - `manifest.json`
 - `package.json`
-- `.claude-plugin/marketplace.json` (`plugins[0].version`)
+- `.claude-plugin/marketplace.json` (all entries in `plugins[]`)
 
 Release flow:
 1. Bump version in all tracked fields.
@@ -161,9 +208,14 @@ src/
 scripts/
   build.ts         -- Compose src/ into dist/
   validate.ts      -- Validate build output
-manifest.json      -- Maps which shared files each phase skill needs
+manifest.json      -- Maps skills, shared files, and individual plugin config
 docs/              -- Long-form reference material and supporting notes
-plugins/           -- Committed marketplace-installable plugin directories
+plugins/
+  liminal-spec/    -- Full suite marketplace source
+  ls-epic/         -- Individual plugin marketplace source
+  ls-tech-design/  -- Individual plugin marketplace source
+  ls-story/        -- Individual plugin marketplace source
+  ls-story-tech/   -- Individual plugin marketplace source
 ```
 
 ## Links

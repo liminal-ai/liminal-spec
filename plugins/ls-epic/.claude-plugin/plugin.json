@@ -1,7 +1,7 @@
 {
-  "name": "liminal-spec",
+  "name": "ls-epic",
   "version": "0.6.0",
-  "description": "Spec-driven development methodology for agentic coding",
+  "description": "Phase 2: Epic writing with acceptance criteria, test conditions, and story breakdown",
   "author": {
     "name": "liminal-ai"
   },

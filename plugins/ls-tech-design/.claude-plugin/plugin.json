@@ -1,7 +1,7 @@
 {
-  "name": "liminal-spec",
+  "name": "ls-tech-design",
   "version": "0.6.0",
-  "description": "Spec-driven development methodology for agentic coding",
+  "description": "Phase 3: Transform epics into implementable technical designs",
   "author": {
     "name": "liminal-ai"
   },

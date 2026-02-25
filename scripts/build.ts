@@ -13,7 +13,9 @@
  *   dist/standalone/{name}-skill.md      -- Frontmatter-stripped single skill markdown
  *   dist/standalone/liminal-spec-skill-pack.zip
  *   dist/standalone/liminal-spec-markdown-pack.zip
- *   plugins/liminal-spec/**               -- Marketplace-installable plugin layout
+ *   dist/individual/{name}/**            -- Individual skill plugins
+ *   plugins/liminal-spec/**              -- Marketplace-installable full suite
+ *   plugins/{name}/**                    -- Marketplace-installable individual plugins
  *
  * Optional environment variables:
  *   DIST_DIR           -- output root directory (default: dist)
@@ -37,17 +39,24 @@ interface SkillEntry {
   examples?: string[];
 }
 
+interface IndividualPluginEntry {
+  description: string;
+  agents?: string[];
+}
+
 interface Manifest {
   version: string;
   skills: Record<string, SkillEntry>;
   agents: string[];
   command: string;
+  individualPlugins?: Record<string, IndividualPluginEntry>;
 }
 
 interface BuildSummary {
   skills: { name: string; lines: number }[];
   agents: string[];
   command: string;
+  individualPlugins: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +68,7 @@ const SRC = join(ROOT, "src");
 const DIST_DIR = process.env.DIST_DIR?.trim() || "dist";
 const DIST = isAbsolute(DIST_DIR) ? DIST_DIR : join(ROOT, DIST_DIR);
 const DIST_PLUGIN = join(DIST, "plugin");
+const DIST_INDIVIDUAL = join(DIST, "individual");
 const DIST_STANDALONE = join(DIST, "standalone");
 const SKILL_PACK_DIR_NAME = "liminal-spec-skill-pack";
 const MARKDOWN_PACK_DIR_NAME = "liminal-spec-markdown-pack";
@@ -208,36 +218,58 @@ async function composeSkill(skill: SkillEntry): Promise<string> {
 // Plugin metadata generation
 // ---------------------------------------------------------------------------
 
-function generatePluginJson(version: string): string {
+function generatePluginJson(
+  name: string,
+  version: string,
+  description: string
+): string {
   const plugin = {
-    name: "liminal-spec",
+    name,
     version,
-    description: "Spec-driven development methodology for agentic coding",
-    author: {
-      name: "liminal-ai",
-    },
+    description,
+    author: { name: "liminal-ai" },
     repository: "https://github.com/liminal-ai/liminal-spec",
     license: "MIT",
   };
   return JSON.stringify(plugin, null, 2) + "\n";
 }
 
-function generateMarketplaceJson(version: string): string {
+function generateMarketplaceJson(
+  version: string,
+  sourcePrefix: string,
+  individualPlugins?: Record<string, IndividualPluginEntry>
+): string {
+  const plugins: Array<Record<string, string>> = [
+    {
+      name: "liminal-spec",
+      source: `${sourcePrefix}liminal-spec`,
+      description:
+        "Spec-driven development methodology for agentic coding — full suite",
+      version,
+    },
+  ];
+
+  if (individualPlugins) {
+    for (const [key, entry] of Object.entries(individualPlugins)) {
+      plugins.push({
+        name: key,
+        source: `${sourcePrefix}${key}`,
+        description: entry.description,
+        version,
+      });
+    }
+  }
+
   const marketplace = {
     name: "liminal-plugins",
-    description: "Liminal AI plugin marketplace for spec-driven development workflows",
+    description:
+      "Liminal AI plugin marketplace for spec-driven development workflows",
     metadata: {
-      description: "Liminal AI plugin marketplace for spec-driven development workflows",
+      description:
+        "Liminal AI plugin marketplace for spec-driven development workflows",
     },
     owner: { name: "liminal-ai" },
-    plugins: [
-      {
-        name: "liminal-spec",
-        source: "./",
-        description: "Spec-driven development methodology for agentic coding",
-        version,
-      },
-    ],
+    plugins,
   };
   return JSON.stringify(marketplace, null, 2) + "\n";
 }
@@ -260,6 +292,7 @@ async function build(): Promise<void> {
     skills: [],
     agents: [],
     command: manifest.command,
+    individualPlugins: [],
   };
 
   // Create output directories
@@ -332,18 +365,68 @@ async function build(): Promise<void> {
   // ----- Plugin metadata -----
   await Bun.write(
     join(DIST_PLUGIN, ".claude-plugin", "plugin.json"),
-    generatePluginJson(manifest.version)
+    generatePluginJson(
+      "liminal-spec",
+      manifest.version,
+      "Spec-driven development methodology for agentic coding"
+    )
   );
   await Bun.write(
     join(DIST_PLUGIN, ".claude-plugin", "marketplace.json"),
-    generateMarketplaceJson(manifest.version)
+    generateMarketplaceJson(manifest.version, "./", manifest.individualPlugins)
   );
   console.log("  metadata: plugin.json, marketplace.json");
 
+  // ----- Individual skill plugins -----
+  const individualPlugins = manifest.individualPlugins ?? {};
+
+  for (const [skillKey, entry] of Object.entries(individualPlugins)) {
+    if (!manifest.skills[skillKey]) {
+      console.error(
+        `ERROR: individualPlugins references unknown skill '${skillKey}'`
+      );
+      process.exit(1);
+    }
+
+    const pluginDir = join(DIST_INDIVIDUAL, skillKey);
+    const metaDir = join(pluginDir, ".claude-plugin");
+    await mkdir(metaDir, { recursive: true });
+
+    // Copy already-composed SKILL.md from full suite output
+    const skillDestDir = join(pluginDir, "skills", skillKey);
+    await mkdir(skillDestDir, { recursive: true });
+    await cp(
+      join(DIST_PLUGIN, "skills", skillKey, "SKILL.md"),
+      join(skillDestDir, "SKILL.md")
+    );
+
+    // Copy bundled agents if specified
+    if (entry.agents) {
+      for (const agent of entry.agents) {
+        const agentDir = join(pluginDir, "agents");
+        await mkdir(agentDir, { recursive: true });
+        await cp(
+          join(DIST_PLUGIN, "agents", `${agent}.md`),
+          join(agentDir, `${agent}.md`)
+        );
+      }
+    }
+
+    // Generate plugin.json
+    await Bun.write(
+      join(metaDir, "plugin.json"),
+      generatePluginJson(skillKey, manifest.version, entry.description)
+    );
+
+    summary.individualPlugins.push(skillKey);
+    console.log(`  individual plugin: ${skillKey}`);
+  }
+
   // ----- Marketplace install source -----
-  // Keep a committed plugin directory so marketplace installs resolve to a
-  // ready-to-install plugin layout. This can be disabled in isolated tests.
+  // Keep committed plugin directories so marketplace installs resolve to
+  // ready-to-install plugin layouts. This can be disabled in isolated tests.
   if (SYNC_MARKETPLACE) {
+    // Full suite
     await rm(MARKETPLACE_PLUGIN_DIR, { recursive: true, force: true });
     await mkdir(dirname(MARKETPLACE_PLUGIN_DIR), { recursive: true });
     await cp(DIST_PLUGIN, MARKETPLACE_PLUGIN_DIR, { recursive: true });
@@ -352,9 +435,33 @@ async function build(): Promise<void> {
       { force: true }
     );
     console.log(`  marketplace source: ${MARKETPLACE_PLUGIN_DIR}`);
+
+    // Individual plugins
+    for (const skillKey of Object.keys(individualPlugins)) {
+      const srcDir = join(DIST_INDIVIDUAL, skillKey);
+      const destDir = join(ROOT, "plugins", skillKey);
+      await rm(destDir, { recursive: true, force: true });
+      await cp(srcDir, destDir, { recursive: true });
+      console.log(`  marketplace source: ${destDir}`);
+    }
   } else {
     console.log("  marketplace source: skipped (SYNC_MARKETPLACE=0)");
   }
+
+  // ----- Root marketplace.json -----
+  // The root .claude-plugin/marketplace.json is the catalog users add via
+  // `claude plugin marketplace add`. Source paths are relative to repo root.
+  const rootMarketplaceDir = join(ROOT, ".claude-plugin");
+  await mkdir(rootMarketplaceDir, { recursive: true });
+  await Bun.write(
+    join(rootMarketplaceDir, "marketplace.json"),
+    generateMarketplaceJson(
+      manifest.version,
+      "./plugins/",
+      manifest.individualPlugins
+    )
+  );
+  console.log("  root marketplace.json updated");
 
   // ----- Summary -----
   console.log("\nBuild complete:");
@@ -363,8 +470,15 @@ async function build(): Promise<void> {
   );
   console.log(`  ${summary.agents.length} agents copied`);
   console.log(`  1 command copied (${summary.command})`);
+  if (summary.individualPlugins.length > 0) {
+    console.log(
+      `  ${summary.individualPlugins.length} individual plugins (${summary.individualPlugins.join(", ")})`
+    );
+  }
   if (SYNC_MARKETPLACE) {
-    console.log(`  1 marketplace source synced (${MARKETPLACE_PLUGIN_DIR})`);
+    console.log(
+      `  ${1 + summary.individualPlugins.length} marketplace sources synced`
+    );
   } else {
     console.log("  marketplace sync skipped");
   }
