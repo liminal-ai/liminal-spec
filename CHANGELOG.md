@@ -2,15 +2,16 @@
 
 ## v0.8.0 (2026-03-01)
 
-Team implementation orchestration. A new skill (`ls-team-impl`) for orchestrating story-by-story implementation with agent teams in tmux. The orchestrator spawns teammates, routes Codex/Copilot subagents for implementation and review, manages multi-perspective verification, and makes judgment calls across the full cycle.
+Team orchestration. Two new skills for orchestrating multi-agent work in tmux — `ls-team-impl` for story-by-story implementation and `ls-team-spec` for the full spec pipeline from orientation through technically enriched stories.
 
 ### Added
 
-- **`/ls-team-impl` skill:** Team implementation orchestration for the team lead / orchestrator role. Covers: dependency lane detection (Codex/Copilot/Sonnet fallback), implementer handoff with iterated self-review, dual verification (fresh reviewer + Codex in parallel), orchestrator final check, story transition with regression tracking, epic-level four-model verification with meta-reports, and operational patterns (idle notification noise, context ceilings, forgot-to-report, sequencing). Distilled from real orchestration logs during multi-story agent team implementation.
+- **`/ls-team-impl` skill:** Team implementation orchestration for the team lead / orchestrator role. Covers: dependency lane detection (Codex/Copilot/Sonnet fallback), implementer handoff with iterated self-review, dual verification (fresh reviewer + Codex in parallel), orchestrator final check, story transition with regression tracking, epic-level four-model verification with meta-reports, and operational patterns (idle notification noise, context ceilings, forgot-to-report, sequencing). Named orchestration log (`team-impl-log.md`). Distilled from real orchestration logs during multi-story agent team implementation.
+- **`/ls-team-spec` skill:** Team spec orchestration for the team lead / orchestrator role. Covers: orientation and pre-epic documentation, phased artifact creation (epic → tech design → story sharding → story technical enrichment), reusable verification pattern (author self-review + Opus/Codex dual verification with iterative fix loops), five-phase final story verification (per-story + cross-story coherence), escalation handling, and operational patterns. Skill loading per phase ensures all teammates work from the correct methodology. Named orchestration log (`team-spec-log.md`).
 
 ### Changed
 
-- **Router command updated:** New "Team Orchestration" section routes to `/ls-team-impl` for agent team implementation.
+- **Router command updated:** New "Team Orchestration" section routes to `/ls-team-impl` and `/ls-team-spec` for agent team implementation and spec pipeline orchestration.
 - **CI marketplace check widened:** `git diff` now checks all `plugins/` directories, not just `plugins/liminal-spec`.
 
 ---

@@ -40,6 +40,7 @@ Not for: quick bug fixes, single-file changes, spikes, or emergency patches.
 /ls-impl        → implement from the story           → verified code
 
 # Team orchestration (agent teams in tmux)
+/ls-team-spec   → orchestrate full spec pipeline     → complete stories via agent teams
 /ls-team-impl   → orchestrate team implementation    → verified code via agent teams
 ```
 
@@ -68,6 +69,7 @@ For orchestrating implementation with agent teams in tmux. Alternative to Phase 
 
 | Phase | Skill | In | Out |
 |-------|-------|-----|------|
+| Team Spec | `/ls-team-spec` | Requirements / PRD | Complete Stories (via agent teams) |
 | Team Implementation | `/ls-team-impl` | Complete Stories | Verified code (via agent teams) |
 
 ### Simple Pipeline
@@ -111,7 +113,7 @@ claude plugin marketplace add liminal-ai/liminal-spec
 ### Install
 
 ```bash
-# Full suite -- all 9 skills, router, senior-engineer agent
+# Full suite -- all 10 skills, router, senior-engineer agent
 claude plugin install liminal-spec@liminal-plugins
 
 # Or install individual skills à la carte
@@ -148,6 +150,7 @@ Or enable auto-update via the `/plugin` manager (Marketplaces tab) to pull new v
 | `/ls-impl` | Phase 5 -- implement from complete stories with TDD |
 | `/lss-story` | Simple S1 -- write a functional story with epic-quality rigor |
 | `/lss-tech` | Simple S2 -- inline technical design + enrichment for a story |
+| `/ls-team-spec` | Team -- orchestrate full spec pipeline with agent teams in tmux |
 | `/ls-team-impl` | Team -- orchestrate agent team implementation in tmux |
 
 Plus a **senior-engineer agent** (rigorous TypeScript development with quality gates and TDD as the default approach) and the `/liminal-spec` router that guides you to the right skill.
@@ -187,7 +190,7 @@ claude plugin install lss-tech@liminal-plugins
 
 ### Skill Pack
 
-Download `liminal-spec-skill-pack-vX.Y.Z.zip` from Releases. Contains one directory per phase (`01-product-research/`, `02-epic/`, `03-technical-design/`, `04-story-sharding/`, `04b-story-technical-enrichment/`, `05-implementation/`, `06-team-implementation/`, `simple-01-story/`, `simple-02-technical-design/`), each with a `SKILL.md`. Copy the phases you need into your project's `.claude/skills/` directory.
+Download `liminal-spec-skill-pack-vX.Y.Z.zip` from Releases. Contains one directory per phase (`01-product-research/`, `02-epic/`, `03-technical-design/`, `04-story-sharding/`, `04b-story-technical-enrichment/`, `05-implementation/`, `06-team-implementation/`, `07-team-spec/`, `simple-01-story/`, `simple-02-technical-design/`), each with a `SKILL.md`. Copy the phases you need into your project's `.claude/skills/` directory.
 
 The plugin includes the router command and senior-engineer agent that the skill pack doesn't. Use the plugin if your environment supports it.
 
@@ -204,6 +207,7 @@ Download `liminal-spec-markdown-pack-vX.Y.Z.zip` from [Releases](https://github.
 | `04b-story-technical-enrichment-skill.md` | Tech Lead | Adding technical sections to stories |
 | `05-implementation-skill.md` | Engineers | Implementing from complete stories with TDD |
 | `06-team-implementation-skill.md` | Team Lead / Orchestrator | Orchestrating agent team implementation |
+| `07-team-spec-skill.md` | Team Lead / Orchestrator | Orchestrating full spec pipeline with agent teams |
 | `simple-01-story-skill.md` | BA, PO, Solo Dev | Writing a single story with epic-quality rigor |
 | `simple-02-technical-design-skill.md` | Tech Lead, Solo Dev | Inline technical design + enrichment for a story |
 
@@ -269,7 +273,7 @@ Release flow:
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill, 9 total)
+  phases/          -- Phase-specific content (one per skill, 10 total)
   shared/          -- Cross-cutting concepts used by multiple phases
   templates/       -- Artifact templates
   examples/        -- Verification prompt templates

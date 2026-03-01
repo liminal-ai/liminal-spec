@@ -72,6 +72,7 @@ describe("build script", () => {
     expect(buildOutput).toContain("skill: ls-story-tech");
     expect(buildOutput).toContain("skill: ls-impl");
     expect(buildOutput).toContain("skill: ls-team-impl");
+    expect(buildOutput).toContain("skill: ls-team-spec");
   });
 
   test("prints agent and command in summary", () => {
@@ -100,6 +101,7 @@ describe("plugin output", () => {
     "ls-story-tech",
     "ls-impl",
     "ls-team-impl",
+    "ls-team-spec",
   ];
 
   for (const skill of expectedSkills) {
@@ -172,6 +174,7 @@ describe("marketplace install source", () => {
       join(MARKETPLACE_PLUGIN, "skills", "ls-story-tech", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-impl", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-team-impl", "SKILL.md"),
+      join(MARKETPLACE_PLUGIN, "skills", "ls-team-spec", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "commands", "liminal-spec.md"),
       join(MARKETPLACE_PLUGIN, "agents", "senior-engineer.md"),
     ];
@@ -204,6 +207,7 @@ describe("skill content", () => {
     "lss-story",
     "lss-tech",
     "ls-team-impl",
+    "ls-team-spec",
   ];
 
   test("epic has correct frontmatter", async () => {
@@ -273,6 +277,15 @@ describe("skill content", () => {
     expect(content).toContain("self-review loop");
   });
 
+  test("team-spec contains spec orchestration content", async () => {
+    const content = await Bun.file(
+      join(DIST_PLUGIN, "skills", "ls-team-spec", "SKILL.md")
+    ).text();
+    expect(content).toContain("Orchestrator");
+    expect(content).toContain("Verification Pattern");
+    expect(content).toContain("team-spec-log.md");
+  });
+
   test("generated skills do not include legacy inlining phrase", async () => {
     for (const skill of expectedSkills) {
       const content = await Bun.file(
@@ -307,6 +320,7 @@ describe("standalone output", () => {
     "simple-01-story-skill.md",
     "simple-02-technical-design-skill.md",
     "06-team-implementation-skill.md",
+    "07-team-spec-skill.md",
   ];
 
   const expectedStandalonePacks = [
@@ -461,6 +475,7 @@ describe("source file safety", () => {
       "src/shared/confidence-chain.md",
       "src/shared/writing-style.md",
       "src/phases/team-impl.md",
+      "src/phases/team-spec.md",
       "src/commands/liminal-spec.md",
       "src/agents/senior-engineer.md",
     ];

@@ -55,10 +55,13 @@ Use the simple pipeline when scope is 1-2 flows and ~5-15 ACs. If scope grows be
 
 ## Team Orchestration
 
-For orchestrating implementation with agent teams in tmux. The orchestrator spawns teammates, manages Codex/Copilot subagents, routes verification, and makes judgment calls.
+For orchestrating spec creation or implementation with agent teams in tmux. The orchestrator spawns teammates, manages drafters/verifiers/Codex subagents, routes verification, and makes judgment calls.
 
 +---------------------+---------------------------+-------------------------------------------------------+
 |        Phase        |           Skill           |                   Start Here If...                    |
++---------------------+---------------------------+-------------------------------------------------------+
+| Team Spec           | /ls-team-spec             | You want to orchestrate the full spec pipeline        |
+|                     |                           | with agent teams in tmux                              |
 +---------------------+---------------------------+-------------------------------------------------------+
 | Team Implementation | /ls-team-impl             | You have complete stories and want to orchestrate     |
 |                     |                           | agent team implementation in tmux                     |
@@ -92,7 +95,8 @@ Based on the user's response, invoke the appropriate skill:
 - Phase 5 (Implementation) -> use Skill tool: "liminal-spec:ls-impl"
 - Simple Story (focused change) -> use Skill tool: "liminal-spec:lss-story"
 - Simple Tech (enrich simple story) -> use Skill tool: "liminal-spec:lss-tech"
-- Team implementation (orchestrate agent teams in tmux) -> use Skill tool: "liminal-spec:ls-team-impl"
+- Team spec (orchestrate full spec pipeline with agent teams in tmux) -> use Skill tool: "liminal-spec:ls-team-spec"
+- Team implementation (orchestrate agent team implementation in tmux) -> use Skill tool: "liminal-spec:ls-team-impl"
 
 If the user is unclear about phase:
 - Need product exploration or stakeholder alignment first? -> Phase 1
@@ -103,4 +107,5 @@ If the user is unclear about phase:
 - Have complete stories and need implementation? -> Phase 5
 - Have a focused change (one story, not a full epic)? -> Simple Story
 - Have a functional story from lss-story ready for tech enrichment? -> Simple Tech
+- Want to orchestrate the full spec pipeline (epic through stories) with agent teams? -> Team Spec
 - Have complete stories and want to orchestrate implementation with agent teams in tmux? -> Team Implementation

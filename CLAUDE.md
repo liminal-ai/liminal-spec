@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A spec-driven development methodology packaged as a **Claude Code plugin**. The plugin contains 9 self-contained skills (6 for the full pipeline, 2 for the simple pipeline, 1 for team orchestration), a router command, and a senior-engineer agent.
+A spec-driven development methodology packaged as a **Claude Code plugin**. The plugin contains 10 self-contained skills (6 for the full pipeline, 2 for the simple pipeline, 2 for team orchestration), a router command, and a senior-engineer agent.
 
 This is NOT a library or npm package. The build output is markdown files organized into a Claude Code plugin structure. There are three distribution channels:
 
@@ -30,6 +30,7 @@ skills/
   lss-story/SKILL.md       -- /lss-story (Simple Pipeline: Functional Story)
   lss-tech/SKILL.md        -- /lss-tech (Simple Pipeline: Technical Design + Enrichment)
   ls-team-impl/SKILL.md    -- /ls-team-impl (Team Orchestration: Implementation)
+  ls-team-spec/SKILL.md    -- /ls-team-spec (Team Orchestration: Spec Pipeline)
 commands/
   liminal-spec.md          -- /liminal-spec (router: presents phase menu, invokes skill)
 agents/
@@ -46,7 +47,7 @@ Source-based skill with build composition. Edit in `src/`, never in `dist/`.
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill: research, epic, tech-design, story, story-tech, impl, story-simple, story-simple-tech, team-impl)
+  phases/          -- Phase-specific content (one per skill: research, epic, tech-design, story, story-tech, impl, story-simple, story-simple-tech, team-impl, team-spec)
   shared/          -- Cross-cutting concepts inlined into multiple skills by the build
   templates/       -- Artifact templates (tech design, epic)
   examples/        -- Verification prompt templates
@@ -87,7 +88,7 @@ The build also copies agents, commands, generates plugin.json + marketplace.json
 |---------|--------|---------|
 | `/liminal-spec` | `src/commands/liminal-spec.md` | Presents phase menu, invokes the appropriate skill |
 
-**Skills** (9 self-contained skills — 6 full pipeline, 2 simple pipeline, 1 team orchestration):
+**Skills** (10 self-contained skills — 6 full pipeline, 2 simple pipeline, 2 team orchestration):
 
 | Skill | Phase | Primary source | Shared dependencies |
 |-------|-------|----------------|---------------------|
@@ -98,6 +99,7 @@ The build also copies agents, commands, generates plugin.json + marketplace.json
 | `/ls-story-tech` | 4b | `src/phases/story-tech.md` | confidence-chain, verification-model, writing-style |
 | `/ls-impl` | 5 | `src/phases/impl.md` | confidence-chain, verification-model, testing, model-selection |
 | `/ls-team-impl` | Team | `src/phases/team-impl.md` | confidence-chain, verification-model |
+| `/ls-team-spec` | Team | `src/phases/team-spec.md` | confidence-chain, verification-model |
 | `/lss-story` | S1 | `src/phases/story-simple.md` | confidence-chain, writing-style-epic |
 | `/lss-tech` | S2 | `src/phases/story-simple-tech.md` | confidence-chain, verification-model, writing-style, testing |
 

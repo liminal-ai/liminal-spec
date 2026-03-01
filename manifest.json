@@ -121,6 +121,17 @@
         "confidence-chain",
         "verification-model"
       ]
+    },
+    "ls-team-spec": {
+      "name": "ls-team-spec",
+      "description": "Orchestrate the full Liminal Spec pipeline with agent teams. Manages drafters and verifiers from orientation through technically enriched stories.",
+      "phases": [
+        "team-spec"
+      ],
+      "shared": [
+        "confidence-chain",
+        "verification-model"
+      ]
     }
   },
   "agents": [
