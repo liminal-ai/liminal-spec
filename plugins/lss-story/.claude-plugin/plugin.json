@@ -1,6 +1,6 @@
 {
   "name": "lss-story",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Simple pipeline: Write a single functional story with epic-quality rigor",
   "author": {
     "name": "liminal-ai"

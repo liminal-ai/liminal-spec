@@ -1,6 +1,6 @@
 {
   "name": "lss-tech",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Simple pipeline: Inline technical design and enrichment for a single story",
   "author": {
     "name": "liminal-ai"

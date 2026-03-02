@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.8.1 (2026-03-02)
+
+Team orchestration hardening and release discipline updates. `ls-team-impl` and `ls-team-spec` now enforce Codex participation with lightweight mechanical controls while preserving pragmatic execution flow.
+
+### Added
+
+- **Control Contract (hard invariants) for team orchestration:** Both `ls-team-impl` and `ls-team-spec` now define three non-negotiable invariants: no accept/transition without Codex evidence reference, no unresolved Codex findings without explicit disposition (`fixed`, `accepted-risk`, `defer`), and no silent degradation when Codex fails.
+- **Verification gate discovery (project-specific):** Both team skills now require upfront discovery of project verification gates from policy sources (`CLAUDE.md`, `AGENTS.md`, README, scripts, CI config), with explicit logging and one-time clarification from the human when ambiguous.
+- **Pre-acceptance receipts:** Story/phase acceptance now requires a short receipt including Codex evidence reference, top findings + dispositions, exact gate command/check summary, and open risks.
+- **Process interrupt mode:** Added explicit `PAUSED_PROCESS_REVIEW` behavior to both skills for human process feedback interrupts (stop dispatches, stop commit/acceptance, diagnose, resume only on explicit instruction).
+- **Phase/story cadence discipline:** Added explicit checkpoint boundaries to prevent same-turn close-and-dispatch churn at transitions.
+
+### Changed
+
+- **Skill loading semantics corrected:** Team skills now explicitly require Skill tool loading (`Skill(...)`) rather than “read skill file” language for Codex/Copilot/prompting and phase skills.
+- **Codex model selection made explicit:** Default model for routine Codex/Copilot implementation and verification is now `gpt-5.3-codex`. `gpt-5.2` is reserved for parallel multi-verifier diversity passes.
+- **Post-synthesis autonomy tightened:** Team orchestrators now auto-dispatch clear must-fix/should-fix items by default and only pause for human approval when scope, requirement intent, or release risk profile would change.
+- **Verification command wording clarified:** Team skills now require running discovered project gates directly (story/phase and final/epic), replacing generic “format/lint/typecheck/tests” phrasing as the acceptance standard.
+- **Router wording alignment:** Team rows in `/liminal-spec` now explicitly describe Codex-fenced team orchestration.
+
+---
+
 ## v0.8.0 (2026-03-01)
 
 Team orchestration. Two new skills for orchestrating multi-agent work in tmux — `ls-team-impl` for story-by-story implementation and `ls-team-spec` for the full spec pipeline from orientation through technically enriched stories.

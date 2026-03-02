@@ -265,7 +265,7 @@ Tracked version fields:
 
 Release flow:
 1. Bump version in all tracked fields.
-2. Update the changelog header from "Unreleased" to the version and date.
+2. Add a new changelog entry at the top with the version and date.
 3. Run `bun run verify`.
 4. Commit, tag `vX.Y.Z`, and push to trigger release artifact publishing.
 

@@ -61,10 +61,10 @@ For orchestrating spec creation or implementation with agent teams in tmux. The 
 |        Phase        |           Skill           |                   Start Here If...                    |
 +---------------------+---------------------------+-------------------------------------------------------+
 | Team Spec           | /ls-team-spec             | You want to orchestrate the full spec pipeline        |
-|                     |                           | with agent teams in tmux                              |
+|                     |                           | with Codex-fenced agent teams in tmux                 |
 +---------------------+---------------------------+-------------------------------------------------------+
 | Team Implementation | /ls-team-impl             | You have complete stories and want to orchestrate     |
-|                     |                           | agent team implementation in tmux                     |
+|                     |                           | Codex-fenced agent team implementation in tmux        |
 +---------------------+---------------------------+-------------------------------------------------------+
 
 ## When to Use

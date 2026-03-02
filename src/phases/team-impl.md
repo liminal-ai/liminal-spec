@@ -34,13 +34,48 @@ Create `team-impl-log.md` alongside the epic and tech design artifacts. This is 
 
 Check which execution capabilities are available by locating skills by name:
 
-**Codex lane** (primary): the `codex-subagent` or `copilot-subagent` skill is available. Either provides access to GPT-5x-codex models for implementation and review. If available, read the skill and its references. Also check for `gpt53-codex-prompting` — if available, read it. This skill improves prompt quality for Codex subagents but is not required.
+**Codex lane** (primary): the `codex-subagent` or `copilot-subagent` skill is available. Either provides access to GPT-5x-codex models for implementation and review. If available, load the skill with the Skill tool (`Skill(codex-subagent)` or `Skill(copilot-subagent)`). Also check for `gpt53-codex-prompting` — if available, load it with `Skill(gpt53-codex-prompting)`. This skill improves prompt quality for Codex subagents but is not required.
+
+Model selection default in Codex/Copilot lane:
+- Use `gpt-5.3-codex` for normal implementation and single-review verification tasks.
+- Use `gpt-5.2` only when running parallel multi-verifier diversity passes.
 
 **Sonnet-only fallback**: Neither subagent skill is available. Implementation and review will use Sonnet 4.6 directly rather than routing through a Codex subagent. This reduces multi-model verification diversity and removes the literal spec-compliance perspective that Codex provides. Warn the human: success is less likely without multi-model execution. Recommend stopping and installing a subagent skill. If the human chooses to continue, proceed in Sonnet-only mode.
 
 Declare the selected lane once before starting: "Running in Codex lane via codex-subagent" or "Running in Copilot lane via copilot-subagent" or "Running in Sonnet-only mode — reduced verification confidence."
 
 Log the lane determination to `team-impl-log.md`: which skills were found, which were not, which lane was selected, and whether any fallbacks were applied. If a skill wasn't found, note what was tried and what the human decided.
+
+Load required skills yourself before dispatching teammates. Do not instruct teammates to use a skill you have not loaded and verified in your own context first.
+
+### Control Contract (Hard Invariants)
+
+These three invariants are non-negotiable:
+
+1. No story acceptance, commit, or story transition without a Codex evidence reference (run/session identifier and/or output artifact reference).
+2. No unresolved Codex finding without explicit disposition: `fixed`, `accepted-risk`, or `defer`.
+3. No silent degradation. If Codex fails, declare the failure, handle it (retry/reassign/escalate), and do not present verification as complete.
+
+### Adaptive Controls
+
+Keep process flexibility without weakening the invariants:
+
+- Risk-tier each story (`low`, `medium`, `high`) and scale verification depth accordingly.
+- Use bounded review loops; avoid churn when no substantive changes remain.
+- Use `accepted-risk` for explicitly reasoned, non-blocking issues.
+- Human override always takes precedence over default routing.
+
+### Verification Gate Discovery
+
+Before Story 1 starts, discover and lock the project's verification gates.
+
+1. Read project policy docs (for example: `CLAUDE.md`, `AGENTS.md`, `README`, package scripts, CI config) to identify required verification commands.
+2. Define and log two gate sets in `team-impl-log.md`:
+   - **Story acceptance gate**: commands required before accepting an individual story.
+   - **Epic acceptance gate**: commands required before final epic acceptance/shipping.
+3. If policy is ambiguous, ask the human once before implementation begins.
+
+Do not assume unit tests alone are sufficient. Use the project's complete gate (including integration/e2e when required by project policy).
 
 ### Collect Artifacts
 
@@ -85,13 +120,13 @@ The teammate's handoff instructions (one complete prompt, not drip-fed):
 - The story being implemented (path)
 
 **What to load:**
-- Read the `codex-subagent` skill and its references — this covers how to launch, manage, and extract results from Codex CLI subagents. If using the Copilot lane, read `copilot-subagent` instead. In Sonnet-only mode, skip the subagent skill.
-- Read the `gpt53-codex-prompting` skill and its references if available — this covers how to write effective prompts for gpt-5.3-codex.
-- If you cannot find a skill, report back to the orchestrator with what you tried. Do not silently skip it — the orchestrator will either resolve the path for you or confirm the fallback.
+- Use the Skill tool to load `codex-subagent` with `Skill(codex-subagent)`. If using the Copilot lane, use `Skill(copilot-subagent)` instead. In Sonnet-only mode, skip the subagent skill.
+- Use the Skill tool to load `gpt53-codex-prompting` with `Skill(gpt53-codex-prompting)` if available.
+- If a skill load fails, report the exact call you attempted and the error. Do not silently skip it — the orchestrator will either resolve it or confirm the fallback.
 
 **What to do (Codex/Copilot lane):**
 
-Write a prompt for the Codex subagent that gives it the same context — the epic, the tech design, and the story — and instructs it to execute the story.
+Write a prompt for the Codex subagent that gives it the same context — the epic, the tech design, and the story — and instructs it to execute the story. Use `gpt-5.3-codex` as the default model for this implementation pass.
 
 Do not over-prescribe the Codex prompt. Codex receives the same artifacts you do — it has full context on what to build. Keep the prompt lean and execution-oriented. Use the gpt53-codex-prompting skill's guidance if available to write an effective prompt, but don't micromanage. Codex is a capable implementer when given good specifications.
 
@@ -129,11 +164,13 @@ The consolidated report should cover:
 
 When the implementer reports back, the implementation has already been through one or more rounds of self-review. The easy issues are fixed. What remains is either clean or genuinely ambiguous. Now it gets a fresh set of eyes.
 
-**Spawn the reviewer.** A fresh general-purpose Opus teammate (not senior-engineer). Give it the same artifacts: the epic, the tech design, and the story. Instruct it to read the `codex-subagent` skill (or `copilot-subagent` in the Copilot lane) and `gpt53-codex-prompting` if available, with their references. In Sonnet-only mode, skip the subagent skills. If the reviewer can't find a skill, they report back to you — resolve the path or confirm the fallback.
+Codex is the literal/pedantic verifier in this loop. Opus provides architectural judgment; Codex provides strict spec-compliance pressure. Treat Codex participation as required, not optional.
+
+**Spawn the reviewer.** A fresh general-purpose Opus teammate (not senior-engineer). Give it the same artifacts: the epic, the tech design, and the story. Instruct it to load required skills with explicit calls (`Skill(codex-subagent)` or `Skill(copilot-subagent)` plus `Skill(gpt53-codex-prompting)` when available). In Sonnet-only mode, skip the subagent skills. If a skill load fails, they report the exact call + error so you can resolve it.
 
 **The reviewer runs a dual review (Codex/Copilot lane):**
 
-The reviewer launches a fresh Codex subagent async to do a thorough code review — Codex reads the epic, tech design, and story, then reviews the implementation against them. While Codex reviews, the Opus reviewer also does their own thorough code review independently. Two perspectives running in parallel: Codex's literal spec-compliance check and Opus's architectural/judgment review.
+The reviewer launches a fresh Codex subagent async to do a thorough code review — Codex reads the epic, tech design, and story, then reviews the implementation against them. Use `gpt-5.3-codex` as the default reviewer model. While Codex reviews, the Opus reviewer also does their own thorough code review independently. Two perspectives running in parallel: Codex's literal spec-compliance check and Opus's architectural/judgment review.
 
 When the Codex review comes back, the Opus reviewer:
 1. Reviews Codex's findings
@@ -148,6 +185,10 @@ The reviewer does a thorough code review independently — reads the epic, tech 
 
 The reviewer reports the final state to the orchestrator. When complete or blocked, send an explicit message: what changed, verification results, open concerns, or what's blocking and what input is needed.
 
+On first review round, ask: "What else did you notice but did not report?" Capture additional observations before final synthesis.
+
+If Codex output is missing, incomplete, or unverifiable, reject the review as incomplete. Retry/reassign/escalate, and explicitly log degraded status until Codex evidence is available.
+
 ---
 
 ### 3. Orchestrator Final Check
@@ -156,7 +197,7 @@ When the reviewer reports back, the implementation has been through multiple rev
 
 The orchestrator does the final check:
 
-1. **Run verification commands yourself** — format, lint, typecheck, tests. Confirm they pass. Don't trust reports alone.
+1. **Run the discovered story acceptance gate yourself** — execute the exact commands you locked in Verification Gate Discovery and confirm they pass. Don't trust reports alone.
 2. **Review code as needed** — read files, check implementations against the story, look at anything that was flagged as a concern. Never hesitate to go look at code directly.
 3. **Review open issues** — if either teammate surfaced issues they didn't fix, assess them. Read the code, reflect against the epic and tech design, make a call.
 
@@ -167,13 +208,24 @@ The orchestrator does the final check:
 
 **Accepting the story:**
 
-Once satisfied — all gates pass, no open issues, code looks right — stage all changes and commit: `feat: Story N — [story title]`. Each story gets its own commit. Don't amend previous commits. Then kick off the next story.
+Before acceptance, write a short pre-acceptance receipt to the log or report:
+
+1. Codex evidence reference (run/session and/or output artifact reference)
+2. Top findings and dispositions (`fixed`, `accepted-risk`, `defer`)
+3. Exact story gate command(s) run and result summary
+4. Open risks (or `none`)
+
+Once satisfied — all gates pass, no open issues, code looks right — stage all changes and commit: `feat: Story N — [story title]`. Each story gets its own commit. Don't amend previous commits.
 
 ---
 
 ### 4. Story Transition
 
 When a story is accepted and committed, move to the next story in the sequence. Fresh agents, same process, cumulative quality.
+
+Transition discipline:
+- Write a transition checkpoint to `team-impl-log.md` as the final action of the completed story cycle.
+- Do not commit and spawn the next story in the same action block/turn. After the checkpoint is written, begin the next story cycle.
 
 **Fresh agents per story.** Every story gets a fresh Opus implementer and a fresh Opus reviewer. No carrying forward teammates between stories. The new teammate reads the story cold with no assumptions from previous work. The story should be sufficient for implementation — that's the consumer gate from the story technical enrichment phase. If it isn't, that's a spec gap to flag, not a reason to carry context forward.
 
@@ -194,7 +246,7 @@ When a story is accepted and committed, move to the next story in the sequence. 
 - Assumptions about what previous implementers "know" — each agent starts cold
 - Unresolved issues from previous stories — if it wasn't fixed and committed, it doesn't exist for the next story's agent
 
-**Logging at story transitions.** At each transition, log to `team-impl-log.md`: what problems were encountered during this story's cycle, what impact they had, how they were resolved, and any recommendations for process adjustments. If you have suggestions for additional instructions or steps that would have prevented issues, present them as possible suggestions for the human to evaluate. Story transitions are natural reflection points.
+**Logging at story transitions.** At each transition, log to `team-impl-log.md`: what problems were encountered during this story's cycle, what impact they had, how they were resolved, and any recommendations for process adjustments. Include the pre-acceptance receipt fields (Codex evidence, dispositions, gate summary, risks). If you have suggestions for additional instructions or steps that would have prevented issues, present them as possible suggestions for the human to evaluate. Story transitions are natural reflection points.
 
 ---
 
@@ -206,6 +258,14 @@ When teammates escalate issues or problems arise during any phase:
 2. **Reflect against the epic and tech design.** The artifacts contain the rationale for decisions. Most questions can be answered by tracing back to the spec.
 3. **If you can make a reasonable decision, make it.** Route the answer back to the teammate with your reasoning.
 4. **If you need the human's ruling:** explain what's needed, what you did to investigate, what you understand about the issue, your recommendation, and your reasoning. Give the human enough context to decide without re-investigating from scratch.
+
+If the human interrupts with process feedback (not task-level content feedback), enter `PAUSED_PROCESS_REVIEW` mode immediately:
+- Stop new dispatches.
+- Do not commit.
+- Diagnose the process behavior with the human.
+- Resume only after explicit human instruction to resume orchestration.
+
+In `PAUSED_PROCESS_REVIEW`, prioritize diagnosis over reassurance. Treat frustration as diagnostic signal.
 
 ---
 
@@ -225,7 +285,7 @@ verification/
   gpt52-high/
 ```
 
-Directory names are labels for organizing output — use whatever is clear for the project. The model slugs passed to Codex CLI via `-m` are `gpt-5.3-codex` and `gpt-5.2`.
+Directory names are labels for organizing output — use whatever is clear for the project. The model slugs passed to Codex CLI via `-m` are `gpt-5.3-codex` and `gpt-5.2`. Default for routine implementation/review is `gpt-5.3-codex`; `gpt-5.2` is used here only as a secondary parallel verifier for diversity.
 
 ### Phase 1: Four Parallel Reviews
 
@@ -236,7 +296,7 @@ Launch four reviewers simultaneously. Each reads the full epic, the full tech de
 1. **Opus reviewer** — reads epic, tech design, all source files, all test files. Writes `epic-review.md` to their directory.
 2. **Sonnet reviewer** — same artifacts, same task, writes to their directory.
 
-**Two Codex subagents** (each managed by a general-purpose teammate who reads the `codex-subagent` and `gpt53-codex-prompting` skills with their references):
+**Two Codex subagents** (each managed by a general-purpose teammate who loads `codex-subagent` and `gpt53-codex-prompting` via the Skill tool):
 
 3. **gpt-5.3-codex at high reasoning** — same artifacts, writes review. The teammate captures the output and writes the report file (Codex runs read-only).
 4. **gpt-5.2 at high reasoning** (not gpt-5.2-codex — different tune) — same artifacts, writes review. Same capture pattern.
@@ -273,16 +333,18 @@ Read all review reports and all meta-reports. Produce a synthesized assessment:
    - Must-fix: ship blockers
    - Should-fix: correctness or quality issues
    - Nice-to-have: polish and debt
-4. **Report findings to the human** with the categorized list, your recommended ship-readiness grade, and any items where you want the human's input.
+4. **Route fixes by default:** auto-dispatch clear must-fix and should-fix items. Ask the human before proceeding only when a fix changes product scope, requirement intent, or release risk profile.
+5. **Report findings to the human** with the categorized list, your recommended ship-readiness grade, what was auto-dispatched, and any items requiring human input.
 
 ### Phase 4: Fixes
 
-Once the human approves the fix list:
+Default behavior is to auto-dispatch clear must-fix and should-fix items.
 
 - For a well-specified batch of fixes: launch a Codex subagent (via a general-purpose teammate) with the fix list document, the epic, and the tech design. Have it implement all fixes. In Sonnet-only mode, spawn a teammate to implement fixes directly.
 - After fixes: launch a fresh review targeting the specific changes to confirm the fixes are correct.
-- Run format, lint, typecheck, tests yourself to confirm all gates pass.
+- Run the discovered epic acceptance gate yourself to confirm all required gates pass.
 - Stage, commit (`feat: epic verification fixes`), and report completion to the human.
+- Ask the human before continuing only when a fix would alter product scope, requirement intent, or release risk profile.
 
 ---
 
@@ -324,14 +386,20 @@ The workflow defined in the story implementation cycle is the default. The orche
 What can be adjusted:
 - How much detail goes into the handoff prompt based on story complexity
 - Whether to flag specific risks or gotchas based on patterns from previous stories
+- Risk-tier verification depth (`low`, `medium`, `high`)
+- Bounded review loop depth when no substantive issues remain
+- Use of explicit `accepted-risk` dispositions for non-blocking items
 
 What cannot be adjusted:
 - The self-review loop always runs — the implementer always self-reviews until clean
-- The orchestrator always runs verification gates (format, lint, typecheck, tests)
+- The orchestrator always runs the discovered story/epic acceptance gates
 - Fresh agents per story — no carrying teammates forward
 - Full test suite regression check — always verify all tests, not just the new story's
+- The three hard invariants in Control Contract
 
-If a story's verification surfaces a pattern (error message drift, type deviations, specific module fragility), flag it in subsequent story handoffs. If the human directs a process change, apply it and log the change and reasoning to `team-impl-log.md`.
+Human override always wins. If the human directs a process change, apply it, log it, and continue.
+
+If a story's verification surfaces a pattern (error message drift, type deviations, specific module fragility), flag it in subsequent story handoffs.
 
 ---
 

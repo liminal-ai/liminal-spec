@@ -35,7 +35,11 @@ Create `team-spec-log.md` alongside where the spec artifacts will live. This is 
 
 Check which execution capabilities are available by locating skills by name:
 
-**Codex lane** (primary): the `codex-subagent` or `copilot-subagent` skill is available. Either provides access to GPT-5x-codex models for verification. If available, read the skill and its references. Also check for `gpt53-codex-prompting` — if available, read it. This skill improves prompt quality for Codex subagents but is not required.
+**Codex lane** (primary): the `codex-subagent` or `copilot-subagent` skill is available. Either provides access to GPT-5x-codex models for verification. If available, load the skill with the Skill tool (`Skill(codex-subagent)` or `Skill(copilot-subagent)`). Also check for `gpt53-codex-prompting` — if available, load it with `Skill(gpt53-codex-prompting)`. This skill improves prompt quality for Codex subagents but is not required.
+
+Model selection default in Codex/Copilot lane:
+- Use `gpt-5.3-codex` for normal drafting verification and routine single-review passes.
+- Use `gpt-5.2` only when running parallel multi-verifier diversity passes.
 
 **Sonnet-only fallback**: Neither subagent skill is available. Verification will use Sonnet 4.6 directly rather than routing through a Codex subagent. This reduces multi-model verification diversity. Warn the human: verification quality is reduced without multi-model review. Recommend stopping and installing a subagent skill. If the human chooses to continue, proceed in Sonnet-only mode.
 
@@ -45,7 +49,38 @@ Log the lane determination to `team-spec-log.md`: which skills were found, which
 
 ### Load Phase Skills
 
-Read the `ls-research` and `ls-epic` skills. These orient you on what the methodology expects at each phase — exit checklists, validation criteria, artifact structure. You'll load additional phase skills as the pipeline progresses.
+Load `ls-research` and `ls-epic` with the Skill tool. These orient you on what the methodology expects at each phase — exit checklists, validation criteria, artifact structure. You'll load additional phase skills as the pipeline progresses.
+
+Load required skills yourself before dispatching teammates. Do not instruct teammates to use a skill you have not loaded and verified in your own context first.
+
+### Control Contract (Hard Invariants)
+
+These three invariants are non-negotiable:
+
+1. No phase acceptance or phase transition without a Codex evidence reference (run/session identifier and/or output artifact reference).
+2. No unresolved Codex finding without explicit disposition: `fixed`, `accepted-risk`, or `defer`.
+3. No silent degradation. If Codex fails, declare the failure, handle it (retry/reassign/escalate), and do not present verification as complete.
+
+### Adaptive Controls
+
+Keep process flexibility without weakening the invariants:
+
+- Risk-tier each phase (`low`, `medium`, `high`) and scale verification depth accordingly.
+- Use bounded review loops; avoid churn when no substantive changes remain.
+- Use `accepted-risk` for explicitly reasoned, non-blocking issues.
+- Human override always takes precedence over default routing.
+
+### Verification Gate Discovery
+
+Before Phase 1 drafting starts, discover and lock the project's verification gates for this pipeline.
+
+1. Read project policy docs (for example: `CLAUDE.md`, `AGENTS.md`, `README`, package scripts, CI config) to identify required verification commands/checks.
+2. Define and log two gate sets in `team-spec-log.md`:
+   - **Phase acceptance gate**: commands/checks required before accepting each phase artifact.
+   - **Final handoff gate**: commands/checks required before declaring the full spec pipeline complete.
+3. If policy is ambiguous, ask the human once before Phase 1 drafting begins.
+
+Do not assume document quality checks alone are sufficient. Use the complete gate required by project policy.
 
 ---
 
@@ -89,17 +124,21 @@ This pattern repeats at every phase. It's described once here and referenced thr
 
 1. **Author self-review.** The drafter critically reviews their own work against the phase skill's exit checklist. Fixes non-controversial issues. Reports what they found, what they fixed, and what remains open.
 
-2. **Dual verification.** Spawn an Opus verifier teammate (fresh for this phase, persists across verification rounds within the phase). The verifier loads the relevant phase skills (specified per phase below) and reads the artifact plus all input artifacts. In the Codex/Copilot lane, the verifier also fires a Codex subagent async for a parallel review. Two perspectives: Opus architectural/judgment review + Codex literal/detail review. In Sonnet-only mode, the verifier does a solo review.
+2. **Dual verification.** Spawn an Opus verifier teammate (fresh for this phase, persists across verification rounds within the phase). The verifier loads the relevant phase skills (specified per phase below) and reads the artifact plus all input artifacts. In the Codex/Copilot lane, the verifier also fires a Codex subagent async for a parallel review using `gpt-5.3-codex` by default. Two perspectives: Opus architectural/judgment review + Codex literal/detail review. In Sonnet-only mode, the verifier does a solo review.
 
 3. **Orchestrator synthesis.** Read all verification findings. Categorize by severity (Critical, Major, Minor). Decide what needs fixing and what to dismiss. Codex grades conservatively — apply your own judgment, don't defer to model calibration.
 
-4. **Drafter fixes.** Send the fix list to the original drafter (not a fresh agent — they have the full context of what they wrote and why). The drafter makes revisions.
+4. **Route fixes by default.** Auto-dispatch clear must-fix and should-fix items to the original drafter (not a fresh agent — they have the full context of what they wrote and why). Ask the human before proceeding only when a fix changes product scope, requirement intent, or release risk profile.
 
 5. **Re-verify.** Send the revised artifact back to the same Opus verifier, who fires a fresh Codex subagent. Review the changes.
 
 6. **Iterate.** Repeat steps 3-5 until verifiers return minimal or no substantive findings, or the orchestrator rules remaining findings as non-issues.
 
-7. **Log.** At the end of each verification cycle, log to `team-spec-log.md`: what findings came back, what was fixed, what was dismissed and why, how many rounds it took.
+7. **Codex evidence gate.** If Codex output is missing, incomplete, or unverifiable, mark the cycle degraded and treat it as incomplete. Retry/reassign/escalate before phase acceptance.
+
+8. **Run phase gate yourself.** Execute the discovered phase acceptance gate commands/checks yourself before accepting the phase.
+
+9. **Log.** At the end of each verification cycle, log to `team-spec-log.md`: what findings came back, what was fixed, what was dismissed and why, how many rounds it took.
 
 ### When to Stop
 
@@ -109,6 +148,13 @@ The verification loop converges when:
 - A new round of fixes doesn't introduce new issues
 
 Don't pursue perfection. Pursue readiness for the next phase's consumer.
+
+Before any phase is accepted, write a short pre-acceptance receipt to the log or report:
+
+1. Codex evidence reference (run/session and/or output artifact reference)
+2. Top findings and dispositions (`fixed`, `accepted-risk`, `defer`)
+3. Exact phase gate command(s)/checks run and result summary
+4. Open risks (or `none`)
 
 ### The "What Else" Probe
 
@@ -126,6 +172,15 @@ Shut down teammates after each phase completes. Don't leave idle teammates runni
 
 ---
 
+## Phase Transition Discipline
+
+At each phase boundary:
+- Write a phase-close note in `team-spec-log.md` (including pre-acceptance receipt fields) as the final action of the current phase.
+- Do not close a phase and dispatch the next phase in the same action block/turn.
+- Keep adaptive verification rounds, but do not skip phase-close logging checkpoints.
+
+---
+
 ## Phase 1: Epic
 
 ### Skill Loading
@@ -139,7 +194,7 @@ Everyone in this phase loads: `ls-epic`
 ### Drafting
 
 Spawn a general-purpose Opus teammate. Hand them:
-- The `ls-epic` skill (by name — let them find and read it)
+- Load `ls-epic` with `Skill(ls-epic)`
 - All pre-epic documentation (paths)
 - Any specific instructions or context from your orientation work with the human
 
@@ -175,7 +230,7 @@ The drafter needs ls-epic to validate the epic before designing from it (the dua
 ### Drafting
 
 Spawn a general-purpose Opus teammate. Hand them:
-- The `ls-epic` and `ls-tech-design` skills (by name)
+- Load `ls-epic` with `Skill(ls-epic)` and `ls-tech-design` with `Skill(ls-tech-design)`
 - The accepted epic (path)
 - The project codebase context (if applicable — the tech design needs to understand existing architecture)
 
@@ -209,7 +264,7 @@ Note: `ls-tech-design` is not needed for story sharding. The sharding is functio
 ### Drafting
 
 Spawn a general-purpose Opus teammate. Hand them:
-- The `ls-epic` and `ls-story` skills (by name)
+- Load `ls-epic` with `Skill(ls-epic)` and `ls-story` with `Skill(ls-story)`
 - The accepted epic (path)
 
 The drafter produces:
@@ -248,7 +303,7 @@ Log the story sharding phase completion to `team-spec-log.md`: coverage gate res
 ### Enrichment
 
 Spawn a general-purpose Opus teammate. Hand them:
-- The `ls-story-tech` skill (by name)
+- Load `ls-story-tech` with `Skill(ls-story-tech)`
 - The accepted epic (path)
 - The accepted tech design (path)
 - All functional stories (paths)
@@ -285,7 +340,7 @@ After enrichment, each story gets an independent verification pass, then the ful
 
 ### Per-Story Verification
 
-For each story, spawn a dual verifier: an Opus teammate who fires a Codex subagent async. In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and the individual story. They verify:
+For each story, spawn a dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and the individual story. They verify:
 
 - Story contract compliance (all six requirements)
 - Consumer gate (could an engineer implement from this story alone?)
@@ -299,7 +354,7 @@ Stories can be verified in parallel — each story's verification is independent
 
 ### Cross-Story Coherence Check
 
-After all individual story verifications complete, spawn one final dual verifier: an Opus teammate who fires a Codex subagent async. In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and all stories. They check:
+After all individual story verifications complete, spawn one final dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and all stories. They check:
 
 - **Coverage completeness:** Every AC and TC from the epic is covered across the story set. No orphaned requirements.
 - **Interface coverage:** Every interface from the tech design appears in at least one story's Interfaces & Contracts section.
@@ -331,6 +386,8 @@ From here, the human can proceed to implementation via `/ls-team-impl` (team orc
 
 Log the full pipeline completion to `team-spec-log.md`: total phases run, total verification rounds across all phases, significant process decisions, and any recommendations for future runs.
 
+Before declaring full pipeline completion, run the discovered final handoff gate yourself and include command/check results in the final completion log entry.
+
 ---
 
 ## Escalation Handling
@@ -341,6 +398,14 @@ When teammates escalate issues or problems arise during any phase:
 2. **Reflect against the upstream artifacts.** The epic contains the requirements rationale. The tech design contains the architecture rationale. Most questions can be answered by tracing back.
 3. **If you can make a reasonable decision, make it.** Route the answer back to the teammate with your reasoning.
 4. **If you need the human's ruling:** explain what's needed, what you did to investigate, what you understand about the issue, your recommendation, and your reasoning. Give the human enough context to decide without re-investigating from scratch.
+
+If the human interrupts with process feedback (not artifact content feedback), enter `PAUSED_PROCESS_REVIEW` mode immediately:
+- Stop new dispatches.
+- Do not commit or mark phase acceptance.
+- Diagnose the process behavior with the human.
+- Resume only after explicit human instruction to resume orchestration.
+
+In `PAUSED_PROCESS_REVIEW`, prioritize diagnosis over reassurance. Treat frustration as diagnostic signal.
 
 ---
 
@@ -384,14 +449,21 @@ What can be adjusted:
 - How much detail goes into handoff prompts based on artifact complexity
 - Whether to flag specific risks or patterns based on previous phase findings
 - Number of verification rounds based on artifact quality trajectory
+- Risk-tier verification depth (`low`, `medium`, `high`)
+- Bounded review loop depth when no substantive issues remain
+- Use of explicit `accepted-risk` dispositions for non-blocking items
 
 What cannot be adjusted:
 - The verification pattern always runs — every artifact gets at minimum author self-review + one dual verification round
+- The orchestrator always runs discovered phase/final handoff gates before acceptance
 - Fresh verifiers per phase — no carrying verification context forward
 - The human always gets the option to review at phase boundaries
 - The epic always gets human every-line review
+- The three hard invariants in Control Contract
 
-If a phase's verification surfaces a pattern, flag it in subsequent phase handoffs. If the human directs a process change, apply it and log the change and reasoning to `team-spec-log.md`.
+Human override always wins. If the human directs a process change, apply it, log it, and continue.
+
+If a phase's verification surfaces a pattern, flag it in subsequent phase handoffs.
 
 ---
 
