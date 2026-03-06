@@ -1,0 +1,8 @@
+{
+  "phases": [
+    { "phaseId": "impl-prep", "attempt": 1, "decision": "approve" },
+    { "phaseId": "story-cycle", "attempt": 1, "decision": "approve" },
+    { "phaseId": "epic-post-verify", "attempt": 1, "decision": "approve" },
+    { "phaseId": "handoff-close", "attempt": 1, "decision": "approve" }
+  ]
+}

@@ -11,7 +11,12 @@
     "verify": "bun run build && bun run validate && bun test",
     "clean": "rm -rf dist",
     "prebuild": "bun run clean",
-    "test": "bun test"
+    "test": "bun test",
+    "orchestrate:team-impl": "bun run orchestrator-mvp/src/cli.ts team-impl",
+    "orchestrate:team-spec": "bun run orchestrator-mvp/src/cli.ts team-spec",
+    "orchestrate:single-story": "bun run orchestrator-mvp/src/cli.ts single-story",
+    "orchestrate:resume": "bun run orchestrator-mvp/src/cli.ts resume",
+    "orchestrate:report": "bun run orchestrator-mvp/src/cli.ts report"
   },
   "devDependencies": {
     "zod": "^4.0.0"

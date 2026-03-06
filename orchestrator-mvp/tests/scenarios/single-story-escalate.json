@@ -1,0 +1,6 @@
+{
+  "phases": [
+    { "phaseId": "single-spec", "attempt": 1, "decision": "approve" },
+    { "phaseId": "single-tech", "attempt": 1, "decision": "escalate", "note": "Forced escalation scenario" }
+  ]
+}

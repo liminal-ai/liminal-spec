@@ -6,3 +6,5 @@ bun.lock
 .comparison/
 .test-tmp/
 docs/ls-team-impl-handoff/
+orchestrator-mvp/runs/
+example-specs-pr-review/
