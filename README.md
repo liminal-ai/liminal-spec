@@ -20,7 +20,7 @@ Liminal Spec runs a phased pipeline where each phase produces an artifact the ne
 **Simple pipeline** -- story-sized work, focused changes, same rigor:
 - Single capability additions or contained feature changes
 - Work scoped to 1-2 flows and ~5-15 acceptance criteria
-- Changes where full epic/tech-design/sharding overhead isn't justified
+- Changes where full epic/tech-design overhead isn't justified
 
 Not for: quick bug fixes, single-file changes, spikes, or emergency patches.
 
@@ -28,20 +28,17 @@ Not for: quick bug fixes, single-file changes, spikes, or emergency patches.
 
 ```
 # Full pipeline (multi-story feature)
-/ls-epic        → describe what you're building     → get a feature spec
-/ls-tech-design → design from the spec              → get a tech design
-/ls-story       → shard into functional stories      → get stories
-/ls-story-tech  → enrich with technical detail       → get complete stories
-/ls-impl        → implement from a complete story    → verified code
+/ls-epic          → describe what you're building       → get a detailed epic
+/ls-tech-design   → design from the spec                → get a tech design
+/ls-publish-epic  → publish for handoff                 → get business epic + stories
 
 # Simple pipeline (story-sized change)
-/lss-story      → describe a focused change          → get a functional story
-/lss-tech       → design + enrich inline             → get a complete story
-/ls-impl        → implement from the story           → verified code
+/lss-story        → describe a focused change           → get a functional story
+/lss-tech         → design + enrich inline              → get a complete story
 
 # Team orchestration (agent teams in tmux)
-/ls-team-spec   → orchestrate full spec pipeline     → complete stories via agent teams
-/ls-team-impl   → orchestrate team implementation    → verified code via agent teams
+/ls-team-spec     → orchestrate full spec pipeline      → complete artifacts via agent teams
+/ls-team-impl     → orchestrate team implementation     → verified code via agent teams
 ```
 
 Or use `/liminal-spec` to open the router -- describe what you're building and it routes you to the right skill.
@@ -55,36 +52,31 @@ For multi-story features. Each phase is a separate agent with a separate context
 | Phase | Skill | In | Out |
 |-------|-------|-----|------|
 | 1. Product Research (optional) | `/ls-research` | Vision/idea | PRD |
-| 2. Epic | `/ls-epic` | PRD or requirements | Feature Spec |
-| 3. Tech Design | `/ls-tech-design` | Feature Spec | Tech Design |
-| 4. Story Sharding | `/ls-story` | Spec + Design | Functional Stories |
-| 4b. Story Tech | `/ls-story-tech` | Stories + Tech Design | Complete Stories |
-| 5. Implementation | `/ls-impl` | Complete Story | Verified code |
+| 2. Epic | `/ls-epic` | PRD or requirements | Detailed Epic |
+| 3. Tech Design | `/ls-tech-design` | Detailed Epic | Tech Design |
+| 4. Publish Epic | `/ls-publish-epic` | Detailed Epic | Business Epic + Stories |
 
 Most work starts at Phase 2 -- if you know what you're building, start there.
 
 ### Team Orchestration
 
-For orchestrating implementation with agent teams in tmux. Alternative to Phase 5 solo implementation.
+For orchestrating spec creation or implementation with agent teams in tmux.
 
 | Phase | Skill | In | Out |
 |-------|-------|-----|------|
-| Team Spec | `/ls-team-spec` | Requirements / PRD | Complete Stories (via agent teams) |
-| Team Implementation | `/ls-team-impl` | Complete Stories | Verified code (via agent teams) |
+| Team Spec | `/ls-team-spec` | Requirements / PRD | Published artifacts (via agent teams) |
+| Team Implementation | `/ls-team-impl` | Stories + Tech Design | Verified code (via agent teams) |
 
 ### Simple Pipeline
 
-For story-sized work. Two phases instead of five, same quality bar.
+For story-sized work. Two phases, same quality bar.
 
 | Phase | Skill | In | Out |
 |-------|-------|-----|------|
 | S1. Simple Story | `/lss-story` | Requirements | Functional Story |
 | S2. Simple Tech | `/lss-tech` | Functional Story + Codebase | Complete Story |
-| 5. Implementation | `/ls-impl` | Complete Story | Verified code |
 
 Use when scope is 1-2 flows and ~5-15 ACs. If scope grows beyond that, escalate to the full pipeline.
-
-Within Phase 5, the recommended cycle is: **Skeleton -> TDD Red -> TDD Green -> Gorilla Test -> Verify**. The verification gate is the hard requirement; the TDD process is the engineer's judgment.
 
 ## Key Ideas
 
@@ -98,7 +90,7 @@ Within Phase 5, the recommended cycle is: **Skeleton -> TDD Red -> TDD Green -> 
 
 **Multi-model validation.** Different models catch different things. Artifacts are validated by their downstream consumer and by a different model for diverse perspective.
 
-**Story as implementation artifact.** Complete stories with functional sections (BA/SM) and technical sections (Tech Lead) are the sole handoff to engineers. The technical sections carry substantial tech design content sharded into each story -- the engineer implements from the story alone without reading the full tech design. No prompt packs, no orchestration scripts.
+**Publish for handoff.** The detailed epic is the engineering source of truth. The published business epic gives POs a clear view of what's being built. The story file gives developers self-contained units of work with full AC/TC detail and relevant contracts. Each audience gets the artifact shaped for their needs.
 
 ## Installation
 
@@ -113,16 +105,15 @@ claude plugin marketplace add liminal-ai/liminal-spec
 ### Install
 
 ```bash
-# Full suite -- all 10 skills, router, senior-engineer agent
+# Full suite -- all 8 skills, router, senior-engineer agent
 claude plugin install liminal-spec@liminal-plugins
 
 # Or install individual skills à la carte
-claude plugin install ls-epic@liminal-plugins          # Full: Feature specifications
-claude plugin install ls-tech-design@liminal-plugins   # Full: Technical designs
-claude plugin install ls-story@liminal-plugins         # Full: Story sharding
-claude plugin install ls-story-tech@liminal-plugins    # Full: Story technical enrichment
-claude plugin install lss-story@liminal-plugins        # Simple: Functional story
-claude plugin install lss-tech@liminal-plugins         # Simple: Technical design + enrichment
+claude plugin install ls-epic@liminal-plugins            # Full: Feature specifications
+claude plugin install ls-tech-design@liminal-plugins     # Full: Technical designs
+claude plugin install ls-publish-epic@liminal-plugins    # Full: Publish epic as business epic + stories
+claude plugin install lss-story@liminal-plugins          # Simple: Functional story
+claude plugin install lss-tech@liminal-plugins           # Simple: Technical design + enrichment
 ```
 
 ### Update
@@ -143,11 +134,9 @@ Or enable auto-update via the `/plugin` manager (Marketplaces tab) to pull new v
 |---------|-------------|
 | `/liminal-spec` | Router -- presents the pipeline menu, routes to the right skill |
 | `/ls-research` | Phase 1 (optional) -- product research and PRD drafting |
-| `/ls-epic` | Phase 2 -- write a Feature Specification |
+| `/ls-epic` | Phase 2 -- write a detailed Feature Specification |
 | `/ls-tech-design` | Phase 3 -- create a Tech Design from a Feature Spec |
-| `/ls-story` | Phase 4 -- shard epic into functional stories |
-| `/ls-story-tech` | Phase 4b -- add technical sections to functional stories |
-| `/ls-impl` | Phase 5 -- implement from complete stories with TDD |
+| `/ls-publish-epic` | Phase 4 -- publish epic as business epic + developer stories |
 | `/lss-story` | Simple S1 -- write a functional story with epic-quality rigor |
 | `/lss-tech` | Simple S2 -- inline technical design + enrichment for a story |
 | `/ls-team-spec` | Team -- orchestrate full spec pipeline with agent teams in tmux |
@@ -167,14 +156,10 @@ claude plugin install ls-epic@liminal-plugins
 
 # Tech Lead
 claude plugin install ls-tech-design@liminal-plugins
-claude plugin install ls-story-tech@liminal-plugins
-claude plugin install lss-tech@liminal-plugins         # For story-sized tech enrichment
+claude plugin install lss-tech@liminal-plugins           # For story-sized tech enrichment
 
-# Scrum Master / BA (story sharding)
-claude plugin install ls-story@liminal-plugins
-
-# Engineer (use full suite for impl + agent + router)
-claude plugin install liminal-spec@liminal-plugins
+# BA / SM (publish epic for handoff)
+claude plugin install ls-publish-epic@liminal-plugins
 
 # Solo developer (simple pipeline for focused work)
 claude plugin install lss-story@liminal-plugins
@@ -190,7 +175,7 @@ claude plugin install lss-tech@liminal-plugins
 
 ### Skill Pack
 
-Download `liminal-spec-skill-pack-vX.Y.Z.zip` from Releases. Contains one directory per phase (`01-product-research/`, `02-epic/`, `03-technical-design/`, `04-story-sharding/`, `04b-story-technical-enrichment/`, `05-implementation/`, `06-team-implementation/`, `07-team-spec/`, `simple-01-story/`, `simple-02-technical-design/`), each with a `SKILL.md`. Copy the phases you need into your project's `.claude/skills/` directory.
+Download `liminal-spec-skill-pack-vX.Y.Z.zip` from Releases. Contains one directory per phase (`01-product-research/`, `02-epic/`, `03-technical-design/`, `04-publish-epic/`, `06-team-implementation/`, `07-team-spec/`, `simple-01-story/`, `simple-02-technical-design/`), each with a `SKILL.md`. Copy the phases you need into your project's `.claude/skills/` directory.
 
 The plugin includes the router command and senior-engineer agent that the skill pack doesn't. Use the plugin if your environment supports it.
 
@@ -203,9 +188,7 @@ Download `liminal-spec-markdown-pack-vX.Y.Z.zip` from [Releases](https://github.
 | `01-product-research-skill.md` | PO, PM, BA | Exploring direction and drafting a PRD |
 | `02-epic-skill.md` | BA, PO | Writing feature specifications |
 | `03-technical-design-skill.md` | Senior Dev, Tech Lead | Creating tech designs from a spec |
-| `04-story-sharding-skill.md` | BA, SM | Breaking epics into functional stories |
-| `04b-story-technical-enrichment-skill.md` | Tech Lead | Adding technical sections to stories |
-| `05-implementation-skill.md` | Engineers | Implementing from complete stories with TDD |
+| `04-publish-epic-skill.md` | BA, SM | Publishing epic as business epic + developer stories |
 | `06-team-implementation-skill.md` | Team Lead / Orchestrator | Orchestrating agent team implementation |
 | `07-team-spec-skill.md` | Team Lead / Orchestrator | Orchestrating full spec pipeline with agent teams |
 | `simple-01-story-skill.md` | BA, PO, Solo Dev | Writing a single story with epic-quality rigor |
@@ -215,18 +198,11 @@ Download `liminal-spec-markdown-pack-vX.Y.Z.zip` from [Releases](https://github.
 
 ### Spec Phases (Full or Simple Pipeline)
 
-Each spec phase produces an artifact that the next phase reads cold. The author validates their own work, then a downstream consumer validates it from their perspective (can the Tech Lead design from this spec? can the engineer implement from this story?). Different models provide diverse perspectives during validation.
+Each spec phase produces an artifact that the next phase reads cold. The author validates their own work, then a downstream consumer validates it from their perspective (can the Tech Lead design from this spec? can the PO accept from the business epic? can the developer implement from the story?). Different models provide diverse perspectives during validation.
 
-### Implementation Phase
+### Implementation
 
-Stories contain functional requirements (ACs, TCs, error paths) and technical implementation sections (architecture context, interfaces, test mapping, technical DoD). Engineers implement from complete stories using TDD discipline:
-
-1. Read the story (functional + technical sections).
-2. Plan the implementation (use plan mode if available).
-3. Execute the TDD cycle (recommended): Skeleton -> Red -> Green -> Self-Review -> Gorilla -> Verify.
-4. Verify against the story's technical checklist and functional DoD.
-
-The story is the sole implementation artifact. In the full pipeline, epic and tech design are available as reference material. In the simple pipeline, there are no other artifacts -- the story is self-contained.
+Developers receive stories from the story file and the tech design as a separate reference. Each story contains full AC/TC detail, relevant data contracts, and Jira section markers for direct copy-paste into project management tooling. The tech design provides the architectural context that ties everything together.
 
 ## Development
 
@@ -273,7 +249,7 @@ Release flow:
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill, 10 total)
+  phases/          -- Phase-specific content (one per skill, 8 total)
   shared/          -- Cross-cutting concepts used by multiple phases
   templates/       -- Artifact templates
   examples/        -- Verification prompt templates
@@ -288,8 +264,7 @@ plugins/
   liminal-spec/    -- Full suite marketplace source
   ls-epic/         -- Individual plugin marketplace source
   ls-tech-design/  -- Individual plugin marketplace source
-  ls-story/        -- Individual plugin marketplace source
-  ls-story-tech/   -- Individual plugin marketplace source
+  ls-publish-epic/ -- Individual plugin marketplace source
   lss-story/       -- Individual plugin marketplace source
   lss-tech/        -- Individual plugin marketplace source
 ```

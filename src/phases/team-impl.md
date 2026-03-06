@@ -4,7 +4,7 @@
 
 You receive a set of technically enriched stories, an epic, and a tech design. You implement them sequentially, one story at a time, using a teammate who supervises a Codex subagent. The teammate manages the build; you manage the process.
 
-If team mode is not available, use `/ls-impl` for solo implementation.
+If team mode is not available, implement directly from the stories and tech design using your preferred workflow.
 
 ---
 
@@ -227,7 +227,7 @@ Transition discipline:
 - Write a transition checkpoint to `team-impl-log.md` as the final action of the completed story cycle.
 - Do not commit and spawn the next story in the same action block/turn. After the checkpoint is written, begin the next story cycle.
 
-**Fresh agents per story.** Every story gets a fresh Opus implementer and a fresh Opus reviewer. No carrying forward teammates between stories. The new teammate reads the story cold with no assumptions from previous work. The story should be sufficient for implementation — that's the consumer gate from the story technical enrichment phase. If it isn't, that's a spec gap to flag, not a reason to carry context forward.
+**Fresh agents per story.** Every story gets a fresh Opus implementer and a fresh Opus reviewer. No carrying forward teammates between stories. The new teammate reads the story cold with no assumptions from previous work. The story should be sufficient for implementation — that's the consumer gate from the publish epic phase. If it isn't, that's a spec gap to flag, not a reason to carry context forward.
 
 **The handoff prompt structure is the same every story.** Read epic, read tech design, read this story, load skills, implement (via subagent or directly), self-review, report. What changes between stories is only the story path and any story-specific flags the orchestrator noticed while reading — like "this story has a spec deviation worth noting" or "this is a large story, ~40 tests expected."
 

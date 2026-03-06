@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.9.0 (2026-03-06)
+
+Pipeline simplification: publish-epic replaces story sharding + tech enrichment. Implementation handled by external orchestration.
+
+### Added
+
+- **`ls-publish-epic` skill (Phase 4):** Takes a validated detailed epic and produces two handoff-ready artifacts — a PO-friendly business epic (grouped ACs, prose data contracts, Jira section markers) and a developer story file (full AC/TC detail per story, Technical Design sections, Jira section markers). Stories first, then business epic — bottom-up compression preserves fidelity.
+
+### Removed
+
+- **`ls-story` skill (Phase 4):** Story sharding is now handled by `ls-publish-epic`, which produces stories directly from the detailed epic.
+- **`ls-story-tech` skill (Phase 4b):** Story technical enrichment eliminated. Developers receive stories with relevant contracts plus the tech design as a separate reference document.
+- **`ls-impl` skill (Phase 5):** Implementation is handled by external orchestration tooling (`ls-team-impl`, orchestrator-mvp scripts, or direct developer workflow), not a spec skill.
+
+### Changed
+
+- **Full pipeline simplified:** `ls-epic → ls-tech-design → ls-publish-epic` (was `ls-epic → ls-tech-design → ls-story → ls-story-tech → ls-impl`).
+- **`ls-team-spec`:** Phases 3-5 (story sharding, tech enrichment, final verification) replaced with Phase 3 (publish epic) and Phase 4 (final verification). Skill references updated throughout.
+- **`ls-team-impl`:** Removed `/ls-impl` fallback reference. Solo implementation uses stories + tech design directly.
+- **`lss-tech`:** Removed `ls-impl` from simple pipeline flow description. Removed `ls-story-tech` format references.
+- **`lss-story`:** Updated escalation gate to reference new pipeline shape.
+- **Router command:** Updated phase table and routing logic for 4-phase pipeline.
+- **Plugin count:** 8 skills (was 10), 5 individual plugins (was 6).
+
 ## v0.8.1 (2026-03-02)
 
 Team orchestration hardening and release discipline updates. `ls-team-impl` and `ls-team-spec` now enforce Codex participation with lightweight mechanical controls while preserving pragmatic execution flow.

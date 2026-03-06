@@ -27,11 +27,8 @@ The traceability chain (requirement -> test condition -> test -> code) means tha
 +---------------------+---------------------------+-------------------------------------------------------+
 | 3. Tech Design      | /ls-tech-design           | You have a complete epic ready for architecture       |
 +---------------------+---------------------------+-------------------------------------------------------+
-| 4. Story Sharding   | /ls-story                 | Epic + design done, ready for functional stories      |
-+---------------------+---------------------------+-------------------------------------------------------+
-| 4b. Story Tech      | /ls-story-tech            | Functional stories ready for technical enrichment     |
-+---------------------+---------------------------+-------------------------------------------------------+
-| 5. Implementation   | /ls-impl                  | Complete stories ready, time to implement             |
+| 4. Publish Epic     | /ls-publish-epic          | Epic done, ready for business epic + developer        |
+|                     |                           | stories with Jira markers                             |
 +---------------------+---------------------------+-------------------------------------------------------+
 
 Most work starts at **Phase 2**. Tell me what you are building and which phase you are starting from.
@@ -47,8 +44,6 @@ For focused changes that don't warrant the full pipeline -- a single capability,
 +---------------------+---------------------------+-------------------------------------------------------+
 | S2. Simple Tech     | /lss-tech                 | You have a functional story ready for inline tech     |
 |                     |                           | design + enrichment                                   |
-+---------------------+---------------------------+-------------------------------------------------------+
-| 5. Implementation   | /ls-impl                  | Complete story ready, time to implement               |
 +---------------------+---------------------------+-------------------------------------------------------+
 
 Use the simple pipeline when scope is 1-2 flows and ~5-15 ACs. If scope grows beyond that, escalate to the full pipeline.
@@ -90,9 +85,7 @@ Based on the user's response, invoke the appropriate skill:
 - Phase 1 (Product Research) -> use Skill tool: "liminal-spec:ls-research"
 - Phase 2 (Epic) -> use Skill tool: "liminal-spec:ls-epic"
 - Phase 3 (Tech Design) -> use Skill tool: "liminal-spec:ls-tech-design"
-- Phase 4 (Story Sharding) -> use Skill tool: "liminal-spec:ls-story"
-- Phase 4b (Story Tech) -> use Skill tool: "liminal-spec:ls-story-tech"
-- Phase 5 (Implementation) -> use Skill tool: "liminal-spec:ls-impl"
+- Phase 4 (Publish Epic) -> use Skill tool: "liminal-spec:ls-publish-epic"
 - Simple Story (focused change) -> use Skill tool: "liminal-spec:lss-story"
 - Simple Tech (enrich simple story) -> use Skill tool: "liminal-spec:lss-tech"
 - Team spec (orchestrate full spec pipeline with agent teams in tmux) -> use Skill tool: "liminal-spec:ls-team-spec"
@@ -102,9 +95,7 @@ If the user is unclear about phase:
 - Need product exploration or stakeholder alignment first? -> Phase 1
 - Have feature requirements but need a complete implementation-ready spec? -> Phase 2
 - Have a complete epic and need architecture/interfaces? -> Phase 3
-- Have epic + design and need functional stories? -> Phase 4
-- Have functional stories and need technical enrichment? -> Phase 4b
-- Have complete stories and need implementation? -> Phase 5
+- Have a complete epic and need business epic + stories for handoff? -> Phase 4
 - Have a focused change (one story, not a full epic)? -> Simple Story
 - Have a functional story from lss-story ready for tech enrichment? -> Simple Tech
 - Want to orchestrate the full spec pipeline (epic through stories) with agent teams? -> Team Spec

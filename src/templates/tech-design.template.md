@@ -647,7 +647,7 @@ Creates shared foundation that all subsequent chunks build on. No user-facing fu
 **Scope:** [What this chunk delivers]
 **ACs:** AC-X through AC-Y
 **TCs:** TC-Xa through TC-Yb
-**Relevant Tech Design Sections:** [List the headings from this tech design that are relevant to this chunk -- used by Tech Lead during Story Technical Enrichment to select content for story shards]
+**Relevant Tech Design Sections:** [List the headings from this tech design that are relevant to this chunk -- helps identify which tech design content is relevant to each story]
 **Non-TC Decided Tests:** [Tests this chunk needs beyond TC mappings -- edge cases, collision tests, defensive tests. "None" if all tests are TC-mapped.]
 
 #### Skeleton (if not covered in Chunk 0)
@@ -733,7 +733,7 @@ Before handoff, verify quality. Read your own design critically—the BA/SM vali
 - [ ] Test names describe user-visible outcomes
 - [ ] Each section standalone-readable (isolation test)
 
-### Architecture Gate (Before Handoff to Story Sharding)
+### Architecture Gate (Before Handoff)
 
 Cross-cutting architecture decisions must be explicit before execution begins. Flow design quality doesn't compensate for implicit architecture controls — these cause late churn when discovered during implementation.
 
@@ -743,7 +743,7 @@ Cross-cutting architecture decisions must be explicit before execution begins. F
 - [ ] Error contract defined (machine-readable codes/shapes that clients rely on)
 - [ ] Environment and runtime prerequisites documented (what's needed locally and in CI)
 
-If any of these are missing, the design isn't ready for story sharding. These decisions will be made one way or another — making them explicit here prevents ad-hoc discovery during execution.
+If any of these are missing, the design isn't ready for handoff. These decisions will be made one way or another — making them explicit here prevents ad-hoc discovery during execution.
 
 ---
 

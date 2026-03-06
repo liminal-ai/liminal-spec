@@ -2,9 +2,9 @@
 
 **Purpose:** Orchestrate the full Liminal Spec pipeline using agent teams — from orientation through technically enriched stories. You are the team lead — you gather context, spawn teammates for drafting and verification, manage revision loops, route human review, and move the pipeline forward.
 
-You start with a human who wants to build something. You end with complete, technically enriched stories ready for implementation (via `/ls-team-impl` or `/ls-impl`).
+You start with a human who wants to build something. You end with a published epic (business epic + developer stories) ready for implementation (via `/ls-team-impl` or direct handoff to developers).
 
-If team mode is not available, use the individual phase skills directly (`/ls-research`, `/ls-epic`, `/ls-tech-design`, `/ls-story`, `/ls-story-tech`).
+If team mode is not available, use the individual phase skills directly (`/ls-research`, `/ls-epic`, `/ls-tech-design`, `/ls-publish-epic`).
 
 ---
 
@@ -92,7 +92,7 @@ Before any teammates are spawned, the orchestrator works directly with the human
 
 - **What is being built?** The human may ideate with you, provide a description, hand you existing documents, or give you a nearly complete spec. Meet them where they are.
 - **What artifacts already exist?** A PRD, product brief, tech overview, partial epic, complete epic, tech design — any combination. Identify what's done, what's in progress, and what's missing.
-- **Where does the pipeline enter?** If a validated epic exists, skip to tech design. If a complete tech design exists, skip to story sharding. Don't re-run phases that are already done.
+- **Where does the pipeline enter?** If a validated epic exists, skip to tech design. If a complete tech design exists, skip to publish epic. Don't re-run phases that are already done.
 
 ### Pre-Epic Documentation
 
@@ -250,139 +250,82 @@ Log the tech design phase completion to `team-spec-log.md`: verification rounds,
 
 ---
 
-## Phase 3: Story Sharding
+## Phase 3: Publish Epic
 
 ### Skill Loading
 
-Everyone in this phase loads: `ls-epic` AND `ls-story`
+Everyone in this phase loads: `ls-epic` AND `ls-publish-epic`
 
-- **Drafter:** Loads `ls-epic` + `ls-story`, reads the accepted epic
-- **Verifier:** Loads `ls-epic` + `ls-story`, reads the epic and all drafted stories
-
-Note: `ls-tech-design` is not needed for story sharding. The sharding is functional — the BA/SM role groups ACs into deliverable units. Technical enrichment comes in the next phase. The tech design is available for reference if the drafter needs to consult the chunk breakdown for grouping hints, but it is not a required input for functional sharding.
+- **Drafter:** Loads `ls-epic` + `ls-publish-epic`, reads the accepted epic
+- **Verifier:** Loads `ls-epic` + `ls-publish-epic`, reads the epic, the business epic, and the story file
 
 ### Drafting
 
 Spawn a general-purpose Opus teammate. Hand them:
-- Load `ls-epic` with `Skill(ls-epic)` and `ls-story` with `Skill(ls-story)`
+- Load `ls-epic` with `Skill(ls-epic)` and `ls-publish-epic` with `Skill(ls-publish-epic)`
 - The accepted epic (path)
 
-The drafter produces:
-- Story 0 (foundation setup)
-- Stories 1-N (feature stories with full ACs, TCs, error paths, DoD)
-- Integration path trace table
-- Coverage gate table (every AC/TC assigned to exactly one story)
+The drafter produces two artifacts:
+- **Story file** — all stories with full AC/TC detail, Jira section markers, Technical Design sections with relevant contracts from the epic, integration path trace, and coverage gate
+- **Business epic** — PO-friendly view with grouped ACs, prose data contracts, Technical Considerations, Jira section markers, and story references
+
+The ls-publish-epic skill requires stories first, then the business epic — bottom-up compression.
 
 Include a prominent instruction to report back to the orchestrator when complete or blocked.
 
 ### Verification
 
-Run the verification pattern. The verifier and Codex subagent both have ls-epic + ls-story loaded and read the epic + all stories.
+Run the verification pattern. The verifier and Codex subagent both have ls-epic + ls-publish-epic loaded and read the detailed epic, the business epic, and the story file.
 
-Key verification targets for story sharding:
-- **Coverage gate:** Every AC and TC from the epic assigned to exactly one story. Mechanical check — gaps are blockers.
+Key verification targets for publish epic:
+- **Coverage gate:** Every AC and TC from the detailed epic assigned to exactly one story. Mechanical check — gaps are blockers.
 - **Integration path trace:** No cross-story seam gaps. Every segment of critical user paths has a story owner.
-- **Story coherence:** Each story tells a coherent "what the user can do after" narrative and is independently acceptable.
-- **Sequencing:** Stories sequence logically (foundation first, read before write, happy path before edge cases).
+- **Story coherence:** Each story tells a coherent "what the user can do after" narrative and is independently acceptable by a PO.
+- **Business epic fidelity:** Grouped ACs accurately represent the detailed ACs. No TypeScript or code blocks in the business epic. Data contracts describe system boundary only.
+- **Cross-document consistency:** Story references in the business epic point to the correct stories. AC ranges match.
 
 ### Human Review
 
-Check in with the human: "Stories are sharded and verified. Want to review?" The human may review the coverage table and story structure or accept based on verification. Per the scrutiny gradient, stories get less line-by-line review than the epic — shape and completeness matter more.
+Check in with the human: "Business epic and stories are published and verified. Want to review?" The PO reviews the business epic. The Tech Lead or developers review the story file. Per the scrutiny gradient, the business epic gets shape-and-completeness review — is it clear enough to prioritize and accept from?
 
-Log the story sharding phase completion to `team-spec-log.md`: coverage gate results, integration path trace gaps found and resolved, verification rounds, any issues encountered. If stories required iteration with the epic (orphaned TCs, missing flows), log what was discovered and how it was resolved. Phase transitions are natural reflection points.
-
----
-
-## Phase 4: Story Technical Enrichment
-
-### Skill Loading
-
-- **Enricher:** Loads `ls-story-tech`, reads the epic, the tech design, and all functional stories
-- **Verifier:** Loads `ls-story-tech`, reads the epic, the tech design, and all enriched stories
-
-### Enrichment
-
-Spawn a general-purpose Opus teammate. Hand them:
-- Load `ls-story-tech` with `Skill(ls-story-tech)`
-- The accepted epic (path)
-- The accepted tech design (path)
-- All functional stories (paths)
-
-The enricher works through all stories sequentially, sharding the tech design into each story's technical sections. This is curation, not compression — the enricher selects the relevant tech design sections for each story and includes them at the scale they exist in the tech design, scoped to story boundaries.
-
-The enricher does this work directly — no subagent. They read the tech design, understand the architecture, and embed the relevant portions into each story's technical half: Architecture Context, Interfaces & Contracts, TC-to-test mapping, Non-TC decided tests, Risks & Constraints, Spec Deviation, Technical Checklist.
-
-After enriching all stories, the enricher runs the coherence check against the tech design: interface coverage, module coverage, and test mapping coverage across the full story set. Gaps are blockers — every tech design element needs a home in at least one story.
-
-Include a prominent instruction to report back to the orchestrator when complete or blocked. The enricher reports completion with: which stories were enriched, the coherence check results, any issues or gaps found, and any spec deviations documented.
-
-### Verification
-
-Run the verification pattern. Spawn a fresh Opus verifier who fires a Codex subagent async. Both go through the full set of enriched stories, the epic, and the tech design.
-
-Key verification targets for story technical enrichment:
-- **Story contract compliance:** All six requirements met per story (tech design shard, TC-to-test mapping, non-TC decided tests, technical DoD, spec deviation with citations, targets not steps)
-- **Consumer gate:** Could an engineer implement from each story alone, without reading the full tech design?
-- **Cross-story coherence:** Interface coverage, module coverage, and test mapping coverage complete across the story set
-- **Shard quality:** Are technical sections substantial shards or thin summaries? The enricher curates, not compresses.
-
-### Human Review
-
-Check in with the human: "Stories are technically enriched and verified. Want to review?" The human may spot-check a story or two, review the coherence check results, or accept based on verification. Per the scrutiny gradient, enriched stories get shape-and-completeness review, not line-by-line.
-
-Log the story technical enrichment phase completion to `team-spec-log.md`: enrichment approach, coherence check results, verification findings, any spec deviations documented, any issues encountered. If enrichment surfaced gaps in the tech design or functional stories, log what was discovered and how it was resolved. Phase transitions are natural reflection points.
+Log the publish epic phase completion to `team-spec-log.md`: coverage gate results, integration path trace gaps found and resolved, verification rounds, any issues encountered. Phase transitions are natural reflection points.
 
 ---
 
-## Phase 5: Final Story Verification
+## Phase 4: Final Verification
 
-After enrichment, each story gets an independent verification pass, then the full set gets a cross-story coherence check. This is the final quality gate before implementation.
+After publishing, the full artifact set gets a final coherence check. This is the final quality gate before handoff to implementation.
 
-### Per-Story Verification
+### Cross-Artifact Coherence Check
 
-For each story, spawn a dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and the individual story. They verify:
+Spawn a dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the detailed epic, the business epic, the story file, and the tech design (if available). They check:
 
-- Story contract compliance (all six requirements)
-- Consumer gate (could an engineer implement from this story alone?)
-- TC-to-test mapping completeness
-- Spec deviation accuracy (cited sections actually checked, deviations correctly documented)
-- Architecture context is a substantial shard, not a summary
-
-Unlike earlier phases where the drafter owns fixes, Phase 5 verifiers fix directly — the work is verification cleanup (thin shards, missing mappings, citation gaps), not content creation. The enricher's intent is preserved through the tech design and epic as source of truth. The verifier has all three artifacts in context and can fix coherence issues on the spot. If a fix requires substantive new content — new architecture context, new interface definitions, rewriting flows — route it back to the orchestrator rather than authoring it in the verifier role.
-
-Stories can be verified in parallel — each story's verification is independent. If per-story verifiers fix shared types or contracts, the cross-story coherence check will catch inconsistencies — this is expected, not a failure.
-
-### Cross-Story Coherence Check
-
-After all individual story verifications complete, spawn one final dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the epic, the tech design, and all stories. They check:
-
-- **Coverage completeness:** Every AC and TC from the epic is covered across the story set. No orphaned requirements.
-- **Interface coverage:** Every interface from the tech design appears in at least one story's Interfaces & Contracts section.
-- **Module coverage:** Every module from the tech design's responsibility matrix appears in at least one story's Architecture Context.
-- **Test mapping coverage:** The union of all stories' TC-to-test mapping tables covers every TC from the epic. Non-TC decided tests from the tech design all have homes.
+- **Coverage completeness:** Every AC and TC from the detailed epic is covered across the story set. No orphaned requirements.
 - **Cross-story seam integrity:** Integration paths between stories are coherent. No gaps where Story N assumes something Story M provides but neither story explicitly owns the connection.
-- **Consistency:** Types, error shapes, and contracts referenced across multiple stories are consistent — no story using a different version of a shared interface.
+- **Business epic fidelity:** Grouped ACs accurately compress the detailed ACs. Story references are correct.
+- **Consistency:** Types, contracts, and terminology are consistent across all artifacts.
 
 If fixes are needed, the Opus verifier teammate makes them directly. This is the final signoff — when this pass comes back clean, the spec pipeline is complete.
 
 ### Human Review
 
-Present the final state to the human: "All stories individually verified and cross-story coherence check passed. Spec pipeline is complete." The human may do a final spot-check or accept.
+Present the final state to the human: "All artifacts verified and coherence check passed. Spec pipeline is complete." The human may do a final spot-check or accept.
 
-Log the final verification phase completion to `team-spec-log.md`: per-story verification results, fixes made, cross-story coherence check results, any issues encountered and resolved. This is the final log entry for the spec pipeline.
+Log the final verification phase completion to `team-spec-log.md`: coherence check results, fixes made, any issues encountered and resolved. This is the final log entry for the spec pipeline.
 
 ---
 
 ## Handoff to Implementation
 
-After all phases complete, the pipeline output is a set of complete, technically enriched stories ready for implementation. The orchestrator presents the full artifact set to the human:
+After all phases complete, the pipeline output is a set of handoff-ready artifacts. The orchestrator presents the full artifact set to the human:
 
-- Epic (accepted)
+- Detailed epic (engineering source of truth)
+- Business epic (PO-facing view)
+- Story file (developer stories with full AC/TC detail)
 - Tech design (accepted)
-- Complete stories with functional + technical halves
-- `team-spec-log.md` (orchestration log — useful context for implementation orchestrator: patterns noticed, decisions made, deviations documented)
+- `team-spec-log.md` (orchestration log — useful context for implementation: patterns noticed, decisions made, deviations documented)
 
-From here, the human can proceed to implementation via `/ls-team-impl` (team orchestration) or `/ls-impl` (solo implementation).
+From here, the human can proceed to implementation via `/ls-team-impl` (team orchestration) or direct handoff to developers with the story file and tech design.
 
 Log the full pipeline completion to `team-spec-log.md`: total phases run, total verification rounds across all phases, significant process decisions, and any recommendations for future runs.
 

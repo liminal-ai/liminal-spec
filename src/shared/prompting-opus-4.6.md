@@ -1,13 +1,13 @@
 # Prompting Claude Opus 4.6
 
-Opus 4.6 is the primary model for orchestration, story sharding, and prompt drafting in Liminal Spec. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
+Opus 4.6 is the primary model for orchestration, epic publishing, and prompt drafting in Liminal Spec. It excels at gestalt thinking, capturing spirit and intent, and managing multi-step workflows.
 
 ## When to Use Opus 4.6
 
 | Task | Why Opus 4.6 |
 |------|--------------|
 | **Orchestration** | Exceptional at managing complex workflows, delegating to subagents |
-| **Story sharding** | Understands feature scope, breaks work into coherent stories |
+| **Epic publishing** | Understands feature scope, derives stories and business epics |
 | **Prompt drafting** | Captures intent and writes prompts for other models |
 | **Spec/design writing** | Strong narrative flow, functional-technical weaving |
 | **Code review synthesis** | Integrates feedback from multiple sources |

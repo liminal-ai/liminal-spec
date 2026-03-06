@@ -229,7 +229,7 @@ The test plan must explicitly map every TC from the Epic to a test. This is the 
 
 ## Work Plan: Chunking for Stories
 
-Break work into manageable pieces. Each chunk becomes a story or set of stories. The chunk is the Tech Lead's unit of decomposition; the BA/SM maps chunks to stories during story sharding (usually 1:1, sometimes a chunk splits into multiple stories or merges with another).
+Break work into manageable pieces. Each chunk becomes a story or set of stories. The chunk is the Tech Lead's unit of decomposition; chunks inform how stories are organized when the epic is published (usually 1:1, sometimes a chunk splits into multiple stories or merges with another).
 
 ### Chunks vs. Phases
 
@@ -284,7 +284,7 @@ skeleton timing assertion (Tech Design §Testing Strategy)
 **Running Total:** 14 tests
 ```
 
-The "Relevant Tech Design Sections" field lists which headings from this tech design are relevant to the chunk. This directly supports the Story Technical Enrichment phase: the Tech Lead uses these references to select which tech design content to shard into each story, rather than reading the entire tech design per story.
+The "Relevant Tech Design Sections" field lists which headings from this tech design are relevant to the chunk. This directly supports story creation: when publishing the epic, these references help select which tech design content is relevant to each story's Technical Design section.
 
 The "Non-TC Decided Tests" field lists tests this chunk needs that aren't 1:1 with a TC -- edge cases, collision tests, defensive tests. These must be carried forward into stories during technical enrichment so they aren't lost.
 
@@ -300,7 +300,7 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 ## Validation Before Handoff
 
-**Before handing to Story Sharding:**
+**Before handing off:**
 
 - [ ] Every TC mapped to test file
 - [ ] All interfaces defined
@@ -460,9 +460,8 @@ Liminal Spec uses this pattern throughout:
 | Artifact | Author Reviews | Consumer Reviews |
 |----------|---------------|------------------|
 | Epic | BA self-review | Tech Lead (needs it for design) |
-| Tech Design | Tech Lead self-review | BA/SM (needs it for story sharding) + Tech Lead (needs it for technical sections) |
-| Functional Stories | BA/SM self-review | Tech Lead (needs them for technical enrichment) |
-| Complete Stories | Tech Lead self-review | Engineer (needs them for implementation) |
+| Tech Design | Tech Lead self-review | BA/SM (needs it for story derivation) + Tech Lead (needs it for technical sections) |
+| Published Stories | BA/SM self-review | Engineer (needs them for implementation) |
 
 ### Why This Works
 
@@ -474,9 +473,8 @@ Liminal Spec uses this pattern throughout:
 ### The Key Pattern: Author + Downstream Consumer
 
 If the Tech Lead can't build a design from the epic -> spec isn't ready.
-If the BA/SM can't shard stories from tech design -> design isn't ready.
-If the Tech Lead can't add technical sections to stories -> stories aren't ready.
-If the Engineer can't implement from complete stories -> stories aren't ready.
+If the BA/SM can't derive stories from the epic -> epic isn't ready.
+If the Engineer can't implement from published stories + tech design -> artifacts aren't ready.
 
 **The downstream consumer is the ultimate validator.**
 
@@ -506,7 +504,7 @@ Leaves flexible:
 - [ ] Tech Lead validated: can design from this
 - [ ] Human reviewed every line
 
-### Before Story Sharding
+### Before Publishing Epic
 
 - [ ] Tech Design complete (all altitudes: system context, modules, interfaces)
 - [ ] Tech Lead self-review done (completeness, richness, writing quality, readiness)
@@ -514,7 +512,6 @@ Leaves flexible:
 - [ ] All issues addressed (Critical, Major, and Minor)
 - [ ] Validation rounds complete (no substantive changes remaining)
 - [ ] TC -> Test mapping complete (every TC from epic maps to a test)
-- [ ] BA/SM validated: can shard stories from this
 - [ ] Human reviewed structure and coverage
 
 ### Before Implementation
@@ -2352,7 +2349,7 @@ Creates shared foundation that all subsequent chunks build on. No user-facing fu
 **Scope:** [What this chunk delivers]
 **ACs:** AC-X through AC-Y
 **TCs:** TC-Xa through TC-Yb
-**Relevant Tech Design Sections:** [List the headings from this tech design that are relevant to this chunk -- used by Tech Lead during Story Technical Enrichment to select content for story shards]
+**Relevant Tech Design Sections:** [List the headings from this tech design that are relevant to this chunk -- helps identify which tech design content is relevant to each story]
 **Non-TC Decided Tests:** [Tests this chunk needs beyond TC mappings -- edge cases, collision tests, defensive tests. "None" if all tests are TC-mapped.]
 
 #### Skeleton (if not covered in Chunk 0)
@@ -2438,7 +2435,7 @@ Before handoff, verify quality. Read your own design critically—the BA/SM vali
 - [ ] Test names describe user-visible outcomes
 - [ ] Each section standalone-readable (isolation test)
 
-### Architecture Gate (Before Handoff to Story Sharding)
+### Architecture Gate (Before Handoff)
 
 Cross-cutting architecture decisions must be explicit before execution begins. Flow design quality doesn't compensate for implicit architecture controls — these cause late churn when discovered during implementation.
 
@@ -2448,7 +2445,7 @@ Cross-cutting architecture decisions must be explicit before execution begins. F
 - [ ] Error contract defined (machine-readable codes/shapes that clients rely on)
 - [ ] Environment and runtime prerequisites documented (what's needed locally and in CI)
 
-If any of these are missing, the design isn't ready for story sharding. These decisions will be made one way or another — making them explicit here prevents ad-hoc discovery during execution.
+If any of these are missing, the design isn't ready for handoff. These decisions will be made one way or another — making them explicit here prevents ad-hoc discovery during execution.
 
 ---
 
@@ -2485,7 +2482,7 @@ Items identified during design that are out of scope. Document them so they're n
 
 # Tech Design Verification Prompt
 
-Use this prompt template to have an agent critically review a Tech Design before handing off to Story Sharding (Phase 4).
+Use this prompt template to have an agent critically review a Tech Design before handing off to the next phase.
 
 ---
 
@@ -2511,7 +2508,7 @@ Read these files to understand the methodology and evaluation criteria:
 2. **Epic (for alignment):** `[path to epic.md]`
 3. **Codebase (for feasibility):** `[path to relevant source directories]`
 
-**Important Boundary:** Story Sharding (Phase 4) follows Tech Design. The design defines architecture and interfaces -- it does not need to specify story execution order or implementation sequence. If you identify story sharding or implementation concerns, note them as recommendations, not as design blockers.
+**Important Boundary:** The design defines architecture and interfaces -- it does not need to specify story execution order or implementation sequence. If you identify story organization or implementation concerns, note them as recommendations, not as design blockers.
 
 **Step 3: Evaluation Criteria**
 
@@ -2578,14 +2575,14 @@ Provide your review in this structure:
 
 ```
 ## Overall Assessment
-[READY / NOT READY] for Story Sharding
+[READY / NOT READY] for the next phase
 
 ## Strengths
 [What the design does well]
 
 ## Issues
 
-### Critical (Must fix before Story Sharding)
+### Critical (Must fix before the next phase)
 [Issues that would prevent a BA/SM from deriving stories or a Tech Lead from adding technical sections]
 
 ### Major (Should fix)
@@ -2630,5 +2627,5 @@ This table makes gaps immediately visible. If a TC has no test mapped, or the te
 - Run this with a verification-oriented model (GPT 5x recommended for thoroughness and precision)
 - Can also run with multiple agents in parallel for diverse perspectives
 - Compare the TC → Test traceability table against the epic's AC → TC table for full chain coverage
-- Critical and Major issues should be addressed before Story Sharding handoff
+- Critical and Major issues should be addressed before the next phase handoff
 - The BA/SM and Tech Lead will also validate implicitly during Phase 4 -- if they can't derive stories or add technical sections, the design goes back

@@ -68,9 +68,7 @@ describe("build script", () => {
     expect(buildOutput).toContain("skill: ls-research");
     expect(buildOutput).toContain("skill: ls-epic");
     expect(buildOutput).toContain("skill: ls-tech-design");
-    expect(buildOutput).toContain("skill: ls-story");
-    expect(buildOutput).toContain("skill: ls-story-tech");
-    expect(buildOutput).toContain("skill: ls-impl");
+    expect(buildOutput).toContain("skill: ls-publish-epic");
     expect(buildOutput).toContain("skill: ls-team-impl");
     expect(buildOutput).toContain("skill: ls-team-spec");
   });
@@ -83,8 +81,7 @@ describe("build script", () => {
   test("prints individual plugin summary", () => {
     expect(buildOutput).toContain("individual plugin: ls-epic");
     expect(buildOutput).toContain("individual plugin: ls-tech-design");
-    expect(buildOutput).toContain("individual plugin: ls-story");
-    expect(buildOutput).toContain("individual plugin: ls-story-tech");
+    expect(buildOutput).toContain("individual plugin: ls-publish-epic");
   });
 });
 
@@ -97,9 +94,7 @@ describe("plugin output", () => {
     "ls-research",
     "ls-epic",
     "ls-tech-design",
-    "ls-story",
-    "ls-story-tech",
-    "ls-impl",
+    "ls-publish-epic",
     "ls-team-impl",
     "ls-team-spec",
   ];
@@ -145,11 +140,19 @@ describe("plugin output", () => {
     expect(names).toContain("liminal-spec");
     expect(names).toContain("ls-epic");
     expect(names).toContain("ls-tech-design");
-    expect(names).toContain("ls-story");
-    expect(names).toContain("ls-story-tech");
+    expect(names).toContain("ls-publish-epic");
     expect(names).toContain("lss-story");
     expect(names).toContain("lss-tech");
-    expect(names.length).toBe(7);
+    expect(names.length).toBe(6);
+  });
+
+  test("does not emit removed skills", async () => {
+    for (const removed of ["ls-story", "ls-story-tech", "ls-impl"]) {
+      const exists = await Bun.file(
+        join(DIST_PLUGIN, "skills", removed, "SKILL.md")
+      ).exists();
+      expect(exists).toBe(false);
+    }
   });
 });
 
@@ -170,9 +173,7 @@ describe("marketplace install source", () => {
       join(MARKETPLACE_PLUGIN, "skills", "ls-research", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-epic", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-tech-design", "SKILL.md"),
-      join(MARKETPLACE_PLUGIN, "skills", "ls-story", "SKILL.md"),
-      join(MARKETPLACE_PLUGIN, "skills", "ls-story-tech", "SKILL.md"),
-      join(MARKETPLACE_PLUGIN, "skills", "ls-impl", "SKILL.md"),
+      join(MARKETPLACE_PLUGIN, "skills", "ls-publish-epic", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-team-impl", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "skills", "ls-team-spec", "SKILL.md"),
       join(MARKETPLACE_PLUGIN, "commands", "liminal-spec.md"),
@@ -201,9 +202,7 @@ describe("skill content", () => {
     "ls-research",
     "ls-epic",
     "ls-tech-design",
-    "ls-story",
-    "ls-story-tech",
-    "ls-impl",
+    "ls-publish-epic",
     "lss-story",
     "lss-tech",
     "ls-team-impl",
@@ -243,30 +242,23 @@ describe("skill content", () => {
     expect(content).toContain("Mock Strategy");
   });
 
-  test("impl contains plan-before-you-build content", async () => {
+  test("publish-epic contains core content", async () => {
     const content = await Bun.file(
-      join(DIST_PLUGIN, "skills", "ls-impl", "SKILL.md")
+      join(DIST_PLUGIN, "skills", "ls-publish-epic", "SKILL.md")
     ).text();
-    expect(content).toContain("Plan Before You Build");
-    expect(content).toContain("NotImplementedError");
+    expect(content).toContain("# Publish Epic");
+    expect(content).toContain("Stories First, Then Business Epic");
+    expect(content).toContain("Coverage Gate");
+    expect(content).toContain("Integration Path Trace");
+    expect(content).toContain("Jira");
   });
 
-  test("story does not contain removed prompt-pack content", async () => {
+  test("publish-epic contains inlined shared content", async () => {
     const content = await Bun.file(
-      join(DIST_PLUGIN, "skills", "ls-story", "SKILL.md")
+      join(DIST_PLUGIN, "skills", "ls-publish-epic", "SKILL.md")
     ).text();
-    expect(content).not.toContain("Prompt Pack");
-    expect(content).not.toContain("Orchestrator");
-  });
-
-  test("story-tech contains contract requirements", async () => {
-    const content = await Bun.file(
-      join(DIST_PLUGIN, "skills", "ls-story-tech", "SKILL.md")
-    ).text();
-    expect(content).toContain("Story Contract Requirements");
-    expect(content).toContain("Consumer Gate");
-    expect(content).toContain("TC to Test Mapping");
-    expect(content).toContain("Spec Deviation");
+    expect(content).toContain("Confidence Chain");
+    expect(content).toContain("Plain Description");
   });
 
   test("team-impl contains orchestration content", async () => {
@@ -314,9 +306,7 @@ describe("standalone output", () => {
     "01-product-research-skill.md",
     "02-epic-skill.md",
     "03-technical-design-skill.md",
-    "04-story-sharding-skill.md",
-    "04b-story-technical-enrichment-skill.md",
-    "05-implementation-skill.md",
+    "04-publish-epic-skill.md",
     "simple-01-story-skill.md",
     "simple-02-technical-design-skill.md",
     "06-team-implementation-skill.md",
@@ -384,8 +374,7 @@ describe("individual plugins", () => {
   const expectedIndividual = [
     "ls-epic",
     "ls-tech-design",
-    "ls-story",
-    "ls-story-tech",
+    "ls-publish-epic",
     "lss-story",
     "lss-tech",
   ];
@@ -469,9 +458,7 @@ describe("source file safety", () => {
       "src/phases/research.md",
       "src/phases/epic.md",
       "src/phases/tech-design.md",
-      "src/phases/story.md",
-      "src/phases/story-tech.md",
-      "src/phases/impl.md",
+      "src/phases/publish-epic.md",
       "src/shared/confidence-chain.md",
       "src/shared/writing-style.md",
       "src/phases/team-impl.md",

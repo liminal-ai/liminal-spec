@@ -7,7 +7,7 @@ description: Write a single functional story with epic-quality rigor. Story-size
 
 **Purpose:** Produce a single functional story with epic-quality rigor. This is a story-sized epic -- one story with the same specificity of acceptance criteria, test conditions, data contracts, and scope boundaries that a full epic provides, but scoped to a single deliverable unit of work.
 
-There is no separate epic, tech design, or story sharding phase. The functional story IS the spec. The downstream consumer is the lss-tech enricher, who will perform inline technical design and embed the results directly into this story.
+There is no separate epic, tech design, or publish-epic phase. The functional story IS the spec. The downstream consumer is the lss-tech enricher, who will perform inline technical design and embed the results directly into this story.
 
 ---
 
@@ -15,7 +15,7 @@ There is no separate epic, tech design, or story sharding phase. The functional 
 
 Use lss-story when the scope of work is genuinely one story -- a single capability, a focused change, a contained feature addition. The work should be describable with 1-2 flows and roughly 5-15 ACs.
 
-**Escalation gate:** If during writing you find yourself defining 3+ distinct flows, 15+ ACs, or multiple user profiles, the work likely needs the full pipeline (ls-epic → ls-tech-design → ls-story → ls-story-tech). Don't force epic-scale work into story-scale treatment. It's cheaper to escalate early than to discover mid-implementation that the scope was underestimated.
+**Escalation gate:** If during writing you find yourself defining 3+ distinct flows, 15+ ACs, or multiple user profiles, the work likely needs the full pipeline (ls-epic → ls-tech-design → ls-publish-epic). Don't force epic-scale work into story-scale treatment. It's cheaper to escalate early than to discover mid-implementation that the scope was underestimated.
 
 ---
 

@@ -105,9 +105,8 @@ Liminal Spec uses this pattern throughout:
 | Artifact | Author Reviews | Consumer Reviews |
 |----------|---------------|------------------|
 | Epic | BA self-review | Tech Lead (needs it for design) |
-| Tech Design | Tech Lead self-review | BA/SM (needs it for story sharding) + Tech Lead (needs it for technical sections) |
-| Functional Stories | BA/SM self-review | Tech Lead (needs them for technical enrichment) |
-| Complete Stories | Tech Lead self-review | Engineer (needs them for implementation) |
+| Tech Design | Tech Lead self-review | BA/SM (needs it for story derivation) + Tech Lead (needs it for technical sections) |
+| Published Stories | BA/SM self-review | Engineer (needs them for implementation) |
 
 ### Why This Works
 
@@ -119,9 +118,8 @@ Liminal Spec uses this pattern throughout:
 ### The Key Pattern: Author + Downstream Consumer
 
 If the Tech Lead can't build a design from the epic -> spec isn't ready.
-If the BA/SM can't shard stories from tech design -> design isn't ready.
-If the Tech Lead can't add technical sections to stories -> stories aren't ready.
-If the Engineer can't implement from complete stories -> stories aren't ready.
+If the BA/SM can't derive stories from the epic -> epic isn't ready.
+If the Engineer can't implement from published stories + tech design -> artifacts aren't ready.
 
 **The downstream consumer is the ultimate validator.**
 
@@ -151,7 +149,7 @@ Leaves flexible:
 - [ ] Tech Lead validated: can design from this
 - [ ] Human reviewed every line
 
-### Before Story Sharding
+### Before Publishing Epic
 
 - [ ] Tech Design complete (all altitudes: system context, modules, interfaces)
 - [ ] Tech Lead self-review done (completeness, richness, writing quality, readiness)
@@ -159,7 +157,6 @@ Leaves flexible:
 - [ ] All issues addressed (Critical, Major, and Minor)
 - [ ] Validation rounds complete (no substantive changes remaining)
 - [ ] TC -> Test mapping complete (every TC from epic maps to a test)
-- [ ] BA/SM validated: can shard stories from this
 - [ ] Human reviewed structure and coverage
 
 ### Before Implementation

@@ -1,7 +1,7 @@
 {
-  "name": "lss-tech",
+  "name": "ls-publish-epic",
   "version": "0.9.0",
-  "description": "Simple pipeline: Inline technical design and enrichment for a single story",
+  "description": "Phase 4: Publish detailed epic as business epic + developer stories with Jira markers",
   "author": {
     "name": "liminal-ai"
   },

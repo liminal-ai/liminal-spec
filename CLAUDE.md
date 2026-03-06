@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A spec-driven development methodology packaged as a **Claude Code plugin**. The plugin contains 10 self-contained skills (6 for the full pipeline, 2 for the simple pipeline, 2 for team orchestration), a router command, and a senior-engineer agent.
+A spec-driven development methodology packaged as a **Claude Code plugin**. The plugin contains 8 self-contained skills (4 for the full pipeline, 2 for the simple pipeline, 2 for team orchestration), a router command, and a senior-engineer agent.
 
 This is NOT a library or npm package. The build output is markdown files organized into a Claude Code plugin structure. There are three distribution channels:
 
@@ -23,10 +23,8 @@ Both outputs are composed from the same source files. The build handles the pack
 skills/
   ls-research/SKILL.md     -- /ls-research (Phase 1: Product Research, optional)
   ls-epic/SKILL.md         -- /ls-epic (Phase 2: Epic)
-  ls-tech-design/SKILL.md  -- /ls-tech-design (Phase 3)
-  ls-story/SKILL.md        -- /ls-story (Phase 4: Story Sharding)
-  ls-story-tech/SKILL.md   -- /ls-story-tech (Phase 4b: Story Technical Enrichment)
-  ls-impl/SKILL.md         -- /ls-impl (Phase 5: Implementation)
+  ls-tech-design/SKILL.md  -- /ls-tech-design (Phase 3: Tech Design)
+  ls-publish-epic/SKILL.md -- /ls-publish-epic (Phase 4: Publish Epic)
   lss-story/SKILL.md       -- /lss-story (Simple Pipeline: Functional Story)
   lss-tech/SKILL.md        -- /lss-tech (Simple Pipeline: Technical Design + Enrichment)
   ls-team-impl/SKILL.md    -- /ls-team-impl (Team Orchestration: Implementation)
@@ -47,7 +45,7 @@ Source-based skill with build composition. Edit in `src/`, never in `dist/`.
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill: research, epic, tech-design, story, story-tech, impl, story-simple, story-simple-tech, team-impl, team-spec)
+  phases/          -- Phase-specific content (one per skill: research, epic, tech-design, publish-epic, story-simple, story-simple-tech, team-impl, team-spec)
   shared/          -- Cross-cutting concepts inlined into multiple skills by the build
   templates/       -- Artifact templates (tech design, epic)
   examples/        -- Verification prompt templates
@@ -88,16 +86,14 @@ The build also copies agents, commands, generates plugin.json + marketplace.json
 |---------|--------|---------|
 | `/liminal-spec` | `src/commands/liminal-spec.md` | Presents phase menu, invokes the appropriate skill |
 
-**Skills** (10 self-contained skills — 6 full pipeline, 2 simple pipeline, 2 team orchestration):
+**Skills** (8 self-contained skills — 4 full pipeline, 2 simple pipeline, 2 team orchestration):
 
 | Skill | Phase | Primary source | Shared dependencies |
 |-------|-------|----------------|---------------------|
 | `/ls-research` | 1 | `src/phases/research.md` | context-isolation, state-management, terminology |
 | `/ls-epic` | 2 | `src/phases/epic.md` | confidence-chain, context-isolation, writing-style-epic |
 | `/ls-tech-design` | 3 | `src/phases/tech-design.md` | confidence-chain, verification-model, writing-style, testing |
-| `/ls-story` | 4 | `src/phases/story.md` | confidence-chain, context-isolation, writing-style-epic |
-| `/ls-story-tech` | 4b | `src/phases/story-tech.md` | confidence-chain, verification-model, writing-style |
-| `/ls-impl` | 5 | `src/phases/impl.md` | confidence-chain, verification-model, testing, model-selection |
+| `/ls-publish-epic` | 4 | `src/phases/publish-epic.md` | confidence-chain, writing-style-epic |
 | `/ls-team-impl` | Team | `src/phases/team-impl.md` | confidence-chain, verification-model |
 | `/ls-team-spec` | Team | `src/phases/team-spec.md` | confidence-chain, verification-model |
 | `/lss-story` | S1 | `src/phases/story-simple.md` | confidence-chain, writing-style-epic |

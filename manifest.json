@@ -1,5 +1,5 @@
 {
-  "version": "0.8.1",
+  "version": "0.9.0",
   "skills": {
     "ls-research": {
       "name": "ls-research",
@@ -47,44 +47,15 @@
         "tech-design-verification-prompt"
       ]
     },
-    "ls-story": {
-      "name": "ls-story",
-      "description": "Break an epic into functional stories with full acceptance criteria and test conditions. Validates coverage completeness and cross-story integration path coherence.",
+    "ls-publish-epic": {
+      "name": "ls-publish-epic",
+      "description": "Publish a detailed epic as two handoff-ready artifacts: a PO-friendly business epic with grouped ACs and a developer story file with full AC/TC detail and Jira section markers.",
       "phases": [
-        "story"
+        "publish-epic"
       ],
       "shared": [
         "confidence-chain",
-        "context-isolation",
         "writing-style-epic"
-      ]
-    },
-    "ls-story-tech": {
-      "name": "ls-story-tech",
-      "description": "Add technical implementation sections to functional stories. Tech Lead maps ACs to implementation targets, test strategies, and verification criteria. Validates via consumer gate.",
-      "phases": [
-        "story-tech"
-      ],
-      "shared": [
-        "confidence-chain",
-        "verification-model",
-        "writing-style"
-      ],
-      "examples": [
-        "story-tech-verification-prompt"
-      ]
-    },
-    "ls-impl": {
-      "name": "ls-impl",
-      "description": "Implement stories using TDD discipline. Plan-mode compatible. Reads complete stories with functional and technical sections.",
-      "phases": [
-        "impl"
-      ],
-      "shared": [
-        "confidence-chain",
-        "verification-model",
-        "testing",
-        "model-selection"
       ]
     },
     "lss-story": {
@@ -145,11 +116,8 @@
     "ls-tech-design": {
       "description": "Phase 3: Transform epics into implementable technical designs"
     },
-    "ls-story": {
-      "description": "Phase 4: Break epics into functional stories with full acceptance criteria"
-    },
-    "ls-story-tech": {
-      "description": "Phase 4b: Add technical implementation sections to functional stories"
+    "ls-publish-epic": {
+      "description": "Phase 4: Publish detailed epic as business epic + developer stories with Jira markers"
     },
     "lss-story": {
       "description": "Simple pipeline: Write a single functional story with epic-quality rigor"

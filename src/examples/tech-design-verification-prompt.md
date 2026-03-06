@@ -1,6 +1,6 @@
 # Tech Design Verification Prompt
 
-Use this prompt template to have an agent critically review a Tech Design before handing off to Story Sharding (Phase 4).
+Use this prompt template to have an agent critically review a Tech Design before handing off to the next phase.
 
 ---
 
@@ -26,7 +26,7 @@ Read these files to understand the methodology and evaluation criteria:
 2. **Epic (for alignment):** `[path to epic.md]`
 3. **Codebase (for feasibility):** `[path to relevant source directories]`
 
-**Important Boundary:** Story Sharding (Phase 4) follows Tech Design. The design defines architecture and interfaces -- it does not need to specify story execution order or implementation sequence. If you identify story sharding or implementation concerns, note them as recommendations, not as design blockers.
+**Important Boundary:** The design defines architecture and interfaces -- it does not need to specify story execution order or implementation sequence. If you identify story organization or implementation concerns, note them as recommendations, not as design blockers.
 
 **Step 3: Evaluation Criteria**
 
@@ -93,14 +93,14 @@ Provide your review in this structure:
 
 ```
 ## Overall Assessment
-[READY / NOT READY] for Story Sharding
+[READY / NOT READY] for the next phase
 
 ## Strengths
 [What the design does well]
 
 ## Issues
 
-### Critical (Must fix before Story Sharding)
+### Critical (Must fix before the next phase)
 [Issues that would prevent a BA/SM from deriving stories or a Tech Lead from adding technical sections]
 
 ### Major (Should fix)
@@ -145,5 +145,5 @@ This table makes gaps immediately visible. If a TC has no test mapped, or the te
 - Run this with a verification-oriented model (GPT 5x recommended for thoroughness and precision)
 - Can also run with multiple agents in parallel for diverse perspectives
 - Compare the TC → Test traceability table against the epic's AC → TC table for full chain coverage
-- Critical and Major issues should be addressed before Story Sharding handoff
+- Critical and Major issues should be addressed before the next phase handoff
 - The BA/SM and Tech Lead will also validate implicitly during Phase 4 -- if they can't derive stories or add technical sections, the design goes back

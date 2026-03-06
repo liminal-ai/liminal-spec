@@ -11,7 +11,7 @@ function stripFrontmatter(content: string): string {
 const PHASE_SKILL_MAP: Record<FlowId, Record<string, string[]>> = {
   "team-impl": {
     "impl-prep": ["ls-team-impl"],
-    "story-cycle": ["ls-team-impl", "ls-impl"],
+    "story-cycle": ["ls-team-impl"],
     "epic-post-verify": ["ls-team-impl"],
     "handoff-close": ["ls-team-impl"],
   },
@@ -20,16 +20,15 @@ const PHASE_SKILL_MAP: Record<FlowId, Record<string, string[]>> = {
     "spec-prep": ["ls-team-spec", "ls-research", "ls-epic"],
     epic: ["ls-team-spec", "ls-epic"],
     "tech-design": ["ls-team-spec", "ls-tech-design", "ls-epic"],
-    "story-sharding": ["ls-team-spec", "ls-story", "ls-epic"],
-    "story-tech-enrichment": ["ls-team-spec", "ls-story-tech", "ls-tech-design"],
-    "final-story-verification": ["ls-team-spec", "ls-story-tech", "ls-story"],
+    "publish-epic": ["ls-team-spec", "ls-publish-epic", "ls-epic"],
+    "final-verification": ["ls-team-spec", "ls-publish-epic"],
     "handoff-close": ["ls-team-spec"],
   },
   "single-story": {
     "single-spec": ["lss-story"],
     "single-tech": ["lss-tech"],
-    "single-impl": ["ls-impl"],
-    "single-final-verify": ["ls-impl", "lss-tech"],
+    "single-impl": ["lss-tech"],
+    "single-final-verify": ["lss-tech"],
   },
 };
 

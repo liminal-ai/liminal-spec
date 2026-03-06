@@ -50,7 +50,7 @@ Each long-context agent maintains session state:
 - `.sdd/product-research-state.md` — Product research (if used)
 - `.sdd/epic-state.md` — Epic
 - `.sdd/tech-design-state.md` — Tech design
-- `.sdd/story-sharding-state.md` — Story sharding / orchestration
+- `.sdd/publish-epic-state.md` — Publish epic / story creation
 
 ### Agent State Structure
 
@@ -116,8 +116,8 @@ If work is interrupted:
 |------|-----|----------|
 | Product Research | Epic | PRD (if used) |
 | Epic | Tech Design | Epic |
-| Tech Design | Story Sharding | Tech Design doc |
-| Story Sharding + Story Tech | Implementation | Complete Story (functional + technical) |
+| Tech Design | Publish Epic | Tech Design doc |
+| Publish Epic | Implementation | Business Epic + Story File |
 | Implementation | Verification | Implementation + Test Results |
 
 **Rule:** If it's not in an artifact, it doesn't exist for the next agent.

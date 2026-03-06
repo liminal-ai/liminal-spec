@@ -20,7 +20,7 @@ Edit source files, not generated outputs.
 
 ## Repository Map
 
-- `src/phases/` - phase content (`research`, `epic`, `tech-design`, `story`, `story-tech`, `impl`, `story-simple`, `story-simple-tech`, `team-impl`, `team-spec`)
+- `src/phases/` - phase content (`research`, `epic`, `tech-design`, `publish-epic`, `story-simple`, `story-simple-tech`, `team-impl`, `team-spec`)
 - `src/shared/` - shared sections inlined into skills via manifest
 - `src/templates/` - templates included in outputs
 - `src/examples/` - verification prompt examples
@@ -30,7 +30,7 @@ Edit source files, not generated outputs.
 - `scripts/validate.ts` - structural validation of outputs
 - `scripts/__tests__/build.test.ts` - integration tests for build outputs
 - `manifest.json` - composition map (what each skill includes)
-- `plugins/` - committed marketplace install sources (generated): `liminal-spec/` (full suite) + individual skill plugins (`ls-epic/`, `ls-tech-design/`, `ls-story/`, `ls-story-tech/`, `lss-story/`, `lss-tech/`)
+- `plugins/` - committed marketplace install sources (generated): `liminal-spec/` (full suite) + individual skill plugins (`ls-epic/`, `ls-tech-design/`, `ls-publish-epic/`, `lss-story/`, `lss-tech/`)
 
 ## Required Workflow For Content Changes
 

@@ -224,7 +224,7 @@ The test plan must explicitly map every TC from the Epic to a test. This is the 
 
 ## Work Plan: Chunking for Stories
 
-Break work into manageable pieces. Each chunk becomes a story or set of stories. The chunk is the Tech Lead's unit of decomposition; the BA/SM maps chunks to stories during story sharding (usually 1:1, sometimes a chunk splits into multiple stories or merges with another).
+Break work into manageable pieces. Each chunk becomes a story or set of stories. The chunk is the Tech Lead's unit of decomposition; chunks inform how stories are organized when the epic is published (usually 1:1, sometimes a chunk splits into multiple stories or merges with another).
 
 ### Chunks vs. Phases
 
@@ -279,7 +279,7 @@ skeleton timing assertion (Tech Design §Testing Strategy)
 **Running Total:** 14 tests
 ```
 
-The "Relevant Tech Design Sections" field lists which headings from this tech design are relevant to the chunk. This directly supports the Story Technical Enrichment phase: the Tech Lead uses these references to select which tech design content to shard into each story, rather than reading the entire tech design per story.
+The "Relevant Tech Design Sections" field lists which headings from this tech design are relevant to the chunk. This directly supports story creation: when publishing the epic, these references help select which tech design content is relevant to each story's Technical Design section.
 
 The "Non-TC Decided Tests" field lists tests this chunk needs that aren't 1:1 with a TC -- edge cases, collision tests, defensive tests. These must be carried forward into stories during technical enrichment so they aren't lost.
 
@@ -295,7 +295,7 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 ## Validation Before Handoff
 
-**Before handing to Story Sharding:**
+**Before handing off:**
 
 - [ ] Every TC mapped to test file
 - [ ] All interfaces defined
