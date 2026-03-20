@@ -59,6 +59,14 @@ Epic
 
 **The cascade:** You can't write a good TC without a clear AC. You can't write a good AC without understanding the flow. You can't understand the flow without knowing who you're building for.
 
+### Epic Size and Scope Check
+
+After assessing requirements and before writing the full epic, estimate the likely output size. Count the major flows and expected AC density — an epic with 5+ major flows or 30+ expected ACs will typically exceed 800 lines.
+
+Large epics create downstream pressure: the tech design phase consumes the entire epic as input context, validation quality degrades with length, and internal consistency becomes harder to maintain across many flows. If your estimate suggests 800+ lines, inform the user and offer to analyze the requirements for natural splitting points — typically along user workflow boundaries, system capability boundaries, or phased delivery lines.
+
+If the user prefers a single large epic, proceed. This is a checkpoint for the user's benefit, not a gate.
+
 ---
 
 ## User Profile
