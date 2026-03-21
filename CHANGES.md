@@ -143,12 +143,9 @@ Scratch pad for tracking changes as we go. Will be consolidated into CHANGELOG.m
 
 ---
 
-### ls-team-impl-c — autonomy refinements + STORY_ACTIVE phase fix (unstaged, in d303045)
+### ls-team-impl-c — additional refinements (included in d303045)
 
-**What changed:** Additional refinements after initial commit — mid-review recovery phase tracking and per-file reflection instructions in handoff templates.
-
-**Files touched:**
-- `src/phases/team-impl-c.md` — STORY_ACTIVE tracks implementing/reviewing phase, per-file reflection in both templates
+**What changed:** Additional refinements folded into the d303045 commit — mid-review recovery phase tracking (STORY_ACTIVE distinguishes implementing vs reviewing) and per-file reflection instructions in both handoff templates ("stop and reflect on what you learned before reading the next file").
 
 ---
 
