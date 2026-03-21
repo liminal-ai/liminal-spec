@@ -98,6 +98,7 @@ describe("plugin output", () => {
     "ls-publish-epic",
     "ls-team-impl",
     "ls-team-impl-c",
+    "ls-subagent-impl-cc",
     "ls-team-spec",
   ];
 
@@ -210,6 +211,7 @@ describe("skill content", () => {
     "lss-tech",
     "ls-team-impl",
     "ls-team-impl-c",
+    "ls-subagent-impl-cc",
     "ls-team-spec",
   ];
 
@@ -283,17 +285,29 @@ describe("skill content", () => {
     expect(content).toContain("team-impl-log.md");
   });
 
-  test("team-impl-c has reference files", async () => {
-    const exists = await Bun.file(
-      join(
-        DIST_PLUGIN,
-        "skills",
-        "ls-team-impl-c",
-        "references",
-        "epic-verification.md"
-      )
-    ).exists();
-    expect(exists).toBe(true);
+  test("team-impl-c contains full epic verification protocol", async () => {
+    const content = await Bun.file(
+      join(DIST_PLUGIN, "skills", "ls-team-impl-c", "SKILL.md")
+    ).text();
+    expect(content).toContain("Phase 1: Four Parallel Reviews");
+    expect(content).toContain("Phase 2: Meta-Reports");
+    expect(content).toContain("Phase 3: Orchestrator Synthesis");
+    expect(content).toContain("Phase 4: Fixes");
+  });
+
+  test("subagent-impl-cc contains staged TDD content", async () => {
+    const content = await Bun.file(
+      join(DIST_PLUGIN, "skills", "ls-subagent-impl-cc", "SKILL.md")
+    ).text();
+    expect(content).toContain("Orchestrator");
+    expect(content).toContain("Skill Reload Requirement");
+    expect(content).toContain("Phase 1: Red Scaffold");
+    expect(content).toContain("Phase 2: Red Verify");
+    expect(content).toContain("Phase 3: Green Implementation");
+    expect(content).toContain("Phase 4: Full Story Verification");
+    expect(content).toContain("subagent-impl-log.md");
+    expect(content).toContain("Red Scaffold Template");
+    expect(content).toContain("Test Baseline Diff");
   });
 
   test("team-spec contains spec orchestration content", async () => {
@@ -491,7 +505,6 @@ describe("source file safety", () => {
       "src/shared/writing-style.md",
       "src/phases/team-impl.md",
       "src/phases/team-impl-c.md",
-      "src/references/team-impl-c/epic-verification.md",
       "src/phases/team-spec.md",
       "src/commands/liminal-spec.md",
       "src/agents/senior-engineer.md",

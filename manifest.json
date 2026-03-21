@@ -99,8 +99,15 @@
       "phases": [
         "team-impl-c"
       ],
-      "shared": [],
-      "references": "team-impl-c"
+      "shared": []
+    },
+    "ls-subagent-impl-cc": {
+      "name": "ls-subagent-impl-cc",
+      "description": "Orchestrate story-by-story implementation with Claude Code subagents using staged TDD. Opus builds red-phase scaffolds and implements, Sonnet verifies red integrity and provides pedantic review. No external CLI required.",
+      "phases": [
+        "subagent-impl-cc"
+      ],
+      "shared": []
     },
     "ls-team-spec": {
       "name": "ls-team-spec",

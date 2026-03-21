@@ -64,6 +64,9 @@ For orchestrating spec creation or implementation with agent teams in tmux. The 
 | Team Impl (CLI)     | /ls-team-impl-c           | You have complete stories and want to orchestrate     |
 |                     |                           | agent teams with Codex or Copilot CLI in tmux         |
 +---------------------+---------------------------+-------------------------------------------------------+
+| Subagent Impl (CC)  | /ls-subagent-impl-cc      | You have complete stories and want to orchestrate     |
+|                     |                           | Claude Code subagent implementation with staged TDD   |
++---------------------+---------------------------+-------------------------------------------------------+
 
 ## When to Use
 
@@ -94,6 +97,7 @@ Based on the user's response, invoke the appropriate skill:
 - Team spec (orchestrate full spec pipeline with agent teams in tmux) -> use Skill tool: "liminal-spec:ls-team-spec"
 - Team implementation (orchestrate agent team implementation in tmux) -> use Skill tool: "liminal-spec:ls-team-impl"
 - Team implementation with CLI (orchestrate agent teams with Codex or Copilot CLI in tmux) -> use Skill tool: "liminal-spec:ls-team-impl-c"
+- Subagent implementation with Claude Code (orchestrate Claude Code subagents with staged TDD) -> use Skill tool: "liminal-spec:ls-subagent-impl-cc"
 
 If the user is unclear about phase:
 - Need product exploration or stakeholder alignment first? -> Phase 1

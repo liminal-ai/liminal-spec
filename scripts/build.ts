@@ -97,6 +97,7 @@ const STANDALONE_NAMES: Record<string, string> = {
   "lss-tech": "simple-02-technical-design",
   "ls-team-impl": "06-team-implementation",
   "ls-team-impl-c": "06c-team-implementation-cli",
+  "ls-subagent-impl-cc": "06s-subagent-implementation-cc",
   "ls-team-spec": "07-team-spec",
 };
 
