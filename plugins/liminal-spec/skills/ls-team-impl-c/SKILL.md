@@ -44,6 +44,20 @@ You should be able to handle routine decisions autonomously — fix routing, sev
 - Verification gate → run the command yourself (this is the ONE implementation-adjacent action you take — it's a pass/fail check, not investigation)
 - If a test fails during the gate check → route it to a teammate or subagent. Do NOT debug it.
 
+### Autonomy and Forward Progress
+
+The goal of this orchestration is to complete the work fully, with quality, and with maximal reasonable autonomy. Default to forward progress. When the next step is routine and clearly in service of the approved objective, take it — don't stop to ask permission.
+
+Stop only when a genuine blocker requires human judgment. Examples of genuine blockers:
+
+- The external CLI is unavailable after investigation and retry
+- Verification reveals a meaningful correctness, security, or integration problem with unclear disposition
+- The spec or tech design appears inconsistent or insufficient in a way that affects implementation direction
+- A fix would materially expand scope or alter user-facing behavior
+- Project gates are failing for reasons that require a product or architectural decision, not a routine implementation fix
+
+Everything else — routine story transitions, clean gate passes, trivial fixes clearly within scope, mechanical cleanup — keep moving.
+
 ---
 
 ## On Load
@@ -55,7 +69,7 @@ Check for an existing `team-impl-log.md` alongside the epic and tech design arti
 - **No log exists** → this is a `SETUP` (first load). Execute full initialization below.
 - **Log exists with state `BETWEEN_STORIES`** → mid-epic reload. Read the log for current position, cumulative test count, selected CLI, and recorded patterns. The directive refresh happened when the skill loaded. Proceed to the next story.
 - **Log exists with state `STORY_ACTIVE`** → reload during an active story (error recovery). Read the log for which story is in progress. Resume the current story cycle.
-- **Log exists with state `PRE_EPIC_VERIFY`** → all stories accepted. Read the Epic-Level Verification Protocol (in `references/epic-verification.md` if available, or in the appended reference section below) and begin the verification protocol.
+- **Log exists with state `PRE_EPIC_VERIFY`** → all stories accepted. Proceed to the Epic-Level Verification section below.
 
 ### Full Initialization (SETUP only)
 
@@ -134,26 +148,28 @@ Step 1 — Load skill:
   Use the Skill tool: Skill({CLI_SKILL_NAME})
   If this fails, report the exact error. Do not skip it. Do not implement yourself.
 
-Step 2 — Read artifacts sequentially (this order matters):
-  1. [cross-cutting decisions / tech design index] — Read FIRST. Establishes vocabulary.
-  2. [primary tech design companion for this story] — Read SECOND.
-  3. [epic] — Read THIRD. Full feature context.
-  4. [test plan if available] — Read FOURTH.
+Step 2 — Read artifacts sequentially, reflecting after each one:
+  Read each file one at a time. After reading each file, stop and reflect on what you
+  learned before reading the next. Write your reflections as you go — these become
+  compressed context that persists with strong attention weight throughout your work.
 
-Step 3 — Reflection checkpoint:
-  STOP. Before reading the story, write down a summary of:
-  - Key architectural decisions from the tech design
-  - Data contracts and interfaces relevant to this story
-  - Cross-cutting patterns (error handling, DI, testing approach)
-  Write this summary to /tmp/reflection-story-N.md.
+  1. [cross-cutting decisions / tech design index] — Read. Reflect: what are the key
+     architectural decisions, vocabulary, and cross-cutting patterns?
+  2. [primary tech design companion for this story] — Read. Reflect: what interfaces,
+     data contracts, and design constraints are relevant?
+  3. [epic] — Read. Reflect: how does this story fit in the broader feature? What are
+     the upstream/downstream dependencies?
+  4. [test plan if available] — Read. Reflect: what testing patterns and coverage
+     expectations apply?
+  5. [story] — Read. Reflect: what are the ACs, TCs, and any spec deviations or
+     gotchas to flag?
 
-Step 4 — Read the story:
-  [STORY PATH]
+  Write your cumulative reflections to /tmp/reflection-story-N.md before touching code.
 
-Step 5 — Write a CLI prompt and launch:
+Step 3 — Write a CLI prompt and launch:
   [If implementation prompts exist: pipe the prompt directly to CLI]
   [Otherwise: write a lean, execution-oriented prompt with artifact paths]
-  Give the CLI the same sequential reading instructions and reflection checkpoint.
+  Give the CLI the same sequential reading and per-file reflection instructions.
   Use gpt-5.4. Launch async. Wait for completion.
 
 Step 6 — Self-review loop:
@@ -179,13 +195,12 @@ Step 1 — Load skill:
   Use the Skill tool: Skill({CLI_SKILL_NAME})
   If this fails, report the exact error. Do not skip it. Do not review without CLI.
 
-Step 2 — Read artifacts sequentially (same order as implementer).
+Step 2 — Read artifacts sequentially, reflecting after each one (same as implementer):
+  Read each file one at a time. After each file, stop and reflect on what you learned
+  before reading the next. Include the story as the final read. Write cumulative
+  reflections to /tmp/reflection-review-story-N.md before starting the review.
 
-Step 3 — Reflection checkpoint (same as implementer).
-
-Step 4 — Read the story.
-
-Step 5 — Dual review (parallel):
+Step 3 — Dual review (parallel):
   A. Launch CLI for spec-compliance review. Give it artifact paths and instruct:
      thorough code review against spec, organize by severity, check AC/TC coverage.
      Use gpt-5.4. Launch async.
@@ -262,6 +277,8 @@ For each story in sequence:
 
 ### 1. Spawn the Implementer
 
+Set log state to `STORY_ACTIVE` and record which story is being implemented and the current phase (`implementing` or `reviewing`). Update the phase when transitioning to verification. This ensures a mid-story reload can resume at the correct point in the cycle.
+
 Spawn a general-purpose teammate (Opus, not senior-engineer). The teammate is the supervisory layer — it manages a CLI subagent, verifies the output, and reports back to you.
 
 Re-read the materialized implementer template from the log. Construct the handoff as one complete prompt (not drip-fed). Substitute the actual paths and any story-specific flags you noticed while reading — like "this story has a spec deviation worth noting" or "this is a large story, ~40 tests expected."
@@ -272,7 +289,7 @@ If per-story implementation prompts exist, tell the teammate to use them as the 
 
 When the implementer reports back, the implementation has already been through one or more rounds of self-review. The easy issues are fixed. What remains is either clean or genuinely ambiguous. Now it gets a fresh set of eyes.
 
-**Spawn the reviewer.** A fresh general-purpose Opus teammate (not senior-engineer). Re-read the materialized reviewer template from the log. Same artifacts, explicit CLI requirement.
+**Spawn the reviewer.** Update the log phase to `reviewing`. A fresh general-purpose Opus teammate (not senior-engineer). Re-read the materialized reviewer template from the log. Same artifacts, explicit CLI requirement.
 
 The reviewer runs a dual review: CLI spec-compliance check in parallel with the reviewer's own architectural review. Two perspectives — the external model's literal compliance check and the Opus reviewer's architectural judgment.
 
@@ -307,11 +324,12 @@ When a story is accepted and committed:
 2. Update boundary inventory — check status of all external dependencies.
 3. Update log state:
    - If more stories remain → set state to `BETWEEN_STORIES`
-   - If this was the last story → set state to `PRE_EPIC_VERIFY`
+   - If this was the last story (and more than one story in the epic) → set state to `PRE_EPIC_VERIFY`
+   - If this was the only story → set state to `COMPLETE` (per-story verification already covers the full scope — skip pre-verification cleanup and epic-level verification)
 
-**If more stories remain: RELOAD THIS SKILL before starting the next story.** If the next story was started without reloading the skill, the user will interrupt and roll back.
+**If more stories remain: RELOAD THIS SKILL and continue.** If the next story was started without reloading the skill, the user will interrupt and roll back.
 
-**If this was the last story:** proceed to Pre-Verification Cleanup, then Epic-Level Verification.
+**If this was the last story of a multi-story epic:** proceed to Pre-Verification Cleanup, then Epic-Level Verification.
 
 **Fresh agents per story.** Every story gets a fresh implementer and a fresh reviewer. No carrying forward teammates between stories. The new teammate reads the story cold with no assumptions from previous work. If the story spec isn't sufficient for cold implementation, that's a spec gap to flag, not a reason to carry context forward.
 
@@ -356,7 +374,7 @@ In `PAUSED_PROCESS_REVIEW`, prioritize diagnosis over reassurance. Treat frustra
 
 After all stories are accepted and before epic-level verification, compile all deferred and accepted-risk items from every story cycle into a single list.
 
-Present the complete list to the human. Discuss each item — its effort level, whether it genuinely improves things, and whether to fix it. Include small items. Do not defer trivial items just because they're small — if the fix is a few lines, it is faster to fix than to track.
+Present the categorized list to the human — this is a batch with mixed severity and is worth the human seeing before dispatch. Include small items. Do not defer trivial items just because they're small — if the fix is a few lines, it is faster to fix than to track.
 
 **Materialize the complete fix list to a file before constructing any handoff prompt.** When context distance grows between when items are discussed and when the handoff is written, small items drop off. Write the numbered list to a file, read that file when writing the handoff, paste its contents into the prompt. This is a structural intervention — advisory "remember to include everything" does not reliably work.
 
@@ -372,9 +390,80 @@ After all stories are accepted and committed (and pre-verification cleanup is do
 
 **RELOAD THIS SKILL before starting epic verification.**
 
-Then read the Epic-Level Verification Protocol (in `references/epic-verification.md` if available, or in the appended reference section below) and execute the 4-phase verification protocol.
-
 This is not optional. Do not ask the user whether to do it. In previous runs, undetected integration gaps, stub implementations shipped as production code, and contract inconsistencies survived 26 story-level reviews and were only caught by the epic-level verification pass.
+
+### Setup
+
+Create a verification output directory with a subdirectory per reviewer. For example:
+
+```
+verification/
+  opus/
+  sonnet/
+  gpt54/
+  gpt53-codex/
+```
+
+### Phase 1: Four Parallel Reviews
+
+Launch four reviewers simultaneously. Each reads the full epic, the full tech design, and the entire codebase. Each writes a detailed review report to their designated directory.
+
+**Two Claude teammates** (general-purpose, not senior-engineer):
+
+1. **Opus reviewer** — reads epic, tech design, all source files, all test files. Writes `epic-review.md` to their directory.
+2. **Sonnet reviewer** — same artifacts, same task, writes to their directory.
+
+**Two external model reviews** (each managed by a general-purpose teammate who loads the CLI skill):
+
+3. **gpt-5.4 review** — the primary external verifier. Same artifacts, writes review. The teammate captures the output and writes the report file.
+4. **gpt-5.3-codex review** — secondary diversity verifier, if available. Same artifacts, writes review. Same capture pattern. If gpt-5.3-codex is not available, proceed with three reviewers.
+
+Each reviewer's prompt:
+
+- Read the epic (path), the tech design (path), and every source and test file in the project
+- Specify the exact working directory for CLI reviewers
+- Do a thorough critical review of the full implementation against the epic and tech design
+- Organize findings by severity (Critical, Major, Minor)
+- Verify AC/TC coverage, interface compliance, architecture alignment, test quality
+- Check boundary inventory: is any external dependency still a stub?
+- Write the full report to their output file
+
+**Wait for all reports before proceeding.** Do not start Phase 2 until every report is written.
+
+### Phase 2: Meta-Reports
+
+Send each reviewer the paths to all review reports. Each reviewer reads all reports and writes a meta-report to their directory:
+
+- Rank the reports from best to worst
+- For each report: what's good about it, what's not good about it
+- Describe what they would take from each report if synthesizing a single best review
+
+**Wait for all meta-reports before proceeding.**
+
+### Phase 3: Orchestrator Synthesis
+
+Read all review reports and all meta-reports. Produce a synthesized assessment:
+
+1. **Cross-reference findings.** Build a table: which findings appear in multiple reports (high confidence), which are unique to one reviewer (investigate).
+2. **Assess severity.** Claude models tend to grade generously. External models tend to grade conservatively. Apply your own judgment — don't average.
+3. **Categorize the fix list:**
+   - Must-fix: ship blockers
+   - Should-fix: correctness or quality issues
+   - Trivial: small fixes that take a few lines of code
+4. **Present the categorized fix list to the human** with your recommended ship-readiness grade. This is a large batch with mixed severity — the human should see it before you dispatch.
+5. **Materialize the complete fix list to a file** before constructing the handoff prompt. Include all items the human approved — must-fix, should-fix, and trivial. Do not filter out small items. Context distance causes drops; the list must exist as a readable artifact.
+
+### Phase 4: Fixes
+
+After discussion and human approval:
+
+- Launch a teammate with the CLI to implement the approved fixes. Give them the fix list file, the epic, and the tech design.
+- After fixes: launch a fresh review targeting the specific changes to confirm correctness.
+- Run the discovered epic acceptance gate yourself to confirm all required gates pass.
+- Check boundary inventory one final time: no external dependencies should remain as stubs.
+- Stage, commit (`fix: epic verification fixes`), and report completion to the human.
+
+Update log state to `COMPLETE`.
 
 ---
 
@@ -427,11 +516,9 @@ When context distance grows between when items are discussed and when a handoff 
 
 In a previous run, a CLI subagent reviewed an old prototype directory instead of the current application directory. The handoff prompt must specify the exact working directory. Verify in the teammate's report that the CLI ran against the correct path.
 
-### Discuss Before Dispatch
+### Large Fix Batches Need Human Eyes
 
-Present findings to the human. Discuss. Get direction. Then dispatch. Do not auto-dispatch fixes without user approval. In a previous run, an orchestrator auto-dispatched all 16 epic-verification fixes before discussing them with the human. Three items changed disposition through discussion — including one that would have been a scope change.
-
-The exception: if the human explicitly authorizes unattended operation ("fix everything and let me know when you're done"), auto-dispatch is permitted for that specific batch.
+In a previous run, an orchestrator auto-dispatched all 16 epic-verification fixes without presenting them first. Three items changed disposition through discussion — including one that would have been a scope change. When you have a batch of fixes with mixed severity and disposition, present the categorized list and let the human weigh in before dispatching. This applies to epic verification synthesis and pre-verification cleanup — situations where you're routing a significant volume of fixes at once. It does not mean every routine decision needs human approval.
 
 ### Process Adaptation
 
