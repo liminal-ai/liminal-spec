@@ -140,3 +140,47 @@ Scratch pad for tracking changes as we go. Will be consolidated into CHANGELOG.m
 - `plugins/liminal-spec/` — marketplace source synced
 
 **Why:** Users without Codex/Copilot CLI need an implementation orchestration path. The Claude-only approach compensates for the lack of cross-model-family diversity by using Opus and Sonnet in differentiated roles (broad vs pedantic) and by adding the TDD red-phase separation — a structural integrity mechanism that catches test weakening before implementation begins.
+
+---
+
+### ls-team-impl-c — autonomy refinements + STORY_ACTIVE phase fix (unstaged, in d303045)
+
+**What changed:** Additional refinements after initial commit — mid-review recovery phase tracking and per-file reflection instructions in handoff templates.
+
+**Files touched:**
+- `src/phases/team-impl-c.md` — STORY_ACTIVE tracks implementing/reviewing phase, per-file reflection in both templates
+
+---
+
+### ls-prd — new upstream PRD + Tech Architecture skill
+
+**What changed:** New skill for producing Product Requirements Documents and optional Technical Architecture documents. The upstream artifact that feeds ls-epic and the full Liminal Spec pipeline.
+
+**Key features:**
+- **PRD output** — product context (vision, user profile, problem, principles, scope, NFRs), features as lightweight epics with rolled-up ACs, milestones, epic sequencing, cross-cutting decisions, future directions
+- **Tech Architecture output** (optional companion) — architecture thesis, core stack table with versions, system shape and ownership, boundaries and flows, cross-cutting technical decisions with choice/rationale/consequence, constraints that shape epics, open questions for tech design, relationship to downstream
+- **Altitude discipline** — the skill's core teaching: PRD operates at 50k-30k feet, tech arch at 50k-25k feet, with explicit stopping boundaries. The rolled-up vs line-level AC distinction is the key calibration mechanism.
+- **On Load choice** — PRD only, Tech Arch only, or both. Recommended together for new products.
+- **Common Feature Section Failures** — five named gotchas (feature wishlist, premature precision, vague scope, missing out-of-scope, implementation leaking in)
+- **Full templates** for both PRD and Tech Architecture documents
+- **Advisory tone guidance** for tech arch — counteracts models' natural authoritative bias at this altitude
+
+**Design decisions:**
+- One skill for both artifacts (they inform each other in real time during creation)
+- md-viewer PRD as the gold standard for output shape
+- Tech arch's driving statement: "what technical world the epics must live inside"
+- PRD cross-cutting decisions are product/design level; tech arch cross-cutting decisions are technical level
+- Core stack table includes versions where they change available patterns (React 18 vs 19, Node 22 vs 24)
+
+**Build system:**
+- New manifest entry (no shared dependencies), standalone name mapping (`00-prd`), router updated with Phase 0
+- 72 tests total (2 new content assertions for ls-prd)
+
+**Files touched:**
+- `src/phases/prd.md` (new, ~608 lines)
+- `manifest.json` — new skill entry
+- `scripts/build.ts` — standalone name mapping
+- `scripts/__tests__/build.test.ts` — new skill in expected lists, content assertions
+- `src/commands/liminal-spec.md` — router updated with Phase 0
+
+**Why:** Previously, upstream product framing required using ls-epic and manually de-specifying it (removing TCs, contracts, collapsing ACs). A dedicated skill aims directly at the right altitude and produces the artifacts that downstream spec orchestration needs without the rework. The tech arch companion prevents epics from being scoped against the wrong seams and tech designs from re-litigating foundational decisions across every epic.

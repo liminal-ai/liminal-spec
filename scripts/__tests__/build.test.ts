@@ -92,6 +92,7 @@ describe("build script", () => {
 
 describe("plugin output", () => {
   const expectedSkills = [
+    "ls-prd",
     "ls-research",
     "ls-epic",
     "ls-tech-design",
@@ -203,6 +204,7 @@ describe("marketplace install source", () => {
 
 describe("skill content", () => {
   const expectedSkills = [
+    "ls-prd",
     "ls-research",
     "ls-epic",
     "ls-tech-design",
@@ -308,6 +310,18 @@ describe("skill content", () => {
     expect(content).toContain("subagent-impl-log.md");
     expect(content).toContain("Red Scaffold Template");
     expect(content).toContain("Test Baseline Diff");
+  });
+
+  test("prd contains PRD and tech arch content", async () => {
+    const content = await Bun.file(
+      join(DIST_PLUGIN, "skills", "ls-prd", "SKILL.md")
+    ).text();
+    expect(content).toContain("Product Requirements Document");
+    expect(content).toContain("Altitude");
+    expect(content).toContain("Rolled-Up Acceptance Criteria");
+    expect(content).toContain("Architecture Thesis");
+    expect(content).toContain("Core Stack");
+    expect(content).toContain("Relationship to Downstream");
   });
 
   test("team-spec contains spec orchestration content", async () => {

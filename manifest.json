@@ -1,6 +1,14 @@
 {
   "version": "0.9.0",
   "skills": {
+    "ls-prd": {
+      "name": "ls-prd",
+      "description": "Shape product direction into a structured PRD with epic breakdown and optional Technical Architecture document. Produces the upstream artifact that feeds ls-epic and the full Liminal Spec pipeline.",
+      "phases": [
+        "prd"
+      ],
+      "shared": []
+    },
     "ls-research": {
       "name": "ls-research",
       "description": "Explore product direction and produce a PRD before feature scoping. Use when requirements are unclear, scope spans multiple features, or stakeholder alignment is needed.",

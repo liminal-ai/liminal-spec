@@ -19,6 +19,9 @@ The traceability chain (requirement -> test condition -> test -> code) means tha
 +---------------------+---------------------------+-------------------------------------------------------+
 |        Phase        |           Skill           |                   Start Here If...                    |
 +---------------------+---------------------------+-------------------------------------------------------+
+| 0. PRD              | /ls-prd                   | New product or release — need PRD, tech architecture, |
+|                     |                           | or both before writing epics                          |
++---------------------+---------------------------+-------------------------------------------------------+
 | 1. Product Research | /ls-research              | You need to explore direction before defining a       |
 |                     |                           | feature                                               |
 +---------------------+---------------------------+-------------------------------------------------------+
@@ -88,6 +91,7 @@ Not for quick bug fixes, single-file tweaks, spikes, or emergency patches.
 Tell me what you want to build and where you are in the process. I will route to the correct skill.
 
 Based on the user's response, invoke the appropriate skill:
+- Phase 0 (PRD / Tech Architecture) -> use Skill tool: "liminal-spec:ls-prd"
 - Phase 1 (Product Research) -> use Skill tool: "liminal-spec:ls-research"
 - Phase 2 (Epic) -> use Skill tool: "liminal-spec:ls-epic"
 - Phase 3 (Tech Design) -> use Skill tool: "liminal-spec:ls-tech-design"
