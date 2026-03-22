@@ -14,7 +14,22 @@ This document translates feature requirements into implementable architecture. I
 
 **Expected Length:** A complete tech design expands significantly from the epic — typically 6-7×. The richness comes from redundant connections: the same concepts appearing at multiple altitudes, woven through functional and technical perspectives. Shorter usually means insufficient depth. Longer usually means scope creep.
 
-**When to split:** If this document exceeds ~1500-2000 lines, or a domain section (auth, protocol, UI architecture, testing) grows dense enough to distract from core flow, split into focused companion docs. Keep one index document as the canonical map and decision log. Split by domain or altitude, not arbitrarily. Each companion doc preserves requirement traceability (AC/TC mappings) and includes cross-links back to the index. Make the split decision explicitly — "single doc" or "split with index" — and document the rationale.
+**Output structure — choose one:**
+
+| Config | Documents | When |
+|--------|-----------|------|
+| **A: 2 docs** | `tech-design.md` (index) + `test-plan.md` | Index fits comfortably under ~1200-1500 lines. Single-domain projects (CLI, backend service, focused frontend feature). |
+| **B: 4 docs** | `tech-design.md` (index) + `tech-design-[domain-a].md` + `tech-design-[domain-b].md` + `test-plan.md` | Index approaching ~1200-1500 lines. Multi-domain projects (frontend + backend, client + server). |
+
+Never go 3 — don't add just one companion. Either everything lives in the index, or split both domain companions out at the same time. Name companions by the project's actual domain boundaries (frontend/backend, client/server, API/UI — whatever fits).
+
+The index remains the decision record and whole-system map regardless of configuration. In Config B, the index retains: purpose, spec validation, context, tech design Q answers, system view, module architecture overview, dependency map, work breakdown summary, deferred items. Companion docs carry implementation depth and maintain requirement traceability (AC/TC references, cross-links back to the index).
+
+The test plan is always its own document. If the work doesn't justify a separate test plan with TC traceability, this skill isn't the right tool.
+
+---
+
+**⚠️ About this template — guidance vs. output.** This template contains inline methodology commentary (marked with ✏️ or explaining why the template is structured a certain way). That commentary is instruction to you about how to write — it is not content for the output document. Do not reproduce methodology labels, altitude references, spiral pattern mentions, or "this repetition is intentional" explanations in your tech design. Your headings should be descriptive ("System Context", "Module Architecture"), not methodology-labeled ("High Altitude: System Context"). Write the weave — don't announce it.
 
 ---
 
@@ -31,11 +46,17 @@ Before designing, validate the Epic is implementation-ready. You are the downstr
 
 **Issues Found:**
 
-| Issue | Spec Location | Recommendation | Status |
-|-------|---------------|----------------|--------|
-| [description] | AC-X | [fix needed] | Pending/Resolved |
+This table serves two purposes. First, it captures pre-design validation issues — problems with the spec that need resolution before design begins. Second, it captures design-time deviations — places where the tech design intentionally diverges from the epic because implementation reality demands a different approach. Both are expected. Deviations without documented rationale look like bugs to verifiers; deviations with rationale are accepted as design decisions and reduce verification churn significantly.
 
-If blocking issues exist, return to BA for revision. Don't design from a broken spec. Document what you found—even minor issues—so there's a record of spec evolution.
+| Issue | Spec Location | Resolution | Status |
+|-------|---------------|------------|--------|
+| [Pre-design issue — spec problem] | AC-X | [Fix needed or applied] | Resolved |
+| [Design-time deviation — different approach chosen] | AC-Y, Data Contracts | [What the epic says, what the design does instead, and why] | Resolved — deviated |
+| [Clarification — spec is ambiguous, design makes it concrete] | AC-Z, A3 | [What was ambiguous, how the design interprets it] | Resolved — clarified |
+
+If blocking pre-design issues exist, return to BA for revision. Don't design from a broken spec. Document what you found — even minor issues — so there's a record of spec evolution.
+
+Design-time deviations are different: the spec may be correct but the implementation reality demands a different approach. Document the deviation, explain the rationale, and keep designing. The epic is the requirements source of truth; the tech design is the implementation source of truth. When they diverge, the deviation table is where that divergence is made explicit.
 
 ---
 
@@ -62,9 +83,11 @@ The design assumes the XAPI team delivers their location search endpoint by Spri
 
 ---
 
-## High Altitude: System View
+## System View
 
-Start at the highest level. How does this feature fit into the broader system? What crosses the application boundary? This altitude answers: "What does the system look like from the outside?"
+*✏️ Highest altitude — broadest view, external boundaries. Establish the full picture before descending into modules. Config B: this section stays in the index.*
+
+Start at the highest level. How does this feature fit into the broader system? What crosses the application boundary?
 
 ### System Context Diagram
 
@@ -137,7 +160,7 @@ What must be installed, running, or configured for this feature to work — loca
 
 ---
 
-**✏️ Connection Check:** Before moving to Medium Altitude, verify you've established:
+*✏️ Connection Check — before moving to module boundaries, verify you've established:*
 - External systems and their integration patterns
 - Data that crosses the boundary (in and out)
 - Error contracts that tests will mock
@@ -146,9 +169,9 @@ These external contracts constrain everything below. Module boundaries exist to 
 
 ---
 
-## Medium Altitude: Module Boundaries
+## Module Boundaries
 
-Zoom into the application. What modules exist? How do they divide responsibility? This altitude answers: "How is the application organized internally?"
+*✏️ Mid-level altitude — zoom into the application. What modules exist and how do they divide responsibility? Config B: the module architecture overview and responsibility matrix stay in the index. Detailed module design moves to companion docs.*
 
 The module breakdown creates the skeleton that Phase 1 will implement. Each module listed here becomes a stub file. Think carefully about boundaries—they're expensive to change once tests are written against them.
 
@@ -198,14 +221,17 @@ src/
 
 Define what each module does, what it depends on, and which ACs it serves. This matrix is the rosetta stone connecting functional requirements to code locations. When someone asks "where is AC-15 implemented?"—this table answers.
 
-| Module | Type | Responsibility | Dependencies | ACs Covered |
-|--------|------|----------------|--------------|-------------|
-| `[entrypoint]` | Handler | Entry point, request/response orchestration | services, components | AC-1 to AC-5 |
-| `[service/hook]` | Logic | Business logic, data fetching, state | clients, api | AC-6 to AC-10 |
-| `[component/formatter]` | Output | Renders/formats results | types | AC-11 to AC-15 |
-| `[client/api]` | Boundary | External calls (mock boundary) | network/fs | (supports above) |
+Include both new modules and existing modules being modified. The matrix must account for all code that changes, not just new code.
 
-Notice how ACs appear here after appearing in the Context section (implicitly) and before appearing in Flow-by-Flow (explicitly). This repetition is intentional—the spiral pattern creates redundant paths through the material.
+| Module | Status | Responsibility | Dependencies | ACs Covered |
+|--------|--------|----------------|--------------|-------------|
+| `[entrypoint]` | NEW | Entry point, request/response orchestration | services, components | AC-1 to AC-5 |
+| `[service/hook]` | NEW | Business logic, data fetching, state | clients, api | AC-6 to AC-10 |
+| `[existing-module]` | MODIFIED | [What changes and why] | [updated deps] | AC-11 to AC-13 |
+| `[component/formatter]` | NEW | Renders/formats results | types | AC-14 to AC-15 |
+| `[client/api]` | NEW | External calls (mock boundary) | network/fs | (supports above) |
+
+*✏️ ACs appear here after appearing in the Context section and before appearing in Flow-by-Flow. This repetition creates multiple paths through the material — don't remove it, but don't explain it in your output either.*
 
 ### Component Interaction Diagram
 
@@ -241,18 +267,20 @@ flowchart TD
 
 ---
 
-**✏️ Connection Check:** The modules above should clearly map to:
-- External contracts (High Altitude) — Which module handles incoming params? Which prepares outgoing data?
-- ACs from the epic — Every AC should have a home in the responsibility matrix
-- Interface definitions (Low Altitude, coming next) — Each module will need types, props, or signatures
+*✏️ Connection Check — the modules above should clearly map to:*
+- *External contracts (System View) — Which module handles incoming params? Which prepares outgoing data?*
+- *ACs from the epic — Every AC should have a home in the responsibility matrix*
+- *Interface definitions (coming next) — Each module will need types, props, or signatures*
 
-If a module exists but you can't trace it to an AC, question whether it's needed. If an AC exists but no module owns it, you've found a gap.
+*If a module exists but you can't trace it to an AC, question whether it's needed. If an AC exists but no module owns it, you've found a gap.*
 
 ---
 
-## Medium Altitude: Flow-by-Flow Design
+## Flow-by-Flow Design
 
-For each major flow, provide a sequence diagram and connect to functional requirements. This section weaves functional (ACs/TCs) with technical (modules/methods), showing *how* the architecture fulfills requirements.
+*✏️ Still mid-level altitude — this section weaves functional (ACs/TCs) with technical (modules/methods), showing how the architecture fulfills requirements. Config B: flow-by-flow design moves to the appropriate companion doc(s) based on which domain each flow primarily touches.*
+
+For each major flow, provide a sequence diagram and connect to functional requirements.
 
 Each flow should reference ACs covered, show the sequence of module interactions, list what skeleton phase must create, and map TCs to test approaches. This is the densest section—and intentionally so. It's where functional and technical interlock.
 
@@ -314,21 +342,21 @@ The repetition of structure isn't monotony—it's navigability. Someone looking 
 
 ---
 
-**✏️ Connection Check:** Each flow should trace to:
-- Context (why this flow matters to users/business)
-- Module Responsibility Matrix (which modules participate)
-- External Contracts (what data crosses boundaries)
-- Low Altitude interfaces (what methods/types enable it)
+*✏️ Connection Check — each flow should trace to:*
+- *Context (why this flow matters to users/business)*
+- *Module Responsibility Matrix (which modules participate)*
+- *External Contracts (what data crosses boundaries)*
+- *Interface definitions (what methods/types enable it)*
 
-If you can't draw these connections, the design has gaps. Fill them before proceeding.
+*If you can't draw these connections, the design has gaps. Fill them before proceeding.*
 
 ---
 
-## Low Altitude: Interface Definitions
+## Interface Definitions
 
-Now at the lowest altitude before code. Specific types, method signatures, and implementation contracts. These become copy-paste ready for skeleton phase and serve as the source of truth for what gets built.
+*✏️ Lowest altitude before code. This section should feel like the inevitable conclusion of everything above — the types exist because the flows need them, the method signatures fulfill the module responsibilities. Config B: interface definitions move to companion docs alongside the flows they serve. Shared types that cross domain boundaries may stay in the index or appear in both companions.*
 
-This section should feel like the inevitable conclusion of everything above. The types exist because the flows need them. The method signatures fulfill the module responsibilities. The props/parameters enable the interactions shown in diagrams. Adapt to your stack — the examples below use TypeScript but the pattern (types → service signatures → boundary contracts → entry point signatures) applies to any language.
+Specific types, method signatures, and implementation contracts. These become copy-paste ready for skeleton phase and serve as the source of truth for what gets built. Adapt to your stack — the examples below use TypeScript but the pattern (types → service signatures → boundary contracts → entry point signatures) applies to any language.
 
 ### Types
 
@@ -451,6 +479,8 @@ export interface [ComponentName]Props {
 
 ## Functional-to-Technical Traceability
 
+*✏️ Config B: this section moves to test-plan.md. The functional-to-technical mapping is the explicit bridge between requirements and execution — it's what gives the TDD chain its value as a high-signal mechanism.*
+
 Complete mapping from Test Conditions to implementation. This table drives TDD Red phase—every row becomes a test. The grouping by test file makes implementation straightforward: open file, write listed tests.
 
 This section synthesizes everything above. Each TC traces back through:
@@ -490,6 +520,8 @@ Component tests. Tests rendering and user interaction. Mock only what's passed v
 ---
 
 ## Testing Strategy
+
+*✏️ Testing architecture (mock boundaries, test pyramid, what gets mocked) stays in the index — these are design decisions. Config B: detailed test tables and manual verification checklist may move to test-plan.md.*
 
 > **Reference:** See the Testing reference section in this skill for full methodology, mock strategy, and test patterns.
 
@@ -535,7 +567,9 @@ vi.mock('@/services/[feature]Service');  // Don't do this
 
 ### What Gets Mocked
 
-This table appears here (Testing Strategy) after error shapes appeared in External Contracts. The repetition is intentional—someone entering from either section finds what they need. Adapt to your stack — the principle is consistent: mock external, exercise internal.
+*✏️ This table repeats information from External Contracts — the repetition creates multiple entry points into the same information. Keep both instances in your output but don't explain why you're repeating.*
+
+Adapt to your stack — the principle is consistent: mock external, exercise internal.
 
 | Layer | Mock? | Why |
 |-------|-------|-----|
@@ -592,7 +626,7 @@ Every project must define at least these four verification tiers:
 
 `green-verify` exists because Red tests are the behavioral contract for Green. Test files should not be modified during Green implementation. `green-verify` runs the standard verification pipeline then checks that no test files were changed.
 
-If integration or e2e suites don't exist yet, `verify-all` should still exist and run placeholders that return success with clear output — the command must be wirable from day one.
+If integration or e2e suites don't exist yet, `verify-all` should still exist as a wirable command from day one. The placeholder should output a clear notice that the suite isn't implemented yet (e.g., "SKIP: integration suite not yet implemented") and exit successfully so CI doesn't break — but never silently pass as if verification occurred.
 
 ### Example (TypeScript / Bun)
 
@@ -612,6 +646,8 @@ The specific commands vary by stack. The principle is consistent: `red-verify` =
 ---
 
 ## Work Breakdown: Chunks and Phases
+
+*✏️ Config B: work breakdown summary stays in the index. Chunk-level TDD details (Red/Green tables) may move to test-plan.md alongside the TC→test mapping.*
 
 Work breaks along two axes:
 
@@ -724,7 +760,7 @@ Before handoff, verify quality. Read your own design critically—the BA/SM vali
 - [ ] Lists and tables have paragraph context above them
 - [ ] Diagrams are introduced with prose, not orphaned
 - [ ] Sequence diagrams include AC annotations
-- [ ] Connection Check prompts answered (or deleted after verification)
+- [ ] All ✏️ guidance prompts answered (and stripped from output — these are writer instructions, not output content)
 
 ### Agent Readiness
 

@@ -149,6 +149,47 @@ Scratch pad for tracking changes as we go. Will be consolidated into CHANGELOG.m
 
 ---
 
+### ls-tech-design refinements — multi-doc standard, deviation table, grounding, stage-directions cleanup
+
+**What changed:** Comprehensive refinements to the tech design skill based on operational feedback from building 6 epics' worth of tech designs in the md-viewer project.
+
+**Multi-doc output standardization:**
+- Two configurations: Config A (2 docs: index + test plan) or Config B (4 docs: index + frontend companion + backend companion + test plan). Never 3.
+- Trigger for Config B is index density approaching ~1200-1500 lines. Companion docs named by project domain boundaries, not prescribed labels.
+- Test plan is always a separate document. If the work doesn't justify a test plan with TC traceability, this skill isn't the right tool — downshift to plan mode.
+- Config A/B annotations added throughout the template marking what stays in the index vs moves to companions.
+
+**Spec validation deviation table:**
+- Template now teaches both pre-design validation issues and design-time deviations ("Resolved — deviated", "Resolved — clarified").
+- Deviations with documented rationale are accepted design decisions; deviations without rationale look like bugs. This pattern significantly reduced verifier churn when used in real outputs.
+
+**Dependency and version grounding:**
+- Phase source now prescribes that version/dependency choices must be grounded by current web research, not training data. Includes the Stack Additions table pattern (package, version, purpose, research confirmed) and rejected-package documentation.
+
+**Verification scripts introduction:**
+- Phase source now introduces the verification scripts concept (red-verify, verify, green-verify, verify-all) before the agent encounters the template's full section.
+- Fixed placeholder script guidance: placeholders output "SKIP: suite not yet implemented" rather than silently passing.
+
+**Test count reconciliation:**
+- Phase source now includes a known-trap section: after completing the test plan, do a mechanical reconciliation pass (per-file → per-chunk → index summary). One pass, three cross-checks.
+
+**Actor-reading-stage-directions cleanup:**
+- Template headings cleaned: "High Altitude: System View" → "System View", etc. Altitude guidance kept as italic ✏️ inline instructions.
+- Added early warning in the template explaining that methodology commentary (✏️ markers, altitude references, spiral pattern mentions) is instruction to the writer, not content for the output document.
+- Phase source altitude model section updated to match (no longer claims template uses altitude labels in headings).
+- All inline methodology commentary (Connection Checks, repetition explanations) reformatted as italic ✏️ guidance blocks.
+
+**Module responsibility matrix:**
+- Template now shows both NEW and MODIFIED modules in the example, with Status column distinguishing them.
+
+**Files touched:**
+- `src/phases/tech-design.md` — Output Structure section (replaces 3-bullet list), Dependency and Version Grounding section, Verification Scripts section, Test Count Reconciliation section, altitude model wording update
+- `src/templates/tech-design.template.md` — Config A/B output structure table, Config A/B section annotations, deviation table pattern, module matrix with MODIFIED rows, stage-directions warning, cleaned headings, italicized methodology commentary, placeholder script fix, self-review checklist update
+
+**Why:** The real tech design outputs across 6 epics established patterns (deviation tables, 4-doc split, web-researched versions) that the skill didn't teach. First-time users or first epics in new projects would miss these patterns because they had no prior artifacts to learn from. These changes encode what emerged operationally so the skill produces high-quality output from the first run, not just after several iterations.
+
+---
+
 ### ls-prd — new upstream PRD + Tech Architecture skill
 
 **What changed:** New skill for producing Product Requirements Documents and optional Technical Architecture documents. The upstream artifact that feeds ls-epic and the full Liminal Spec pipeline.

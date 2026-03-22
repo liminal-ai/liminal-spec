@@ -4,10 +4,29 @@
 
 **This phase is the downstream consumer of the Epic.** If you can't design from it, the spec isn't ready. Validation is part of the quality gate.
 
-This phase may produce one document or split based on complexity:
-- **Tech Design** — Core architecture, interfaces, test mapping
-- **Tech Design UI** — If UI-heavy, separate UI architecture
-- **Test Plan** — If testing needs depth beyond what fits in the main design
+## Output Structure
+
+The tech design always produces at least two documents:
+
+**Config A: 2 docs (default)**
+- `tech-design.md` — Index: decisions, context, system view, module architecture, work breakdown
+- `test-plan.md` — TC→test mapping, mock strategy, fixtures, chunk breakdown with test counts
+
+Everything lives in the index. Works when the design fits comfortably under ~1200-1500 lines. Typical for single-domain projects — a CLI, a backend service, a focused frontend feature.
+
+**Config B: 4 docs (when the index gets dense)**
+- `tech-design.md` — Index: decisions, context, system view, module architecture overview, work breakdown
+- `tech-design-[domain-a].md` — Implementation depth for one domain (e.g., frontend, client, UI)
+- `tech-design-[domain-b].md` — Implementation depth for the other domain (e.g., backend, server, API)
+- `test-plan.md` — TC→test mapping, mock strategy, fixtures, chunk breakdown with test counts
+
+The trigger is index density — when the index is approaching ~1200-1500 lines, split implementation depth into companion docs. Name companions by the project's actual domain boundaries (frontend/backend, client/server, renderer/engine — whatever fits the project). The index stays as the decision record and whole-system map. Companion docs carry the implementation detail.
+
+**Never go 3.** You don't add just one companion doc. It's either everything in the index, or the index plus both companions. Two configurations, not a continuum.
+
+The test plan is always its own document. If the work doesn't justify a separate test plan with TC traceability, this skill isn't the right tool — downshift to plan mode.
+
+Companion docs maintain requirement traceability — they reference ACs and TCs so you can navigate from the companion back to the index and the epic.
 
 ## Dual Role: Designer and Validator
 
@@ -35,7 +54,7 @@ Once validated, produce:
 
 ## The Altitude Model
 
-Design from high to low. Don't skip levels. The template uses "High/Medium/Low Altitude" labels that map to these conceptual levels.
+Design from high to low. Don't skip levels. The template structures sections from system view down to interface definitions — use the altitude model to calibrate your depth at each level, but don't surface altitude labels in your output headings.
 
 ### High Altitude (30,000 ft) — System Context
 
@@ -290,6 +309,36 @@ Chunk 0 → Chunk 1 → Chunk 2
               ↘      ↗
                Chunk 3
 ```
+
+---
+
+## Dependency and Version Grounding
+
+Dependency and version choices must be grounded by current web research, not training data. This is especially important for fast-moving ecosystems (build tools, frameworks, runtimes, packaging tools). Training data goes stale; the npm registry and GitHub releases don't.
+
+Before pinning any version, research the current ecosystem status: latest stable version, known breaking changes, compatibility with the project's existing stack, and whether the package is actively maintained. Document your findings in a Stack Additions table:
+
+| Package | Version | Purpose | Research Confirmed |
+|---------|---------|---------|-------------------|
+| [package] | [version] | [why this package] | Yes — [key finding from research] |
+
+Also document packages considered and rejected, with rationale. This prevents future designers from re-evaluating the same alternatives.
+
+---
+
+## Verification Scripts
+
+The tech design defines the project's verification gates before implementation begins. These become the quality gates that story technical sections reference — getting them right here prevents ad-hoc discovery during implementation.
+
+Every project needs at least four verification tiers: `red-verify` (everything except tests — for TDD Red exit when stubs throw), `verify` (standard development gate), `green-verify` (verify + test immutability guard — for TDD Green exit), and `verify-all` (deep verification including integration and e2e suites). Define the specific commands for each tier in the tech design so stories can reference them consistently.
+
+---
+
+## Test Count Reconciliation
+
+Test counts drift between documents. This is a known trap — the index work breakdown says one number, the test plan per-chunk totals say another, the per-file totals say a third. Each fix round can introduce new inconsistencies.
+
+After completing the test plan, do a single mechanical reconciliation pass: per-file test counts sum to per-chunk totals, per-chunk totals sum to the index work breakdown summary. One pass, three cross-checks. If anything doesn't add up, fix it before self-review. This catches arithmetic drift in one pass instead of burning multiple verification rounds on it.
 
 ---
 
