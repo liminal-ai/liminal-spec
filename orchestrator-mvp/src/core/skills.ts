@@ -16,8 +16,8 @@ const PHASE_SKILL_MAP: Record<FlowId, Record<string, string[]>> = {
     "handoff-close": ["ls-team-impl"],
   },
   "team-spec": {
-    "research-entry": ["ls-team-spec", "ls-research"],
-    "spec-prep": ["ls-team-spec", "ls-research", "ls-epic"],
+    "research-entry": ["ls-team-spec", "ls-prd"],
+    "spec-prep": ["ls-team-spec", "ls-prd", "ls-epic"],
     epic: ["ls-team-spec", "ls-epic"],
     "tech-design": ["ls-team-spec", "ls-tech-design", "ls-epic"],
     "publish-epic": ["ls-team-spec", "ls-publish-epic", "ls-epic"],
@@ -40,24 +40,20 @@ async function loadSkillContent(skillId: string): Promise<string> {
     return cached;
   }
 
-  const pluginPath = resolve(
+  const distPath = resolve(
     REPO_ROOT,
-    "plugins/liminal-spec/skills",
+    "dist/skills",
     skillId,
     "SKILL.md"
   );
 
   try {
-    const raw = await readFile(pluginPath, "utf8");
+    const raw = await readFile(distPath, "utf8");
     const cleaned = stripFrontmatter(raw);
     SKILL_FILE_CACHE.set(skillId, cleaned);
     return cleaned;
   } catch {
-    const fallbackSourcePath = resolve(REPO_ROOT, "src/phases", `${skillId.replace(/^ls-/, "")}.md`);
-    const fallbackRaw = await readFile(fallbackSourcePath, "utf8");
-    const fallbackCleaned = stripFrontmatter(fallbackRaw);
-    SKILL_FILE_CACHE.set(skillId, fallbackCleaned);
-    return fallbackCleaned;
+    throw new Error(`Skill '${skillId}' not found at ${distPath}. Run 'bun run build' first.`);
   }
 }
 

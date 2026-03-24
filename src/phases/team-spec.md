@@ -1,27 +1,12 @@
 # Team Spec Orchestration
 
-**Purpose:** Orchestrate the full Liminal Spec pipeline using agent teams — from orientation through technically enriched stories. You are the team lead — you gather context, spawn teammates for drafting and verification, manage revision loops, route human review, and move the pipeline forward.
+**Purpose:** Orchestrate the Liminal Spec pipeline using agent teams — from orientation through published stories ready for implementation.
 
-You start with a human who wants to build something. You end with published story files (and optionally a business epic) ready for implementation (via `/ls-team-impl` or direct handoff to developers).
+You are the orchestrator. You don't draft specs, you don't do deep artifact verification, you don't go deep on product domain specifics. You are a **procedural learning architect** — you design learning journeys for teammates, deliver guidance at the right moments, construct handoff prompts that set agents up for success, and manage phase transitions. You do verify process integrity: did the external model actually review this, did web research actually happen, do the gate commands pass. That's procedural verification, not artifact verification.
 
-If team mode is not available, use the individual phase skills directly (`/ls-research`, `/ls-epic`, `/ls-tech-design`, `/ls-publish-epic`).
+Your teammates are the **domain learners and artifact producers**. They go deep — reading artifacts sequentially with reflection, forming opinions, building judgment, then producing or reviewing work. You set them up. They do the deep work.
 
----
-
-## The Orchestrator's Role
-
-You are not the drafter. You are not the verifier. You are the orchestrator — the agent who holds the full picture, directs the pipeline, and applies judgment at every transition.
-
-Your job:
-- Understand what the human is building and what artifacts already exist
-- Create pre-epic documentation yourself when needed (PRD, product brief, tech overview)
-- Spawn teammates for drafting and verification at each phase
-- Manage the verification loop — synthesize findings, decide what to fix vs dismiss, iterate until clean
-- Route human review at the right moments
-- Track artifact quality and pipeline state across phases
-- Escalate to the human only when you genuinely can't resolve something
-
-You should be able to handle routine decisions autonomously — review synthesis, severity assessment, revision routing, loop termination. The human is the final authority on product decisions and artifact acceptance, not a checkpoint for every orchestration call.
+The human supervises you. They're most involved upstream (PRD, epic questions, epic review) and progressively less involved downstream (tech design review at their discretion, publish epic spot-check). Their leverage is highest on product decisions and artifact acceptance, not on process mechanics.
 
 ---
 
@@ -29,409 +14,631 @@ You should be able to handle routine decisions autonomously — review synthesis
 
 ### Initialize the Log
 
-Create `team-spec-log.md` alongside where the spec artifacts will live. This is the orchestration log for the entire run — skill availability, lane decisions, phase transitions, verification findings, revision decisions, and process observations all go here. The first entry is the lane determination below.
+Create `team-spec-log.md` alongside where the spec artifacts will live. This is the orchestration log for the entire run — orientation decisions, phase transitions, dispatched prompts, verification findings, human decisions, and process observations.
 
-### Determine Execution Lane
+### Determine External Verification
 
-Check which execution capabilities are available by locating skills by name:
+Check whether `codex-subagent` or `copilot-subagent` skill is available. Load whichever is found with the Skill tool. Run a quick test to confirm it works. Record the result in the log.
 
-**Codex lane** (primary): the `codex-subagent` or `copilot-subagent` skill is available. Either provides access to GPT-5x-codex models for verification. If available, load the skill with the Skill tool (`Skill(codex-subagent)` or `Skill(copilot-subagent)`). Also check for `gpt53-codex-prompting` — if available, load it with `Skill(gpt53-codex-prompting)`. This skill improves prompt quality for Codex subagents but is not required.
+This skill requires external model verification. There is no fallback mode. If neither subagent skill is available, tell the human and stop. Recommend installing one before proceeding.
 
-Model selection default in Codex/Copilot lane:
-- Use `gpt-5.3-codex` for normal drafting verification and routine single-review passes.
-- Use `gpt-5.2` only when running parallel multi-verifier diversity passes.
+This is the Codex/Copilot lane of spec orchestration. Claude-only spec orchestration is a separate concern — not a degraded mode of this one.
 
-**Sonnet-only fallback**: Neither subagent skill is available. Verification will use Sonnet 4.6 directly rather than routing through a Codex subagent. This reduces multi-model verification diversity. Warn the human: verification quality is reduced without multi-model review. Recommend stopping and installing a subagent skill. If the human chooses to continue, proceed in Sonnet-only mode.
+### Discover Verification Gates
 
-Declare the selected lane once before starting: "Running in Codex lane via codex-subagent" or "Running in Copilot lane via copilot-subagent" or "Running in Sonnet-only mode — reduced verification diversity."
+Read project policy docs (`CLAUDE.md`, `README`, package scripts, CI config) to identify required verification commands. Define and log:
 
-Log the lane determination to `team-spec-log.md`: which skills were found, which were not, which lane was selected, and whether any fallbacks were applied.
+- **Phase acceptance gate**: checks required before accepting each phase artifact
+- **Final handoff gate**: checks required before declaring the full spec pipeline complete
 
-### Load Phase Skills
+If policy is ambiguous, ask the human once before any drafting begins.
 
-Load `ls-research` and `ls-epic` with the Skill tool. These orient you on what the methodology expects at each phase — exit checklists, validation criteria, artifact structure. You'll load additional phase skills as the pipeline progresses.
+### Orient to the Project
 
-Load required skills yourself before dispatching teammates. Do not instruct teammates to use a skill you have not loaded and verified in your own context first.
+Work with the human to understand what's being built and what already exists.
 
-### Control Contract (Hard Invariants)
+**What to establish:**
+- What is being built? The human may provide a description, hand you documents, or point you at existing artifacts. Meet them where they are.
+- What artifacts already exist? A PRD, tech arch, partial epic, complete epic, tech design — any combination.
+- Where does the pipeline enter? If a validated epic exists, skip to tech design. If a complete tech design exists, skip to publish epic.
+- Are there core/foundational specs from prior epics? If so, get the list of which specs to include in reading journeys.
 
-These three invariants are non-negotiable:
+**If upstream framing is needed:** suggest the human runs `ls-prd` to produce a PRD and optionally a Technical Architecture document. That work is conversational between the human and an agent — it happens outside this orchestration. Come back when the PRD is ready.
 
-1. No phase acceptance or phase transition without a Codex evidence reference (run/session identifier and/or output artifact reference).
-2. No unresolved Codex finding without explicit disposition: `fixed`, `accepted-risk`, or `defer`.
-3. No silent degradation. If Codex fails, declare the failure, handle it (retry/reassign/escalate), and do not present verification as complete.
+**Ask upfront:** Will a business epic be needed alongside the story files? Carry this forward to the publish phase. The human can revisit this decision later if they're not sure yet.
 
-### Adaptive Controls
+### The Prompt Map
 
-Keep process flexibility without weakening the invariants:
+The prompt map below contains the handoff prompts for every teammate launch. These are the source of truth for every dispatch. Re-read the relevant prompt from this skill before constructing each handoff.
 
-- Risk-tier each phase (`low`, `medium`, `high`) and scale verification depth accordingly.
-- Use bounded review loops; avoid churn when no substantive changes remain.
-- Use `accepted-risk` for explicitly reasoned, non-blocking issues.
-- Human override always takes precedence over default routing.
+When dispatching, log the actual prompt you sent (with customizations) to `team-spec-log.md` — not the full prompt library, just what was dispatched and what was customized for this specific launch.
 
-### Verification Gate Discovery
+Each prompt uses the three-phase handoff structure: **objective framing** → **reading journey** → **skill activation**.
 
-Before Phase 1 drafting starts, discover and lock the project's verification gates for this pipeline.
+### Create Team
 
-1. Read project policy docs (for example: `CLAUDE.md`, `AGENTS.md`, `README`, package scripts, CI config) to identify required verification commands/checks.
-2. Define and log two gate sets in `team-spec-log.md`:
-   - **Phase acceptance gate**: commands/checks required before accepting each phase artifact.
-   - **Final handoff gate**: commands/checks required before declaring the full spec pipeline complete.
-3. If policy is ambiguous, ask the human once before Phase 1 drafting begins.
-
-Do not assume document quality checks alone are sufficient. Use the complete gate required by project policy.
+Create a team at the start of orchestration. The team persists across all phases. Teammates are created and shut down within each phase. All teammates are spawned as general-purpose agents with bypassPermissions.
 
 ---
 
-## Orientation
+## The Three-Phase Handoff
 
-Before any teammates are spawned, the orchestrator works directly with the human to understand what's being built and what already exists.
+Every teammate launch follows this structure. It is the most important thing the orchestrator does.
 
-### What to Establish
+### 1. Objective Framing
 
-- **What is being built?** The human may ideate with you, provide a description, hand you existing documents, or give you a nearly complete spec. Meet them where they are.
-- **What artifacts already exist?** A PRD, product brief, tech overview, partial epic, complete epic, tech design — any combination. Identify what's done, what's in progress, and what's missing.
-- **Where does the pipeline enter?** If a validated epic exists, skip to tech design. If a complete tech design exists, skip to publish epic. Don't re-run phases that are already done.
+Tell the agent what they're going to do, in plain terms. Brief enough to orient, specific enough to shape how they weight everything they read next.
 
-### Pre-Epic Documentation
+For self-explanatory tasks ("you're going to write a tech design for this epic"), a sentence is enough. For non-obvious tasks ("you're going to take this epic and break it into individual story files, each with full AC/TC detail and technical notes from the tech design"), unpack what that means before they start reading.
 
-If the human doesn't have sufficient context for epic drafting, you create the pre-epic documentation yourself. You have `ls-research` loaded — use it. This may include:
+The objective matters because it changes how the agent weights every token in the reading journey. An agent reading an epic while knowing they'll verify it reads differently than one knowing they'll design from it. The objective shapes the lens.
 
-- A **product brief** — what's being built, for whom, why now
-- A **PRD** — if the scope spans multiple features
-- A **tech/architecture overview** — if the human provides technical context that needs organizing
+### 2. Reading Journey
 
-This is conversational work between you and the human. You don't spawn teammates for this — you're gathering, organizing, and clarifying until you have enough to direct an epic drafter.
+An ordered sequence of artifacts, read one at a time, with explicit reflection between each.
 
-### Readiness Gate
+The order is deliberate. It shapes what opinions form first and what lens the agent brings to later artifacts. PRD before specs means product intent anchors the reading. Core specs before the current epic means established patterns are fresh. The reading journey is a curated learning experience, not a context dump.
 
-You're ready to enter the epic phase when you can answer:
-- Who is this for?
-- What can they do after this ships that they can't do today?
-- What's in scope and what's not?
-- What are the known constraints?
+Reflection between artifacts is not optional. It forces the agent to consolidate understanding before moving on. The reflections become compressed context that persists with strong attention weight through the rest of the work.
 
-If you can direct an epic writer with clear, specific context, proceed. If not, keep working with the human.
+### 3. Skill Activation
+
+Load the phase skill AFTER the reading journey is complete. The skill lands on prepared ground — the agent has context, has opinions, has a clear objective. The skill provides the specific methodology, criteria, and structure. Fresh, high-attention-weight, immediately actionable.
+
+Do not load the skill before the reading journey. If the skill loads first and then the agent reads 20 documents, the skill's instructions decay under the accumulated context. Loading last means the "how to do this" is the freshest material when the agent begins working.
 
 ---
 
-## The Verification Pattern
+## Contextual Pedagogy
 
-This pattern repeats at every phase. It's described once here and referenced throughout.
+Do not front-load all guidance in the handoff prompt. Deliver guidance at the moment the agent needs it — when they're about to do the thing the guidance applies to.
 
-### The Loop
+This is how effective teaching works. Information presented at the appropriate point of context is a real-time lesson. Information buried in paragraph 47 of a 10,000-token prompt is noise. The orchestrator's job is timing the guidance, not dumping it.
 
-1. **Author self-review.** The drafter critically reviews their own work against the phase skill's exit checklist. Fixes non-controversial issues. Reports what they found, what they fixed, and what remains open.
+**When to deliver what:**
 
-2. **Dual verification.** Spawn an Opus verifier teammate (fresh for this phase, persists across verification rounds within the phase). The verifier loads the relevant phase skills (specified per phase below) and reads the artifact plus all input artifacts. In the Codex/Copilot lane, the verifier also fires a Codex subagent async for a parallel review using `gpt-5.3-codex` by default. Two perspectives: Opus architectural/judgment review + Codex literal/detail review. In Sonnet-only mode, the verifier does a solo review.
+| Guidance | When to deliver | Why this moment |
+|----------|----------------|-----------------|
+| Question curation filter | When the drafter reports back with questions, before questions reach the human | The drafter has context to re-evaluate; the filter is actionable right now |
+| Self-review discipline | When the draft is complete, before external review | The drafter can apply it immediately to their fresh work |
+| Deviation documentation | When the tech design writer discovers a divergence from the epic | The writer is making the decision right now and can document it in context |
+| TC fidelity | When the publisher is sharding stories | The publisher is handling the exact TCs right now |
+| "What else did you notice" | After the verifier's first report | Deactivates the self-censoring filter while findings are fresh |
 
-3. **Orchestrator synthesis.** Read all verification findings. Categorize by severity (Critical, Major, Minor). Decide what needs fixing and what to dismiss. Codex grades conservatively — apply your own judgment, don't defer to model calibration.
-
-4. **Route fixes by default.** Auto-dispatch clear must-fix and should-fix items to the original drafter (not a fresh agent — they have the full context of what they wrote and why). Ask the human before proceeding only when a fix changes product scope, requirement intent, or release risk profile.
-
-5. **Re-verify.** Send the revised artifact back to the same Opus verifier, who fires a fresh Codex subagent. Review the changes.
-
-6. **Iterate.** Repeat steps 3-5 until verifiers return minimal or no substantive findings, or the orchestrator rules remaining findings as non-issues.
-
-7. **Codex evidence gate.** If Codex output is missing, incomplete, or unverifiable, mark the cycle degraded and treat it as incomplete. Retry/reassign/escalate before phase acceptance.
-
-8. **Run phase gate yourself.** Execute the discovered phase acceptance gate commands/checks yourself before accepting the phase.
-
-9. **Log.** At the end of each verification cycle, log to `team-spec-log.md`: what findings came back, what was fixed, what was dismissed and why, how many rounds it took.
-
-### When to Stop
-
-The verification loop converges when:
-- Verifiers report no Critical or Major findings
-- Remaining findings are Minor and the orchestrator assesses them as acceptable
-- A new round of fixes doesn't introduce new issues
-
-Don't pursue perfection. Pursue readiness for the next phase's consumer.
-
-Before any phase is accepted, write a short pre-acceptance receipt to the log or report:
-
-1. Codex evidence reference (run/session and/or output artifact reference)
-2. Top findings and dispositions (`fixed`, `accepted-risk`, `defer`)
-3. Exact phase gate command(s)/checks run and result summary
-4. Open risks (or `none`)
-
-### The "What Else" Probe
-
-On the first verification round, after verifiers deliver their report, ask: "What else did you notice but not report?" This reliably surfaces 20-30 additional observations, several significant. The exact wording matters — it deactivates the agent's self-censoring filter that suppresses findings they judge as "not important enough." Subsequent rounds are reviewing targeted fixes — the open-ended probe is for initial discovery.
+The orchestrator doesn't explain the theory behind the guidance. It delivers the guidance itself, concretely, at the right moment.
 
 ---
 
-## Team Setup
+## The Core Loop
 
-Create a team at the start of the orchestration. The team persists across all phases. Teammates are created and shut down within each phase's cycle, but the team and its task list span the full run.
+This loop runs at every phase. The specifics vary; the structure is constant.
 
-All teammates are spawned as general-purpose agents with bypassPermissions. Senior-engineer is reserved exclusively for the orchestrator's own quick fixes via subagent — never for teammates.
+### 1. Drafter Reads and Questions
 
-Shut down teammates after each phase completes. Don't leave idle teammates running across phase boundaries.
+The drafter completes the reading journey, forms opinions, and formulates questions.
 
----
+**The question filter.** When the drafter reports back with questions, the orchestrator delivers this guidance:
 
-## Phase Transition Discipline
+*Before presenting your questions, evaluate each one:*
+- *Is the answer already in the artifacts you read? If so, use it.*
+- *Is there one obvious answer that's clearly better than all others? If so, use that answer.*
+- *Are there multiple possibilities, but the choice doesn't materially change the outcome? Make the choice yourself.*
+- *Only surface questions that are genuinely open, materially consequential, and can't be resolved from existing context.*
 
-At each phase boundary:
-- Write a phase-close note in `team-spec-log.md` (including pre-acceptance receipt fields) as the final action of the current phase.
-- Do not close a phase and dispatch the next phase in the same action block/turn.
-- Keep adaptive verification rounds, but do not skip phase-close logging checkpoints.
+*Re-evaluate your questions against these criteria. Drop the ones that don't pass. Sharpen the ones that do. Then present what remains.*
+
+The orchestrator delivers this filter. The drafter applies it. The orchestrator does not judge whether specific questions pass — it may not have the domain context to know. The drafter self-applies the filter because they did the deep reading.
+
+Surviving questions go to the human. The human answers, gives direction. Those answers become part of the drafting context.
+
+### 2. Drafting and Self-Review
+
+The drafter produces the artifact, then critically reviews their own work against the phase skill's exit criteria. Fixes non-controversial issues. Reports what they built, what they found and fixed during self-review, and what remains open.
+
+### 3. External Verification
+
+The orchestrator launches the external model (Codex/Copilot subagent) for a critical review. The external reviewer gets its own reading journey — the same curated sequence of artifacts with reflection, building up informed judgment before encountering the draft. The reviewer doesn't get a flat prompt saying "review this against these criteria." It builds understanding through the same deliberate reading process, and by the time it hits the draft, its opinions are grounded in everything it absorbed.
+
+The reading journey for the reviewer is the same material but with a different objective framing: "you're going to find what's wrong with this" vs "you're going to create this." Same material, different lens.
+
+### 4. Fix and Re-Review
+
+The drafter receives the external reviewer's findings. For each finding:
+- Verify the claim against the actual artifacts — don't blindly accept
+- Fix valid issues
+- Push back on invalid findings with well-formulated reasoning, in the same review session
+
+Re-submit to the external reviewer for re-review. The re-review catches regressions from fixes — each edit can introduce new inconsistencies, especially in multi-document artifact sets.
+
+Iterate until the external reviewer signs off.
+
+Track session IDs for external review continuity across rounds.
+
+### 5. Escalation
+
+If the drafter and external reviewer can't reach agreement on a finding, the drafter escalates to the orchestrator. The orchestrator usually won't have the deep artifact context to resolve it — escalate to the human with the finding, both positions, and a recommendation if you have one.
+
+### 6. Human Review
+
+Present the accepted artifact to the human. The depth of human review follows the scrutiny gradient:
+
+- **Epic**: every line. This is the linchpin. The human reviews the full artifact.
+- **Tech design**: at the human's discretion. They may review key sections, do a full review, or accept based on verification results.
+- **Published stories**: spot-check. The human may review coverage, scan a few stories, or accept.
+
+If the human requests changes, route back to the drafter for revision. Re-verify if changes are substantive. The phase is accepted when the human says it's accepted.
+
+### 7. Log and Transition
+
+Log the phase completion: how many rounds, what the external reviewer found, what was fixed, what the human changed, any process observations.
+
+Shut down the phase's teammates. Do not close a phase and dispatch the next phase in the same action — write the phase-close log entry first.
 
 ---
 
 ## Phase 1: Epic
 
-### Skill Loading
+### Prompt: Epic Writer
 
-Everyone in this phase loads: `ls-epic`
+```
+You are going to write an epic for [brief description of what's being built].
 
-- **Orchestrator:** Already loaded from On Load
-- **Drafter:** Loads `ls-epic` plus reads any pre-epic documentation (PRD, product brief, tech overview)
-- **Verifier:** Loads `ls-epic`, reads the drafted epic plus all pre-epic documentation
+Your objective is to produce a complete, traceable epic — the linchpin artifact
+of the Liminal Spec pipeline. Everything downstream (tech design, stories,
+implementation) inherits from what you produce. Errors here cascade.
 
-### Drafting
+Step 1 — Read these artifacts sequentially. After reading each one, stop and
+reflect on what you learned before reading the next. Write your reflections
+as you go.
 
-Spawn a general-purpose Opus teammate. Hand them:
-- Load `ls-epic` with `Skill(ls-epic)`
-- All pre-epic documentation (paths)
-- Any specific instructions or context from your orientation work with the human
+  1. [PRD / tech arch path] — Reflect: what is the product vision, who is
+     this for, what are the scope boundaries and constraints?
+  2. [Core spec 1 path — e.g., Epic 1 spec set] — Reflect: what architectural
+     patterns and contracts were established? What vocabulary and conventions?
+  3. [Core spec 2 path — e.g., Epic 2 spec set] — Reflect: how did the system
+     evolve? What was deferred? What assumptions carried forward?
+  4. [Additional core specs if any]
 
-The drafter produces a complete epic following the ls-epic skill's structure: User Profile, Feature Overview, Scope, Flows with ACs and TCs, Data Contracts, Tech Design Questions, Recommended Story Breakdown. Include a prominent instruction to report back to the orchestrator when complete or blocked.
+Step 2 — Load the epic skill:
+  Use the Skill tool: Skill(ls-epic)
 
-### Verification
+Step 3 — You now have product context, established patterns, and the
+methodology. Draft the epic.
 
-Run the verification pattern. The verifier and Codex subagent both have ls-epic loaded and read the epic plus all input documentation.
+When you have questions before drafting, report them to the orchestrator.
+Do not begin drafting until your questions are resolved.
 
-The epic verification is the most important in the pipeline — errors here cascade through every downstream phase. Run verification rounds until findings converge to minimal.
+When the draft is complete, do a critical self-review against the skill's
+exit checklist. Fix non-controversial issues. Then report back with:
+  - The draft location
+  - What you found and fixed during self-review
+  - What remains open
+  - Any spec deviations or concerns
+```
 
-### Human Review
+### Prompt: Epic Verifier (External Model)
 
-After verification converges, present the epic to the human for review. The human reviews every line — this is the scrutiny gradient at work. The epic is the linchpin artifact.
+```
+You are going to critically review an epic for [brief description].
 
-If the human requests changes, route them to the drafter for revision. Re-verify if changes are substantive. The epic is accepted when the human says it's accepted.
+Your objective is to find problems — coherence issues, incomplete coverage,
+vague ACs, missing TCs, contract gaps, scope drift. Be thorough and exact.
+Favor precision over generosity. Do not assume prior decisions were right
+just because they are established — verify them against the artifacts.
 
-Log the epic phase completion to `team-spec-log.md`: how many drafting rounds, how many verification rounds, what the human changed, final state. Include any process issues that came up — skill loading problems, context ceiling hits, drafter confusion, verification findings that were dismissed and why. Phase transitions are natural reflection points.
+Step 1 — Read these artifacts sequentially. After reading each one, stop and
+reflect on what you learned before reading the next.
+
+  1. [PRD / tech arch path] — Reflect: what should this epic accomplish?
+     What are the product boundaries?
+  2. [Core spec 1 path] — Reflect: what standards and patterns were set?
+  3. [Core spec 2 path] — Reflect: what conventions should this epic follow?
+  4. [Additional core specs if any]
+
+Step 2 — Load the epic skill to understand what a good epic looks like:
+  Read [ls-epic skill path or use Skill tool]
+
+Step 3 — Read the draft epic:
+  [Epic path]
+
+Step 4 — Review the epic against the skill's criteria and your own
+judgment from the reading journey. Organize findings by severity
+(Critical, Major, Minor). For each finding, cite the specific location
+and explain why it matters.
+
+After your review, also answer: what else did you notice but chose not
+to report?
+```
+
+### Phase Flow
+
+1. Launch epic writer with the prompt above
+2. Writer completes reading journey, reports questions
+3. **Orchestrator delivers question filter guidance** ← teaching moment
+4. Writer re-evaluates, presents surviving questions
+5. Surviving questions go to human → human answers
+6. Writer drafts → self-reviews → reports back
+7. Orchestrator launches external verifier with the verifier prompt
+8. Writer receives findings → verifies → fixes → pushes back → re-submits
+9. Loop until external reviewer signs off
+10. **Orchestrator presents epic to human for every-line review** ← human gate
+11. Human accepts (or requests changes → revision → possible re-verification)
+12. Log phase completion, shut down teammates
 
 ---
 
 ## Phase 2: Tech Design
 
-### Skill Loading
+### Prompt: Dependency Researcher
 
-Everyone in this phase loads: `ls-epic` AND `ls-tech-design`
+Before the tech design writer starts, launch a teammate to ground all dependency and version decisions in current web research. The human reviews the analysis before the tech design writer begins.
 
-- **Drafter:** Loads both skills, reads the accepted epic
-- **Verifier:** Loads both skills, reads the epic and the drafted tech design
+```
+You are going to research and recommend dependencies and versions for
+[brief description]. Your analysis will be reviewed by the human before
+the tech design is drafted. Every recommendation must be grounded in
+current web research — not training data.
 
-The drafter needs ls-epic to validate the epic before designing from it (the dual-role: validator then designer). The verifier needs both to check alignment between the epic and the design.
+Step 1 — Read these artifacts to understand the technical landscape:
 
-### Drafting
+  1. [PRD / tech arch path] — what is the core stack?
+  2. [Accepted epic path] — what capabilities need to be built?
+     What tech design questions mention specific libraries or tools?
+  3. [Existing package.json or equivalent] — what's already in the project?
 
-Spawn a general-purpose Opus teammate. Hand them:
-- Load `ls-epic` with `Skill(ls-epic)` and `ls-tech-design` with `Skill(ls-tech-design)`
-- The accepted epic (path)
-- The project codebase context (if applicable — the tech design needs to understand existing architecture)
+Step 2 — Identify all dependency and version decisions the tech design
+will need to make. For each one, conduct web research:
+  - Current stable version
+  - Ecosystem health (maintenance status, download trends, known issues)
+  - Compatibility with the project's existing stack
+  - Alternatives considered and why rejected
 
-The drafter first validates the epic (can they design from it? are data contracts complete? any technical constraints the BA missed?). If issues found, they report back and the orchestrator resolves directly or spawns a fresh epic drafter to make revisions.
+Step 3 — Produce your analysis:
+  - A Stack Additions table: package, version, purpose, research confirmed
+    (with key finding from research)
+  - A Rejected Packages table: package, why rejected
+  - Cite current sources for each recommendation
 
-Once validated, the drafter produces the tech design following the ls-tech-design skill's structure: system context, module architecture, flow-by-flow design, interface definitions, TC-to-test mapping, chunk breakdown. Include a prominent instruction to report back to the orchestrator when complete or blocked.
+Report your analysis to the orchestrator for human review.
+```
 
-### Verification
+The orchestrator checks that the analysis cites current sources, not training-data guesses. If it doesn't, send it back. Present the analysis to the human. The human reviews and approves before the tech design writer is launched.
 
-Run the verification pattern. The verifier and Codex subagent both have ls-epic + ls-tech-design loaded and read the epic + tech design.
+### Prompt: Tech Design Writer
 
-### Human Review
+```
+You are going to write the technical design for [brief description].
+This is a separate phase from epic writing — you are bringing a fresh
+architecture lens to a validated epic.
 
-After verification converges, check in with the human: "Tech design is verified. Want to review it?" The human may review key sections, do a full review, or accept based on the verification results. This is not the mandatory every-line review that the epic gets — it's at the human's discretion per the scrutiny gradient.
+Step 1 — Read these artifacts sequentially. After reading each one, stop
+and reflect on what you learned before reading the next. Write your
+reflections as you go.
 
-Log the tech design phase completion to `team-spec-log.md`: verification rounds, human review scope, any issues encountered. If the tech design drafter surfaced epic validation issues, log how they were resolved. Phase transitions are natural reflection points.
+  1. [PRD / tech arch path] — Reflect: what is the technical world these
+     epics live inside? What are the core stack decisions?
+  2. [Core spec 1 — full spec set including tech design] — Reflect: what
+     architectural patterns and testing approaches were established?
+  3. [Core spec 2 — full spec set including tech design] — Reflect: how
+     did the architecture evolve? What conventions solidified?
+  4. [Additional core specs if any]
+  5. [Dependency research analysis] — Reflect: what versions and packages
+     are grounded? What was rejected and why?
+  6. [Accepted epic path] — Reflect: what are the requirements, constraints,
+     and tech design questions that need answers?
+
+Step 2 — Load the tech design skill:
+  Use the Skill tool: Skill(ls-tech-design)
+
+Step 3 — You now have architectural context, established patterns,
+grounded dependency choices, and the methodology. Design.
+
+The skill will guide you on output structure (2-doc or 4-doc), spec
+validation, altitude traversal, and all other methodology concerns.
+
+When you have questions before drafting, report them to the orchestrator.
+
+When the draft is complete, do a critical self-review. Check cross-document
+consistency if you produced multiple documents — test counts match across
+index and test plan, module references are accurate, no stale cross-references.
+Then report back with:
+  - The draft locations (all documents)
+  - What you found and fixed during self-review
+  - What remains open
+  - Any spec deviations documented in the validation table
+  - Cross-document consistency check results
+```
+
+### Prompt: Tech Design Verifier (External Model)
+
+```
+You are going to critically review a technical design for [brief description].
+
+Your objective is to find problems — epic alignment gaps, incomplete TC-to-test
+mapping, interface inconsistencies, cross-document drift, missing module
+responsibilities, unrealistic contracts, unjustified deviations. Be exact.
+Do not assume prior choices were right just because they are established.
+Verify every cross-document reference — counts, module names, TC IDs.
+
+Step 1 — Read these artifacts sequentially. After reading each one, stop and
+reflect on what you learned before reading the next.
+
+  1. [PRD / tech arch path] — Reflect: what technical world should this
+     design live inside?
+  2. [Core spec 1 — full spec set including tech design] — Reflect: what
+     patterns and conventions were established in prior designs?
+  3. [Core spec 2 — full spec set including tech design] — Reflect: how
+     did the design approach evolve?
+  4. [Additional core specs if any]
+  5. [Accepted epic path] — Reflect: what must this design fulfill?
+
+Step 2 — Load the tech design skill to understand what a good design
+looks like:
+  Read [ls-tech-design skill path or use Skill tool]
+
+Step 3 — Read all tech design documents:
+  [Index path]
+  [Companion doc paths if Config B]
+  [Test plan path]
+
+Step 4 — Review. Pay special attention to:
+  - Cross-document consistency (test counts, module references, stale refs)
+  - Epic alignment (every AC has a home, every TC maps to a test)
+  - Spec validation deviations (documented with rationale?)
+  - Interface completeness
+  - Chunk breakdown coherence
+
+Organize findings by severity (Critical, Major, Minor).
+
+After your review, also answer: what else did you notice but chose not
+to report?
+```
+
+### Phase Flow
+
+1. Run dependency research gate → human reviews and approves
+2. Launch tech design writer with the prompt above
+3. Writer completes reading journey, reports questions
+4. **Orchestrator delivers question filter guidance** ← teaching moment (same filter, but note: threshold for surfacing questions is lower here — design questions are more legitimately open than requirements questions)
+5. Writer re-evaluates, presents surviving questions
+6. Surviving questions go to human → human answers
+7. Writer drafts → self-reviews (including cross-document consistency) → reports back
+8. Orchestrator launches external verifier with the verifier prompt
+9. Writer receives findings → verifies → fixes → pushes back → re-submits
+10. Expect more rounds than epic phase — cross-document consistency drift is the dominant failure mode
+11. Loop until external reviewer signs off
+12. **Orchestrator presents tech design to human** ← human gate (at human's discretion — may review key sections, full review, or accept based on verification)
+13. Log phase completion, shut down teammates
 
 ---
 
 ## Phase 3: Publish Epic
 
-### Skill Loading
+### Prompt: Epic Publisher
 
-Everyone in this phase loads: `ls-epic` AND `ls-publish-epic`
+```
+You are going to take a validated epic and break it into individual story
+files, each with full AC/TC detail, Jira section markers, and technical
+notes where the tech design has specific guidance for that story's scope.
 
-- **Drafter:** Loads `ls-epic` + `ls-publish-epic`, reads the accepted epic
-- **Verifier:** Loads `ls-epic` + `ls-publish-epic`, reads the epic, the story files, and the business epic (if produced)
+This is not just mechanical sharding. Each story must be:
+- Self-contained enough to implement from
+- Coherent as a narrative ("what the user can do after this story ships")
+- Accurate in TC wording (exact match to the epic — not paraphrased)
+- Enriched with technical notes where the tech design has specific guidance
+  that applies to this story's context (not duplicating the full tech design,
+  but pointing to it and clarifying how it applies here)
 
-### Drafting
+You will also produce a coverage artifact proving every AC and TC from the
+epic is assigned to exactly one story, with no gaps.
 
-Spawn a general-purpose Opus teammate. Hand them:
-- Load `ls-epic` with `Skill(ls-epic)` and `ls-publish-epic` with `Skill(ls-publish-epic)`
-- The accepted epic (path)
-- Whether the user wants a business epic (ls-publish-epic will ask if not already decided)
+[If business epic requested: You will also produce a PO-friendly business
+epic — grouped ACs, prose contracts, story references. No TCs, no code.]
 
-The drafter produces:
-- **Individual story files** — one file per story in a `stories/` folder, each with full AC/TC detail, Jira section markers, and Technical Design sections with relevant contracts from the epic
-- **Coverage artifact** (`stories/coverage.md`) — coverage gate table and integration path trace proving complete AC/TC assignment across stories
-- **Business epic** (if requested) — PO-friendly view with grouped ACs, prose data contracts, Technical Considerations, Jira section markers, and story file references
+Step 1 — Read these artifacts sequentially. After reading each one, stop
+and reflect on what you learned before reading the next.
 
-The ls-publish-epic skill always builds stories first. If the user also requested a business epic, it's built after — bottom-up compression.
+  1. [Accepted epic path] — Reflect: what are all the ACs, TCs, flows,
+     and the recommended story breakdown?
+  2. [Tech design index path] — Reflect: what are the architectural
+     decisions, module responsibilities, and chunk breakdown?
+  3. [Tech design companion docs if Config B] — Reflect: what implementation
+     detail is relevant to which stories?
+  4. [Test plan path] — Reflect: how do TC-to-test mappings align with
+     the story breakdown?
 
-Include a prominent instruction to report back to the orchestrator when complete or blocked.
+Step 2 — Load the publish epic skill:
+  Use the Skill tool: Skill(ls-publish-epic)
 
-### Verification
+Step 3 — Publish. Build stories first. Coverage artifact after.
+[Business epic after, if requested.]
 
-Run the verification pattern. The verifier and Codex subagent both have ls-epic + ls-publish-epic loaded and read the detailed epic, the story files, the coverage artifact (`stories/coverage.md`), and the business epic (if produced).
+When complete, do a self-review checking:
+  - TC fidelity: exact wording match to epic, not paraphrased
+  - Coverage: every AC and TC assigned to exactly one story
+  - Coherence: each story tells a complete narrative
+  - Technical notes: where tech design has specific guidance for a story's
+    scope, it's surfaced in the story
 
-Key verification targets for publish epic:
-- **Coverage gate:** Verify `stories/coverage.md` — every AC and TC from the detailed epic assigned to exactly one story file. Mechanical check — gaps are blockers.
-- **Integration path trace:** No cross-story seam gaps. Every segment of critical user paths has a story owner.
-- **Story coherence:** Each story file tells a coherent "what the user can do after" narrative and is independently acceptable by a PO.
-- **Business epic fidelity (if produced):** Grouped ACs accurately represent the detailed ACs. No code blocks or language-specific syntax in the business epic. Data contracts describe system boundary only.
-- **Cross-document consistency (if business epic produced):** Story references in the business epic point to the correct story files. AC ranges match.
+Then report back with:
+  - Story file locations
+  - Coverage artifact location
+  - [Business epic location if produced]
+  - Self-review results
+  - Any issues found
+```
 
-### Human Review
+### Prompt: Publisher Verifier (External Model)
 
-Check in with the human: "Story files are published and verified. Want to review?" The Tech Lead or developers review the story files. If a business epic was produced, the PO reviews it — is it clear enough to prioritize and accept from?
+```
+You are going to verify published story files against their source epic
+and tech design.
 
-Log the publish epic phase completion to `team-spec-log.md`: coverage gate results, integration path trace gaps found and resolved, verification rounds, any issues encountered. Phase transitions are natural reflection points.
+Your objective is to check three things:
+  - Coherence: stories tell consistent narratives, no contradictions
+  - Completeness: every AC and TC from the epic assigned to exactly one
+    story, no orphans, no integration path gaps
+  - Accuracy: TC wording matches the epic exactly (not paraphrased),
+    coverage counts are correct, story references are valid
+
+Step 1 — Read these artifacts sequentially. After reading each one, stop
+and reflect on what you learned before reading the next.
+
+  1. [Accepted epic path] — Reflect: what are all the ACs, TCs, and
+     their exact wording?
+  2. [Tech design index path] — Reflect: how does the chunk breakdown
+     map to stories?
+  3. [Tech design companion docs if Config B] — Reflect: what technical
+     guidance should appear in which stories?
+  4. [Test plan path] — Reflect: how do TC-to-test mappings and chunk
+     boundaries align with the story breakdown?
+
+Step 2 — Load the publish epic skill to understand what good published
+stories look like:
+  Read [ls-publish-epic skill path or use Skill tool]
+
+Step 3 — Read the published artifacts:
+  [Story file paths]
+  [Coverage artifact path]
+  [Business epic path if produced]
+
+Step 4 — Verify coherence, completeness, and accuracy.
+
+For TC fidelity specifically: compare the exact Given/When/Then wording
+in each story against the epic source. Flag any paraphrasing, trimming,
+or rewording — even if the meaning is preserved, the wording must match.
+
+Organize findings by severity (Critical, Major, Minor).
+```
+
+### Phase Flow
+
+1. Launch epic publisher with the prompt above
+2. Publisher completes reading journey, publishes stories → self-reviews → reports back
+3. Orchestrator launches external verifier with the verifier prompt
+4. Publisher receives findings → verifies → fixes → re-submits
+5. Loop until external reviewer signs off — TC fidelity often takes multiple rounds
+6. **Orchestrator presents to human** ← human gate (spot-check, may review coverage, scan stories, or accept)
+7. Log phase completion, shut down teammates
 
 ---
 
-## Phase 4: Final Verification
+## Final Verification
 
-After publishing, the full artifact set gets a final coherence check. This is the final quality gate before handoff to implementation.
+After all phases complete, run the discovered final handoff gate yourself. Log the results.
 
-### Cross-Artifact Coherence Check
+Present the complete artifact set to the human:
 
-Spawn a dual verifier: an Opus teammate who fires a Codex subagent async (default model: `gpt-5.3-codex`). In Sonnet-only mode, the verifier does a solo review. Both read the detailed epic, the story files, the coverage artifact (`stories/coverage.md`), the business epic (if produced), and the tech design (if available). They check:
-
-- **Coverage completeness:** Verify the coverage artifact — every AC and TC from the detailed epic covered across the story files. No orphaned requirements.
-- **Cross-story seam integrity:** Integration paths between story files are coherent. No gaps where Story N assumes something Story M provides but neither story explicitly owns the connection.
-- **Business epic fidelity (if produced):** Grouped ACs accurately compress the detailed ACs. Story file references are correct.
-- **Consistency:** Types, contracts, and terminology are consistent across all artifacts.
-
-If fixes are needed, the Opus verifier teammate makes them directly. This is the final signoff — when this pass comes back clean, the spec pipeline is complete.
-
-### Human Review
-
-Present the final state to the human: "All artifacts verified and coherence check passed. Spec pipeline is complete." The human may do a final spot-check or accept.
-
-Log the final verification phase completion to `team-spec-log.md`: coherence check results, fixes made, any issues encountered and resolved. This is the final log entry for the spec pipeline.
-
----
-
-## Handoff to Implementation
-
-After all phases complete, the pipeline output is a set of handoff-ready artifacts. The orchestrator presents the full artifact set to the human:
-
+- PRD / tech arch (if produced upstream)
 - Detailed epic (engineering source of truth)
-- `stories/` folder (individual story files with full AC/TC detail)
-- Business epic (PO-facing view, if produced)
-- Tech design (accepted)
-- `team-spec-log.md` (orchestration log — useful context for implementation: patterns noticed, decisions made, deviations documented)
+- Tech design docs (index + companions + test plan)
+- `stories/` folder (individual story files)
+- Coverage artifact (`stories/coverage.md`)
+- Business epic (if produced)
+- `team-spec-log.md` (orchestration log)
 
-From here, the human can proceed to implementation via `/ls-team-impl` (team orchestration) or direct handoff to developers with the story files and tech design.
-
-Log the full pipeline completion to `team-spec-log.md`: total phases run, total verification rounds across all phases, significant process decisions, and any recommendations for future runs.
-
-Before declaring full pipeline completion, run the discovered final handoff gate yourself and include command/check results in the final completion log entry.
+From here, the human proceeds to implementation via `ls-team-impl`, `ls-subagent-impl`, or direct handoff to developers.
 
 ---
 
-## Escalation Handling
+## Control Contract
 
-When teammates escalate issues or problems arise during any phase:
+Three invariants. Non-negotiable.
 
-1. **Assess the situation yourself.** Read the artifacts, understand the context. Don't just forward the question.
-2. **Reflect against the upstream artifacts.** The epic contains the requirements rationale. The tech design contains the architecture rationale. Most questions can be answered by tracing back.
-3. **If you can make a reasonable decision, make it.** Route the answer back to the teammate with your reasoning.
-4. **If you need the human's ruling:** explain what's needed, what you did to investigate, what you understand about the issue, your recommendation, and your reasoning. Give the human enough context to decide without re-investigating from scratch.
+1. **No phase acceptance without external model verification evidence.** Session ID or output artifact reference. If the external model didn't review it, the phase isn't verified.
+2. **No unresolved finding without explicit disposition.** Every finding is `fixed`, `accepted-risk`, or `defer`. No silent drops.
+3. **No silent degradation.** If the external model fails, declare the failure, handle it (retry, reassign, escalate), and do not present verification as complete.
 
-If the human interrupts with process feedback (not artifact content feedback), enter `PAUSED_PROCESS_REVIEW` mode immediately:
-- Stop new dispatches.
-- Do not commit or mark phase acceptance.
-- Diagnose the process behavior with the human.
-- Resume only after explicit human instruction to resume orchestration.
+### Adaptive Controls
 
-In `PAUSED_PROCESS_REVIEW`, prioritize diagnosis over reassurance. Treat frustration as diagnostic signal.
+- Risk-tier each phase (`low`, `medium`, `high`) and scale verification depth accordingly
+- Use bounded review loops — don't pursue perfection, pursue readiness for the next phase's consumer
+- Use `accepted-risk` for explicitly reasoned, non-blocking issues
+- Human override always wins
+
+---
+
+## Continuity Management
+
+### Core/Foundational Specs
+
+Not every prior epic needs to be read for every new epic. The human tags which prior epics and tech designs are foundational — the ones that established the architectural shape, the core contracts, the patterns everything else builds on.
+
+These core specs are read in full by every new drafter and verifier as part of their reading journey. The core set is typically small (1-3 epics), doesn't grow linearly, and is human-curated.
+
+A metadata file or notation in the spec directory indicates which specs are core. The orchestrator uses this list to construct reading journeys. The orchestrator doesn't determine what's core — the human does.
+
+**First epic in a project:** No continuity reads. Just PRD/tech arch.
+**Subsequent epics:** Core specs in full, sequentially, with reflection.
+
+---
+
+## External Model Failure Protocol
+
+When the external verification model fails or is unavailable:
+
+1. First failure → retry
+2. Second failure → retry
+3. Third failure → test the CLI yourself with a simple command
+4. If CLI works → send back to the teammate with proof it's operational
+5. If CLI is genuinely down → escalate to the human
+
+If a teammate claims to have done verification but has no session ID or output artifact — the verification didn't happen. Do not accept it. Launch a fresh verification pass.
 
 ---
 
 ## Operational Patterns
 
-These patterns apply across all phases and encode failure modes the skill needs to handle.
+### Completion Bias
 
-### Idle Notifications Are Unreliable Signals
+As more phases complete, the orchestrator builds investment in forward progress. This creates pressure to rubber-stamp reviews, downplay findings, and skip verification. Later phases are more vulnerable. The control contract invariants exist as external constraints against this bias.
 
-Teammates emit idle notifications between turns. These are noise during multi-step tasks — a drafter writing a tech design will fire multiple idle notifications while actively working. Do not interpret idle notifications as "the agent is done" or "the agent is stuck."
+### Item List Drops During Dispatch
 
-The reliable signal is the teammate's explicit message reporting results. Wait for that. If extended time passes with no message (calibrate based on task complexity), send a brief nudge: "Did you complete the work? Report your results." Don't assume failure from silence alone.
-
-### Context Ceilings
-
-Drafters that read extensive input documentation (epic + codebase + tech overview) and then produce large artifacts (tech designs) can exhaust their context window. Symptoms: the agent goes idle without completing, or produces truncated/confused output.
-
-Mitigation: the human configures model context size. If an agent hits context limits, the human may need to intervene to adjust model settings. The orchestrator cannot control context size at spawn time — flag the issue and let the human handle it.
+When context distance grows between discussing fix items and writing the handoff prompt, small items fall off. Materialize the complete list to a file before constructing any handoff prompt. Read the file when writing the prompt.
 
 ### Agents Forget to Report Back
 
-After long drafting tasks (30+ minutes, extensive tool calls for codebase analysis), agents sometimes complete their work but forget to send the completion message back to the team lead. The reporting instruction decays over long execution chains.
+After long tasks (30+ minutes), agents sometimes complete work but forget to send the completion message. Place the reporting instruction prominently. If extended time passes with no message, send a nudge.
 
-Place the reporting instruction prominently in the handoff prompt. If two idle notifications pass after expected completion time with no message, send a nudge.
+### Sequencing
 
-### Sequencing: Wait for Confirmation Before Proceeding
-
-Do not launch verification before the drafter signals "done." Do not launch the next phase before the current phase is fully accepted. The teammate's explicit report is the trigger for the next step, not the orchestrator's independent observation of file state.
-
-### Severity Calibration
-
-Codex models grade conservatively — they flag everything as Major. Claude models tend to grade more generously. The orchestrator applies their own judgment. Not every Major finding is actually Major. Some Minor findings at the epic level are actually Critical because they'll cascade. Calibrate based on the scrutiny gradient: upstream findings get more weight.
+Do not launch the next phase before the current phase is fully accepted. The teammate's explicit report is the trigger for the next step, not the orchestrator's observation of file state.
 
 ---
 
-## Process Adaptation
+## Escalation Handling
 
-The workflow defined above is the default. The orchestrator has discretion to adjust within bounds.
+When teammates escalate:
+1. Assess from the report — don't just forward the question
+2. If you can make a reasonable decision from process context, make it and route the answer back
+3. If the question requires product or domain judgment you don't have, escalate to the human with: what's needed, what you understand, your recommendation if you have one
 
-What can be adjusted:
-- How much detail goes into handoff prompts based on artifact complexity
-- Whether to flag specific risks or patterns based on previous phase findings
-- Number of verification rounds based on artifact quality trajectory
-- Risk-tier verification depth (`low`, `medium`, `high`)
-- Bounded review loop depth when no substantive issues remain
-- Use of explicit `accepted-risk` dispositions for non-blocking items
+If the human interrupts with process feedback (not artifact content), enter `PAUSED_PROCESS_REVIEW`:
+- Stop new dispatches
+- Do not accept any phase
+- Diagnose the process with the human
+- Resume only on explicit human instruction
 
-What cannot be adjusted:
-- The verification pattern always runs — every artifact gets at minimum author self-review + one dual verification round
-- The orchestrator always runs discovered phase/final handoff gates before acceptance
-- Fresh verifiers per phase — no carrying verification context forward
-- The human always gets the option to review at phase boundaries
-- The epic always gets human every-line review
-- The three hard invariants in Control Contract
-
-Human override always wins. If the human directs a process change, apply it, log it, and continue.
-
-If a phase's verification surfaces a pattern, flag it in subsequent phase handoffs.
+Treat frustration as diagnostic signal, not noise.
 
 ---
 
 ## Logging
 
-`team-spec-log.md` is created during On Load and lives alongside the spec artifacts. It captures the full orchestration experience for this run.
+`team-spec-log.md` is a first-class deliverable.
 
-**What to log:**
-- Lane determination: which skills were found, which weren't, which lane was selected, fallbacks applied
-- Skill availability issues: teammates that couldn't find expected skills, how it was resolved
-- Orientation decisions: what the human provided, what pre-epic documentation was created, pipeline entry point
-- Phase transitions: when and why each phase was considered complete
-- Verification rounds per phase: what findings came back, what was fixed, what was dismissed and why
-- Human review outcomes: what the human changed, what they accepted
-- Corrections the human makes to your process
-- Failure modes encountered and how they were resolved
-- Patterns that emerge across phases
+**What it contains:**
+- Verification lane determination
+- Orientation decisions (what exists, where the pipeline enters, core spec list)
+- Per-phase: dispatched prompts with customizations, verification findings, what was fixed, what was dismissed and why, human review outcomes, round counts
+- Phase transition notes
+- Human corrections to the process
+- Patterns observed across phases
 
-**What not to log:**
-- Status updates ("starting tech design phase")
+**What it doesn't contain:**
+- Status updates ("starting tech design")
 - Routine events that went as expected
-- Artifact content (that's the artifact's job)
+- Artifact content
 
-Write narrative entries, not bullet points. Each entry should tell the story of what happened, what was observed, and why it might matter. A future reader building or refining this skill needs to understand the shape of the work, not just the checkboxes.
-
-`team-spec-log.md` is a first-class deliverable. A smooth orchestration with thin notes is less valuable than a rough orchestration with thorough documentation. Optimize for learning surface area.
+Write narrative entries, not bullet points. Each entry should tell the story of what happened, what was observed, and why it might matter. A smooth orchestration with thin notes is less valuable than a rough orchestration with thorough documentation.

@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "1.0.0",
   "skills": {
     "ls-prd": {
       "name": "ls-prd",
@@ -8,18 +8,6 @@
         "prd"
       ],
       "shared": []
-    },
-    "ls-research": {
-      "name": "ls-research",
-      "description": "Explore product direction and produce a PRD before feature scoping. Use when requirements are unclear, scope spans multiple features, or stakeholder alignment is needed.",
-      "phases": [
-        "research"
-      ],
-      "shared": [
-        "context-isolation",
-        "state-management",
-        "terminology"
-      ]
     },
     "ls-epic": {
       "name": "ls-epic",
@@ -92,62 +80,27 @@
     },
     "ls-team-impl": {
       "name": "ls-team-impl",
-      "description": "Orchestrate story-by-story implementation with agent teams. Manages teammates, routes verification, and makes judgment calls across the full implementation cycle.",
+      "description": "Orchestrate story-by-story implementation with agent teams and an external CLI model (Codex or Copilot). Opus teammates manage external model subagents for implementation and verification.",
       "phases": [
         "team-impl"
       ],
-      "shared": [
-        "confidence-chain",
-        "verification-model"
-      ]
-    },
-    "ls-team-impl-c": {
-      "name": "ls-team-impl-c",
-      "description": "Orchestrate story-by-story implementation with agent teams and an external CLI model (Codex or Copilot). Opus teammates manage external model subagents for implementation and verification.",
-      "phases": [
-        "team-impl-c"
-      ],
       "shared": []
     },
-    "ls-subagent-impl-cc": {
-      "name": "ls-subagent-impl-cc",
+    "ls-subagent-impl": {
+      "name": "ls-subagent-impl",
       "description": "Orchestrate story-by-story implementation with Claude Code subagents using staged TDD. Opus builds red-phase scaffolds and implements, Sonnet verifies red integrity and provides pedantic review. No external CLI required.",
       "phases": [
-        "subagent-impl-cc"
+        "subagent-impl"
       ],
       "shared": []
     },
     "ls-team-spec": {
       "name": "ls-team-spec",
-      "description": "Orchestrate the full Liminal Spec pipeline with agent teams. Manages drafters and verifiers from orientation through technically enriched stories.",
+      "description": "Orchestrate the full Liminal Spec pipeline with agent teams and external CLI verification. Procedural learning architect manages drafters and verifiers from orientation through published stories.",
       "phases": [
         "team-spec"
       ],
-      "shared": [
-        "confidence-chain",
-        "verification-model"
-      ]
-    }
-  },
-  "agents": [
-    "senior-engineer"
-  ],
-  "command": "liminal-spec",
-  "individualPlugins": {
-    "ls-epic": {
-      "description": "Phase 2: Epic writing with acceptance criteria, test conditions, and story breakdown"
-    },
-    "ls-tech-design": {
-      "description": "Phase 3: Transform epics into implementable technical designs"
-    },
-    "ls-publish-epic": {
-      "description": "Phase 4: Publish detailed epic as individual story files with Jira markers, optionally with a PO-friendly business epic"
-    },
-    "lss-story": {
-      "description": "Simple pipeline: Write a single functional story with epic-quality rigor"
-    },
-    "lss-tech": {
-      "description": "Simple pipeline: Inline technical design and enrichment for a single story"
+      "shared": []
     }
   }
 }

@@ -1,25 +1,22 @@
 /**
- * Validate script for liminal-spec plugin.
+ * Validate script for liminal-spec skill pack.
  *
  * Checks dist/ output for structural correctness:
- *   - Plugin metadata files exist with required fields
  *   - Skill files have valid YAML frontmatter
- *   - Agent files exist and have frontmatter with name
  *   - Standalone files exist and lack frontmatter
- *   - manifest.json conforms to Zod schema
+ *   - Pack zips exist and are non-empty
+ *   - manifest.json conforms to schema
  *
  * Optional environment variables:
- *   DIST_DIR                    -- output root directory to validate (default: dist)
- *   VALIDATE_MARKETPLACE_SOURCE -- set to "0" to skip marketplace source checks
+ *   DIST_DIR -- output root directory to validate (default: dist)
  */
 
-import { stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
 import { Glob } from "bun";
 
 // ---------------------------------------------------------------------------
-// Lightweight frontmatter parser (replaces gray-matter — no dependencies)
+// Lightweight frontmatter parser
 // ---------------------------------------------------------------------------
 
 interface ParsedFrontmatter {
@@ -37,7 +34,6 @@ function parseFrontmatter(raw: string): ParsedFrontmatter {
   }
   const yamlBlock = raw.slice(4, endIndex);
   const content = raw.slice(endIndex + 4).trimStart();
-  // Simple YAML key-value parsing (handles string and pipe multiline values)
   const data: Record<string, unknown> = {};
   const lines = yamlBlock.split("\n");
   let currentKey = "";
@@ -51,7 +47,6 @@ function parseFrontmatter(raw: string): ParsedFrontmatter {
       } else {
         data[currentKey] = currentValue.trim();
         inMultiline = false;
-        // fall through to process this line as a new key
       }
     }
     if (!inMultiline) {
@@ -81,15 +76,10 @@ function parseFrontmatter(raw: string): ParsedFrontmatter {
 const ROOT = resolve(import.meta.dir, "..");
 const DIST_DIR = process.env.DIST_DIR?.trim() || "dist";
 const DIST = isAbsolute(DIST_DIR) ? DIST_DIR : join(ROOT, DIST_DIR);
-const DIST_PLUGIN = join(DIST, "plugin");
-const DIST_INDIVIDUAL = join(DIST, "individual");
+const DIST_SKILLS = join(DIST, "skills");
 const DIST_STANDALONE = join(DIST, "standalone");
 const SKILL_PACK_ZIP = "liminal-spec-skill-pack.zip";
 const MARKDOWN_PACK_ZIP = "liminal-spec-markdown-pack.zip";
-const MARKETPLACE_MANIFEST = join(ROOT, ".claude-plugin", "marketplace.json");
-const EXPECTED_MARKETPLACE_SOURCE = "./plugins/liminal-spec";
-const VALIDATE_MARKETPLACE_SOURCE =
-  process.env.VALIDATE_MARKETPLACE_SOURCE !== "0";
 
 // ---------------------------------------------------------------------------
 // Zod schema for manifest.json
@@ -97,7 +87,7 @@ const VALIDATE_MARKETPLACE_SOURCE =
 
 const SemverSchema = z.string().regex(
   /^\d+\.\d+\.\d+(-[\w.]+)?$/,
-  "version must be valid semver (e.g. 1.0.0, 2.0.0-beta.1)"
+  "version must be valid semver (e.g. 1.0.0)"
 );
 
 const SkillSchema = z.object({
@@ -109,17 +99,9 @@ const SkillSchema = z.object({
   examples: z.array(z.string().min(1)).optional(),
 });
 
-const IndividualPluginSchema = z.object({
-  description: z.string().min(1),
-  agents: z.array(z.string().min(1)).optional(),
-});
-
 const ManifestSchema = z.object({
   version: SemverSchema,
   skills: z.record(z.string(), SkillSchema),
-  agents: z.array(z.string().min(1)),
-  command: z.string().min(1),
-  individualPlugins: z.record(z.string(), IndividualPluginSchema).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -128,19 +110,15 @@ const ManifestSchema = z.object({
 
 interface ValidationResult {
   skillsValid: number;
-  agentsValid: number;
   standaloneValid: number;
   standalonePacksValid: number;
-  individualPluginsValid: number;
   errors: string[];
 }
 
 const result: ValidationResult = {
   skillsValid: 0,
-  agentsValid: 0,
   standaloneValid: 0,
   standalonePacksValid: 0,
-  individualPluginsValid: 0,
   errors: [],
 };
 
@@ -150,23 +128,6 @@ const result: ValidationResult = {
 
 async function fileExists(path: string): Promise<boolean> {
   return Bun.file(path).exists();
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function isDirectory(path: string): Promise<boolean> {
-  try {
-    return (await stat(path)).isDirectory();
-  } catch {
-    return false;
-  }
 }
 
 async function readFile(path: string): Promise<string> {
@@ -181,51 +142,16 @@ function hasFrontmatter(content: string): boolean {
 // Validators
 // ---------------------------------------------------------------------------
 
-async function validatePluginJson(): Promise<void> {
-  const path = join(DIST_PLUGIN, ".claude-plugin", "plugin.json");
-  if (!(await fileExists(path))) {
-    result.errors.push("Missing: plugin.json");
-    return;
-  }
-  const data = await Bun.file(path).json();
-  if (!data.name || typeof data.name !== "string") {
-    result.errors.push("plugin.json: missing or invalid 'name' field");
-  }
-  if (!data.version || typeof data.version !== "string") {
-    result.errors.push("plugin.json: missing or invalid 'version' field");
-  }
-  console.log(`  plugin.json: valid (v${data.version})`);
-}
-
-async function validateMarketplaceJson(): Promise<void> {
-  const path = join(DIST_PLUGIN, ".claude-plugin", "marketplace.json");
-  if (!(await fileExists(path))) {
-    result.errors.push("Missing: marketplace.json");
-    return;
-  }
-  const data = await Bun.file(path).json();
-  if (!data.name || typeof data.name !== "string") {
-    result.errors.push("marketplace.json: missing or invalid 'name' field");
-  }
-  if (!data.owner || typeof data.owner.name !== "string") {
-    result.errors.push("marketplace.json: missing or invalid 'owner' field");
-  }
-  if (!Array.isArray(data.plugins) || data.plugins.length === 0) {
-    result.errors.push("marketplace.json: missing or empty 'plugins' array");
-  }
-  console.log("  marketplace.json: valid");
-}
-
 async function validateSkills(): Promise<void> {
-  const glob = new Glob("skills/*/SKILL.md");
+  const glob = new Glob("*/SKILL.md");
   const paths: string[] = [];
 
-  for await (const match of glob.scan({ cwd: DIST_PLUGIN, absolute: true })) {
+  for await (const match of glob.scan({ cwd: DIST_SKILLS, absolute: true })) {
     paths.push(match);
   }
 
   if (paths.length === 0) {
-    result.errors.push("No skill files found in dist/plugin/skills/");
+    result.errors.push("No skill files found in dist/skills/");
     return;
   }
 
@@ -265,35 +191,7 @@ async function validateSkills(): Promise<void> {
   }
 }
 
-async function validateAgents(): Promise<void> {
-  const glob = new Glob("agents/*.md");
-
-  for await (const match of glob.scan({ cwd: DIST_PLUGIN, absolute: true })) {
-    const content = await readFile(match);
-    const agentName = match.split("/").pop()?.replace(".md", "") ?? "unknown";
-
-    if (content.trim().length === 0) {
-      result.errors.push(`Agent '${agentName}': file is empty`);
-      continue;
-    }
-
-    if (!hasFrontmatter(content)) {
-      result.errors.push(`Agent '${agentName}': missing YAML frontmatter`);
-      continue;
-    }
-
-    const parsed = parseFrontmatter(content);
-    if (!parsed.data.name || typeof parsed.data.name !== "string") {
-      result.errors.push(`Agent '${agentName}': frontmatter missing 'name'`);
-    }
-
-    console.log(`  agent: ${agentName}`);
-    result.agentsValid++;
-  }
-}
-
 async function validateStandalone(): Promise<void> {
-  // Validate -skill.md files
   const mdGlob = new Glob("*-skill.md");
 
   for await (const match of mdGlob.scan({
@@ -310,7 +208,7 @@ async function validateStandalone(): Promise<void> {
 
     if (hasFrontmatter(content)) {
       result.errors.push(
-        `Standalone '${fileName}': should NOT have YAML frontmatter (build should strip it)`
+        `Standalone '${fileName}': should NOT have YAML frontmatter`
       );
       continue;
     }
@@ -319,26 +217,26 @@ async function validateStandalone(): Promise<void> {
     result.standaloneValid++;
   }
 
-  // Validate standalone zip packs
+  // Validate zip packs
   const packFiles = [SKILL_PACK_ZIP, MARKDOWN_PACK_ZIP];
   for (const fileName of packFiles) {
     const fullPath = join(DIST_STANDALONE, fileName);
     if (!(await fileExists(fullPath))) {
-      result.errors.push(`Missing standalone pack: ${fileName}`);
+      result.errors.push(`Missing pack: ${fileName}`);
       continue;
     }
 
     const file = Bun.file(fullPath);
     if (file.size === 0) {
-      result.errors.push(`Standalone pack '${fileName}' is empty`);
+      result.errors.push(`Pack '${fileName}' is empty`);
       continue;
     }
 
-    console.log(`  standalone pack: ${fileName} (${file.size} bytes)`);
+    console.log(`  pack: ${fileName} (${file.size} bytes)`);
     result.standalonePacksValid++;
   }
 
-  // Legacy artifact guard: .skill files should not be emitted.
+  // Legacy artifact guard
   const legacySkillGlob = new Glob("*.skill");
   const legacySkillFiles: string[] = [];
   for await (const match of legacySkillGlob.scan({
@@ -375,155 +273,6 @@ async function validateManifest(): Promise<void> {
   console.log(`  manifest.json: valid (v${parsed.data.version})`);
 }
 
-async function validateMarketplaceSourceLayout(): Promise<void> {
-  if (!(await fileExists(MARKETPLACE_MANIFEST))) {
-    result.errors.push("Marketplace manifest missing: .claude-plugin/marketplace.json");
-    return;
-  }
-
-  const data = await Bun.file(MARKETPLACE_MANIFEST).json();
-  if (!Array.isArray(data.plugins) || data.plugins.length === 0) {
-    result.errors.push(
-      "Marketplace manifest must include at least one plugin in '.plugins'"
-    );
-    return;
-  }
-
-  // Validate each plugin entry in the marketplace manifest
-  for (const plugin of data.plugins) {
-    if (typeof plugin !== "object" || plugin === null) continue;
-    const entry = plugin as Record<string, unknown>;
-    const name = String(entry.name ?? "unknown");
-    const source = String(entry.source ?? "");
-
-    const sourcePath = join(ROOT, source.replace(/^\.\//, ""));
-    if (!(await pathExists(sourcePath))) {
-      result.errors.push(
-        `Marketplace plugin '${name}': source path does not exist (${source})`
-      );
-      continue;
-    }
-
-    if (!(await isDirectory(sourcePath))) {
-      result.errors.push(
-        `Marketplace plugin '${name}': source path is not a directory (${source})`
-      );
-      continue;
-    }
-
-    const pluginJsonPath = join(sourcePath, ".claude-plugin", "plugin.json");
-    if (!(await fileExists(pluginJsonPath))) {
-      result.errors.push(
-        `Marketplace plugin '${name}': missing .claude-plugin/plugin.json`
-      );
-      continue;
-    }
-
-    const pluginJson = await Bun.file(pluginJsonPath).json();
-    if (pluginJson.name !== name) {
-      result.errors.push(
-        `Marketplace plugin '${name}': plugin.json name mismatch (found '${String(pluginJson.name)}')`
-      );
-    }
-
-    if (
-      typeof entry.version === "string" &&
-      typeof pluginJson.version === "string" &&
-      entry.version !== pluginJson.version
-    ) {
-      result.errors.push(
-        `Marketplace plugin '${name}': version mismatch (marketplace=${entry.version} plugin.json=${pluginJson.version})`
-      );
-    }
-
-    const extensionDirs = ["skills", "commands", "agents", "hooks", "mcp-servers"];
-    let hasExtensionDir = false;
-    for (const dir of extensionDirs) {
-      if (await isDirectory(join(sourcePath, dir))) {
-        hasExtensionDir = true;
-        break;
-      }
-    }
-    if (!hasExtensionDir) {
-      result.errors.push(
-        `Marketplace plugin '${name}': no extension directory (skills/commands/agents/hooks/mcp-servers)`
-      );
-      continue;
-    }
-
-    console.log(`  marketplace source: valid (${source})`);
-  }
-}
-
-async function validateIndividualPlugins(): Promise<void> {
-  const manifestPath = join(ROOT, "manifest.json");
-  if (!(await fileExists(manifestPath))) return;
-
-  const manifest = await Bun.file(manifestPath).json();
-  const individualPlugins = manifest.individualPlugins;
-
-  if (!individualPlugins || Object.keys(individualPlugins).length === 0) {
-    console.log("  no individual plugins declared");
-    return;
-  }
-
-  for (const [skillKey, entry] of Object.entries(individualPlugins)) {
-    const typedEntry = entry as { description: string; agents?: string[] };
-    const pluginDir = join(DIST_INDIVIDUAL, skillKey);
-
-    // Check plugin.json
-    const pluginJsonPath = join(pluginDir, ".claude-plugin", "plugin.json");
-    if (!(await fileExists(pluginJsonPath))) {
-      result.errors.push(`Individual plugin '${skillKey}': missing plugin.json`);
-      continue;
-    }
-
-    const pluginJson = await Bun.file(pluginJsonPath).json();
-    if (pluginJson.name !== skillKey) {
-      result.errors.push(
-        `Individual plugin '${skillKey}': plugin.json name mismatch (found '${String(pluginJson.name)}')`
-      );
-    }
-
-    // Check SKILL.md
-    const skillMdPath = join(pluginDir, "skills", skillKey, "SKILL.md");
-    if (!(await fileExists(skillMdPath))) {
-      result.errors.push(`Individual plugin '${skillKey}': missing SKILL.md`);
-      continue;
-    }
-
-    const skillContent = await readFile(skillMdPath);
-    if (!hasFrontmatter(skillContent)) {
-      result.errors.push(
-        `Individual plugin '${skillKey}': SKILL.md missing frontmatter`
-      );
-    }
-
-    // Check bundled agents if declared
-    if (typedEntry.agents) {
-      for (const agent of typedEntry.agents) {
-        const agentPath = join(pluginDir, "agents", `${agent}.md`);
-        if (!(await fileExists(agentPath))) {
-          result.errors.push(
-            `Individual plugin '${skillKey}': missing agent '${agent}'`
-          );
-        }
-      }
-    }
-
-    // No commands in individual plugins
-    const commandsDir = join(pluginDir, "commands");
-    if (await isDirectory(commandsDir)) {
-      result.errors.push(
-        `Individual plugin '${skillKey}': should not include commands/ (router belongs to full suite)`
-      );
-    }
-
-    console.log(`  individual plugin: ${skillKey}`);
-    result.individualPluginsValid++;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -531,32 +280,14 @@ async function validateIndividualPlugins(): Promise<void> {
 async function validate(): Promise<void> {
   console.log(`Validating output at: ${DIST}\n`);
 
-  console.log("Metadata:");
-  await validatePluginJson();
-  await validateMarketplaceJson();
-
-  console.log("\nSkills:");
+  console.log("Skills:");
   await validateSkills();
-
-  console.log("\nAgents:");
-  await validateAgents();
 
   console.log("\nStandalone:");
   await validateStandalone();
 
   console.log("\nManifest:");
   await validateManifest();
-
-  console.log("\nIndividual Plugins:");
-  await validateIndividualPlugins();
-
-  if (VALIDATE_MARKETPLACE_SOURCE) {
-    console.log("\nMarketplace Source:");
-    await validateMarketplaceSourceLayout();
-  } else {
-    console.log("\nMarketplace Source:");
-    console.log("  skipped (VALIDATE_MARKETPLACE_SOURCE=0)");
-  }
 
   // Summary
   console.log("\n---");
@@ -569,7 +300,7 @@ async function validate(): Promise<void> {
   }
 
   console.log(
-    `\nValidation passed: ${result.skillsValid} skills, ${result.agentsValid} agents, ${result.standaloneValid} standalone files, ${result.standalonePacksValid} standalone packs, ${result.individualPluginsValid} individual plugins`
+    `\nValidation passed: ${result.skillsValid} skills, ${result.standaloneValid} standalone files, ${result.standalonePacksValid} packs`
   );
 }
 
