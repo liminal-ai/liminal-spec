@@ -57,6 +57,7 @@ const MARKDOWN_PACK_ZIP = join(DIST_STANDALONE, MARKDOWN_PACK_ZIP_NAME);
 /** Maps internal skill keys to descriptive filenames for standalone release artifacts. */
 const STANDALONE_NAMES: Record<string, string> = {
   "ls-prd": "00-prd",
+  "ls-arch": "01-technical-architecture",
   "ls-epic": "02-epic",
   "ls-tech-design": "03-technical-design",
   "ls-publish-epic": "04-publish-epic",

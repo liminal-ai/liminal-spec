@@ -43,7 +43,7 @@ Work with the human to understand what's being built and what already exists.
 - Where does the pipeline enter? If a validated epic exists, skip to tech design. If a complete tech design exists, skip to publish epic.
 - Are there core/foundational specs from prior epics? If so, get the list of which specs to include in reading journeys.
 
-**If upstream framing is needed:** suggest the human runs `ls-prd` to produce a PRD and optionally a Technical Architecture document. That work is conversational between the human and an agent — it happens outside this orchestration. Come back when the PRD is ready.
+**If upstream framing is needed:** suggest the human runs `ls-prd` to produce a PRD, and `ls-arch` to produce a Technical Architecture document. That work is conversational between the human and agents — it happens outside this orchestration. Come back when the upstream artifacts are ready.
 
 **Ask upfront:** Will a business epic be needed alongside the story files? Carry this forward to the publish phase. The human can revisit this decision later if they're not sure yet.
 

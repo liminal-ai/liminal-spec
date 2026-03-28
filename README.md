@@ -1,14 +1,15 @@
 # Liminal Spec
 
-A skill pack for spec-driven software development with AI coding assistants. Liminal Spec provides a set of skills that guide agents through a structured pipeline: define what you're building (PRD), specify the requirements in detail (Epic), design the architecture (Tech Design), and publish implementable stories. Each phase produces an artifact the next phase reads cold — no shared conversation history, no accumulated assumptions. The traceability chain (requirement → test condition → test → code) means when tests go green, the implementation matches the spec.
+A skill pack for spec-driven software development with AI coding assistants. Liminal Spec provides a set of skills that guide agents through a structured pipeline: define what you're building (PRD), settle the technical world (Tech Architecture), specify the requirements in detail (Epic), design the implementation (Tech Design), and publish implementable stories. Each phase produces an artifact the next phase reads cold — no shared conversation history, no accumulated assumptions. The traceability chain (requirement → test condition → test → code) means when tests go green, the implementation matches the spec.
 
 ## Skills
 
 | Skill | Purpose |
 |-------|---------|
-| **ls-prd** | Shape product direction into a PRD with epic breakdown and optional Technical Architecture document. The upstream artifact that feeds the full pipeline. |
+| **ls-prd** | Produce compressed proto-epics across 3-8 features with scenario-driven acceptance criteria. The upstream product artifact that seeds the full pipeline. |
+| **ls-arch** | Produce a research-grounded Technical Architecture document. Settles foundational technical decisions that downstream tech designs inherit. |
 | **ls-epic** | Write a complete, traceable Epic — User Profile, Flows, Acceptance Criteria, Test Conditions, Data Contracts, and Story Breakdown. |
-| **ls-tech-design** | Transform an Epic into an implementable Tech Design with architecture, interfaces, test mapping, and work breakdown. Validates the spec as downstream consumer. |
+| **ls-tech-design** | Transform an Epic into an implementable Tech Design with architecture, interfaces, test mapping, and work breakdown. Inherits from tech arch when available. |
 | **ls-publish-epic** | Publish an Epic as individual story files with full AC/TC detail, technical notes, and Jira markers. Optionally produce a PO-friendly business epic. |
 | **ls-team-spec** | Orchestrate the full spec pipeline with agent teams and external CLI verification. Manages drafters and verifiers from orientation through published stories. |
 | **ls-team-impl** | Orchestrate story-by-story implementation with agent teams and an external CLI model (Codex or Copilot). |
@@ -57,9 +58,10 @@ For multi-story features. Each phase is a separate agent with a separate context
 
 | Phase | Skill | Input | Output |
 |-------|-------|-------|--------|
-| 0. PRD (optional) | `ls-prd` | Vision, requirements | PRD + optional Tech Architecture |
+| 0a. PRD (optional) | `ls-prd` | Vision, requirements | PRD (compressed proto-epics) |
+| 0b. Tech Arch (optional) | `ls-arch` | PRD or technical context | Technical Architecture |
 | 1. Epic | `ls-epic` | PRD or requirements | Detailed Epic |
-| 2. Tech Design | `ls-tech-design` | Detailed Epic | Tech Design (2 or 4 docs) |
+| 2. Tech Design | `ls-tech-design` | Epic + optional Tech Arch | Tech Design (2 or 4 docs) |
 | 3. Publish | `ls-publish-epic` | Epic + Tech Design | Story files + coverage artifact |
 
 ### Simple Pipeline

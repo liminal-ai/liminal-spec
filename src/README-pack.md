@@ -1,12 +1,13 @@
-# Liminal Spec — Skill Pack (v1.0.1)
+# Liminal Spec — Skill Pack (v1.0.2)
 
-A set of skills for spec-driven software development with AI coding assistants. Liminal Spec guides agents through a structured pipeline: define what you're building (PRD), specify the requirements in detail (Epic), design the architecture (Tech Design), and publish implementable stories. Each phase produces an artifact the next phase reads cold — no shared conversation history, no accumulated assumptions. The traceability chain (requirement → test condition → test → code) means when tests go green, the implementation matches the spec.
+A set of skills for spec-driven software development with AI coding assistants. Liminal Spec guides agents through a structured pipeline: define what you're building (PRD), settle the technical world (Tech Architecture), specify the requirements in detail (Epic), design the implementation (Tech Design), and publish implementable stories. Each phase produces an artifact the next phase reads cold — no shared conversation history, no accumulated assumptions. The traceability chain (requirement → test condition → test → code) means when tests go green, the implementation matches the spec.
 
 ## Skills
 
 | Skill | Purpose |
 |-------|---------|
-| **ls-prd** | Shape product direction into a PRD with epic breakdown and optional Technical Architecture document. |
+| **ls-prd** | Produce compressed proto-epics across 3-8 features with scenario-driven acceptance criteria. |
+| **ls-arch** | Produce a research-grounded Technical Architecture document. Settles foundational decisions across epics. |
 | **ls-epic** | Write a complete, traceable Epic — User Profile, Flows, ACs, TCs, Data Contracts, Story Breakdown. |
 | **ls-tech-design** | Transform an Epic into an implementable Tech Design with architecture, interfaces, and test mapping. |
 | **ls-publish-epic** | Publish an Epic as individual story files with full AC/TC detail and technical notes. |
@@ -37,6 +38,13 @@ Or cherry-pick individual skill directories — each is self-contained.
 Each `.md` file is a self-contained skill. Paste directly into Claude, ChatGPT, Codex, or any AI assistant that accepts instructions.
 
 ## Changelog
+
+### v1.0.2 (2026-03-28)
+
+- **ls-arch** added — Technical architecture as standalone skill, extracted from ls-prd. Own writing register, research-grounded decisions, human-first architecture with top-tier surfaces.
+- **ls-prd** rewritten — scenario-driven feature sections, numbered AC ranges, confidence chain + writing style refs. Tech arch section removed (now ls-arch).
+- **ls-tech-design** updated — optional tech arch intake, top-tier surface inheritance, deviation handling, upstream document evolution.
+- **docs/skill-chain.md** added — internal developer guide to the skill chain.
 
 ### v1.0.1 (2026-03-26)
 

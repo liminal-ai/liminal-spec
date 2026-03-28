@@ -1,11 +1,22 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "skills": {
     "ls-prd": {
       "name": "ls-prd",
-      "description": "Shape product direction into a structured PRD with epic breakdown and optional Technical Architecture document. Produces the upstream artifact that feeds ls-epic and the full Liminal Spec pipeline.",
+      "description": "Produce compressed proto-epics across 3-8 features with scenario-driven acceptance criteria. Each feature section seeds automated epic expansion through the full Liminal Spec pipeline.",
       "phases": [
         "prd"
+      ],
+      "shared": [
+        "confidence-chain",
+        "writing-style-epic"
+      ]
+    },
+    "ls-arch": {
+      "name": "ls-arch",
+      "description": "Produce a research-grounded Technical Architecture document that settles foundational technical decisions across 3-8 epics. Companion to the PRD — establishes the technical world that downstream tech designs inherit.",
+      "phases": [
+        "arch"
       ],
       "shared": []
     },

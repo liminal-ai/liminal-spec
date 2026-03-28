@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A spec-driven development methodology packaged as a **skill pack**. The pack contains 9 self-contained skills — 4 for the full pipeline, 2 for the simple pipeline, and 3 for team orchestration.
+A spec-driven development methodology packaged as a **skill pack**. The pack contains 10 self-contained skills — 5 for the full pipeline, 2 for the simple pipeline, and 3 for team orchestration.
 
 This is NOT a library or npm package. The build output is markdown files organized as installable skill directories. There are two distribution channels:
 
@@ -17,7 +17,8 @@ Both outputs are composed from the same source files. The build handles the pack
 ```
 dist/
   skills/
-    ls-prd/SKILL.md            -- PRD + optional Tech Architecture
+    ls-prd/SKILL.md            -- PRD (compressed proto-epics)
+    ls-arch/SKILL.md            -- Technical Architecture
     ls-epic/SKILL.md            -- Epic (Phase 1)
     ls-tech-design/SKILL.md     -- Tech Design (Phase 2)
     ls-publish-epic/SKILL.md    -- Publish Epic (Phase 3)
@@ -42,7 +43,7 @@ Source-based skill with build composition. Edit in `src/`, never in `dist/`.
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill: prd, epic, tech-design, publish-epic, story-simple, story-simple-tech, team-impl, team-impl-cc, team-spec)
+  phases/          -- Phase-specific content (one per skill: prd, arch, epic, tech-design, publish-epic, story-simple, story-simple-tech, team-impl, team-impl-cc, team-spec)
   shared/          -- Cross-cutting concepts inlined into multiple skills by the build
   templates/       -- Artifact templates (tech design)
   examples/        -- Verification prompt templates
@@ -72,11 +73,12 @@ bun run verify      # Build + validate + tests
 
 ### What Gets Built
 
-**Skills** (9 self-contained skills — 4 full pipeline, 2 simple pipeline, 3 team orchestration):
+**Skills** (10 self-contained skills — 5 full pipeline, 2 simple pipeline, 3 team orchestration):
 
 | Skill | Phase | Primary source | Shared dependencies |
 |-------|-------|----------------|---------------------|
-| `ls-prd` | 0 | `src/phases/prd.md` | (none) |
+| `ls-prd` | 0a | `src/phases/prd.md` | confidence-chain, writing-style-epic |
+| `ls-arch` | 0b | `src/phases/arch.md` | (none — self-contained) |
 | `ls-epic` | 1 | `src/phases/epic.md` | confidence-chain, context-isolation, writing-style-epic |
 | `ls-tech-design` | 2 | `src/phases/tech-design.md` | confidence-chain, verification-model, writing-style, testing |
 | `ls-publish-epic` | 3 | `src/phases/publish-epic.md` | confidence-chain, writing-style-epic |

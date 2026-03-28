@@ -24,7 +24,8 @@ Read these files to understand the methodology and evaluation criteria:
 
 1. **Tech Design (primary):** `[path to tech-design.md]`
 2. **Epic (for alignment):** `[path to epic.md]`
-3. **Codebase (for feasibility):** `[path to relevant source directories]`
+3. **Technical Architecture (if exists):** `[path to tech-arch.md]` — check inheritance of system shape, top-tier surfaces, cross-cutting decisions, and stack choices
+4. **Codebase (for feasibility):** `[path to relevant source directories]`
 
 **Important Boundary:** The design defines architecture and interfaces -- it does not need to specify story execution order or implementation sequence. If you identify story organization or implementation concerns, note them as recommendations, not as design blockers.
 
@@ -81,7 +82,15 @@ Assess the tech design against these criteria:
    - Could an engineer plan and implement from this document plus stories, without asking questions?
    - Are test file names and test descriptions specific enough for TDD Red phase?
 
-9. **Writing Quality**
+9. **Top-Tier Surface Coherence**
+   - Does the design state which top-tier surfaces (primary domains) this epic touches?
+   - Are those surfaces inherited from a tech arch, or locally derived with rationale?
+   - Do designed modules nest within the stated surfaces, or are deviations documented?
+   - Are top-tier surfaces used as high-leverage test entry points (not as mock boundaries — mocking stays at external boundaries)?
+   - If a tech arch exists: are cross-cutting decisions from the tech arch respected or explicitly deviated from with rationale?
+   - If no tech arch exists: is the inferred organizing surface reasonable and proportionate (not a stealth full architecture)?
+
+10. **Writing Quality**
    - Is the Context section substantive (3+ paragraphs establishing rich background)?
    - Is there more prose than tables in explanatory sections?
    - Are diagrams introduced with prose context, not orphaned?

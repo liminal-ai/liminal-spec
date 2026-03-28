@@ -61,6 +61,7 @@ describe("build script", () => {
 
   test("prints build summary with all skills", () => {
     expect(buildOutput).toContain("skill: ls-prd");
+    expect(buildOutput).toContain("skill: ls-arch");
     expect(buildOutput).toContain("skill: ls-epic");
     expect(buildOutput).toContain("skill: ls-tech-design");
     expect(buildOutput).toContain("skill: ls-publish-epic");
@@ -87,6 +88,7 @@ describe("build script", () => {
 describe("skill output", () => {
   const expectedSkills = [
     "ls-prd",
+    "ls-arch",
     "ls-epic",
     "ls-tech-design",
     "ls-publish-epic",
@@ -187,13 +189,24 @@ describe("skill content", () => {
     expect(content).toContain("team-impl-cc-log.md");
   });
 
-  test("prd contains PRD and tech arch content", async () => {
+  test("prd contains PRD content", async () => {
     const content = await Bun.file(
       join(DIST_SKILLS, "ls-prd", "SKILL.md")
     ).text();
     expect(content).toContain("Product Requirements Document");
     expect(content).toContain("Altitude");
+    expect(content).toContain("Confidence Chain");
+  });
+
+  test("arch contains technical architecture content", async () => {
+    const content = await Bun.file(
+      join(DIST_SKILLS, "ls-arch", "SKILL.md")
+    ).text();
+    expect(content).toContain("Technical Architecture");
     expect(content).toContain("Architecture Thesis");
+    expect(content).toContain("Research Grounding");
+    expect(content).toContain("Core Stack");
+    expect(content).toContain("System Shape");
   });
 
   test("team-spec contains rebuilt orchestration content", async () => {
@@ -209,7 +222,7 @@ describe("skill content", () => {
 
   test("generated skills do not include legacy phrases", async () => {
     const expectedSkills = [
-      "ls-prd", "ls-epic", "ls-tech-design", "ls-publish-epic",
+      "ls-prd", "ls-arch", "ls-epic", "ls-tech-design", "ls-publish-epic",
       "lss-story", "lss-tech", "ls-team-impl", "ls-team-impl-cc", "ls-team-spec",
     ];
     for (const skill of expectedSkills) {
@@ -229,6 +242,7 @@ describe("skill content", () => {
 describe("standalone output", () => {
   const expectedMdFiles = [
     "00-prd-skill.md",
+    "01-technical-architecture-skill.md",
     "02-epic-skill.md",
     "03-technical-design-skill.md",
     "04-publish-epic-skill.md",
@@ -305,6 +319,7 @@ describe("source file safety", () => {
   test("src/ files still exist after build", async () => {
     const criticalFiles = [
       "src/phases/prd.md",
+      "src/phases/arch.md",
       "src/phases/epic.md",
       "src/phases/tech-design.md",
       "src/phases/publish-epic.md",

@@ -175,6 +175,14 @@ These external contracts constrain everything below. Module boundaries exist to 
 
 The module breakdown creates the skeleton that Phase 1 will implement. Each module listed here becomes a stub file. Think carefully about boundaries—they're expensive to change once tests are written against them.
 
+### Top-Tier Surfaces
+
+*✏️ State which top-tier surfaces (primary domains) this epic touches. When a tech arch exists, these are inherited — list them and note how this epic's modules nest within them. When no tech arch exists, state the inferred organizing surfaces for this epic with a note that they are locally derived. This grounds the module architecture in the system's broader organizing structure.*
+
+| Surface | Source | This Epic's Role |
+|---------|--------|-----------------|
+| [surface name] | [Inherited from tech arch / Locally derived] | [How this epic's modules relate to this surface] |
+
 ### Module Architecture
 
 Show the file structure with annotations. Mark what exists vs. what's new. This becomes the implementation checklist for skeleton phase. Adapt the structure to your stack — the principle is the same: group by responsibility, mark mock boundaries, trace to ACs.

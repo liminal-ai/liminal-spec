@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.0.2 (2026-03-28)
+
+Technical architecture breakout. PRD rewrite. Tech design bridge. The upstream pipeline is now three skills with distinct jobs and distinct writing registers, connected by explicit inheritance.
+
+### Added
+
+- **`ls-arch` skill:** Technical architecture as a standalone skill, extracted from `ls-prd`. Own writing register (diagram-forward with functional-to-technical weave, advisory tone), research-grounded stack decisions with date-stamped verification, human-first architecture principle with curated top-tier surfaces, downstream inheritance contract (every diagram followed by "what downstream inherits"), and two-part consumer test (single-epic usability + cross-epic consistency). This split resolves the competing writing registers that made `ls-prd` produce inconsistent tech arch output — the PRD's subtractive plain description discipline and the tech arch's rationale-rich advisory tone are fundamentally different jobs.
+
+### Changed
+
+- **`ls-prd` rewritten:** Feature sections restructured from capability buckets (Context → User Need → In Scope → Out of Scope → Rolled-Up ACs) to scenario-driven proto-epics (Feature Overview → Scope → Scenarios with numbered AC ranges). Writing-style-epic and confidence-chain shared references added. Consumer test validation: can an epic-writing agent expand each feature section without foundational questions? Three-way AC contrast (too vague / just right / too detailed). Feature boundary guidance for clean single-epic seams. Tech architecture section removed — now produced by `ls-arch`.
+
+- **`ls-tech-design` updated:** Optional tech arch intake — when a tech architecture document exists, the tech design inherits system context, stack decisions, cross-cutting patterns, and top-tier surfaces rather than re-deriving them. Human-first architecture principle applied at module decomposition level. Top-tier surfaces field added to template (inherited or locally derived). Dependency grounding now distinguishes inherited multi-epic decisions from epic-scoped research. Upstream document evolution principle: proceed with better approach on deviations, document rationale, surface upstream for backfill. Verification prompt updated with top-tier surface coherence criterion.
+
+### New internal documentation
+
+- **`docs/skill-chain.md`:** Developer-facing functional guide to the skill chain — what each skill produces, who consumes it, what the consumer needs, quality signals, and settles/leaves-open boundaries. Not user-facing, not composed into builds.
+
+---
+
 ## v1.0.1 (2026-03-26)
 
 Claude Code-only implementation orchestration. Replaces `ls-subagent-impl` with `ls-team-impl-cc`.

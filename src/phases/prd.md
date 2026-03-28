@@ -1,26 +1,18 @@
 # Product Requirements Document
 
-**Purpose:** Shape product direction into a structured PRD with epic breakdown — the upstream artifact that feeds the full Liminal Spec pipeline.
+**Purpose:** Produce compressed proto-epics across 3-8 features — the upstream product artifact that seeds automated epic expansion through the full Liminal Spec pipeline. The companion technical architecture document is produced separately by `ls-arch`.
 
-A PRD defines what you're building, who it's for, and how the work decomposes into epics. It is the planning artifact: enough detail to scope, sequence, and prioritize the work, without crossing into the line-level precision that belongs in the epic phase. Feature sections are shaped like lightweight epics — user context, scope, and rolled-up acceptance criteria — but stop short of line-level ACs, test conditions, and data contracts.
-
-This document is the upstream input for epic authoring. Downstream, `ls-epic` expands each feature section into a full epic with traceable ACs, TCs, contracts, and story breakdowns.
+Each feature section is a higher-altitude echo of an epic: user scenarios, numbered acceptance criteria ranges, and scope boundaries — structured so that an epic-writing agent can expand each one into a full epic (line-level ACs, TCs, data contracts, story breakdown) without the human needing to re-engage at the same depth. The human's intensive involvement is front-loaded here. Everything downstream builds from what this document settles.
 
 ---
 
 ## On Load
 
-This skill produces a **PRD**, a **Technical Architecture document**, or **both**.
+This skill produces a **PRD** — product context, features as scenario-driven proto-epics, sequencing, and milestones. Each feature section must be rich enough that downstream agents can produce full epic specs from it with minimal human re-engagement.
 
-These are grouped because product framing and architecture decisions often inform each other — epic boundaries depend on technical seams, and architecture choices depend on product scope. Ask the user what they need:
+The companion **Technical Architecture document** is produced separately by `ls-arch`. For new products, run both — the PRD establishes what to build and why, the tech arch establishes what technical world it gets built in. Epic boundaries depend on technical seams, and architecture choices depend on product scope, so these two documents inform each other.
 
-- **PRD only** — product context, features as lightweight epics, sequencing
-- **Tech Architecture only** — core stack, system shape, major boundaries, key decisions
-- **Both** (recommended for new products) — developed together, delivered as two distinct documents
-
-If the user already has one of these, offer to use it to shape the other.
-
-If the user provides requirements, a brief, prior research, or context about what they want to build — use that as the starting input. If they don't have that, interview them: What are you building? Who is it for? What problem does it solve? What's the rough scope? What technical constraints exist? Get enough to start shaping — you don't need everything upfront, but you need enough to avoid writing fiction.
+If the user provides requirements, a brief, prior research, or context about what they want to build — use that as the starting input. If they don't have that, interview them: What are you building? Who is it for? What problem does it solve? What's the rough scope? What technical constraints exist? Get enough to start the conversation — you don't need everything upfront, but you need enough to avoid writing fiction. The intake bar is about when to begin shaping, not when the output is ready. The output bar is the consumer test: each feature section must survive downstream epic expansion without foundational questions.
 
 ---
 
@@ -32,21 +24,35 @@ The PRD operates at a specific altitude. Understanding where it sits prevents bo
 - Product vision and problem grounding
 - User profiles with mental models
 - Feature scope boundaries (in/out)
-- Rolled-up acceptance criteria (prose paragraphs describing behavior, not numbered line-item ACs)
+- User scenarios per feature (the user situations and workflows, not step-level flows)
+- Numbered rolled-up acceptance criteria ranges organized under scenarios
 - Architecture summary (system shape, stack, boundaries — not implementation)
 - Epic sequencing with milestones
 - Cross-cutting decisions that constrain downstream work
 
 **What the PRD does NOT contain** (these belong downstream):
-- Line-level acceptance criteria (ls-epic)
+- Line-level acceptance criteria with individual TC coverage (ls-epic)
 - Test conditions (ls-epic)
 - Data contracts / API shapes (ls-epic)
 - Story breakdowns with AC mapping (ls-epic)
 - Implementation architecture, module design, interfaces (ls-tech-design)
 - Feature-specific library choices, directory structures, database schemas (ls-tech-design)
-  (Core stack choices — frameworks, runtimes, data layers — belong in the architecture summary or tech arch document)
+  (Core stack choices — frameworks, runtimes, data layers — belong in the architecture summary or the tech arch document produced by ls-arch)
 
-The hardest boundary to hold is between rolled-up ACs and line-level ACs. A rolled-up AC reads like: "The user can save the current root as a workspace. Saved workspaces persist across sessions, show the full path on hover, and can be removed." A line-level AC reads like: "AC-1.3: Workspace entries display the full filesystem path as a tooltip on mouse hover." The PRD uses the first form. ls-epic produces the second.
+### The Rolled-Up AC Boundary
+
+The hardest boundary to hold is between rolled-up ACs and line-level ACs. A three-way contrast:
+
+**Too vague** (not decomposable — the epic writer has to invent the behavior):
+> "The user can manage workspaces."
+
+**Just right** (rolled-up — specific enough to decompose, general enough to leave room):
+> "AC-1: The user can save the current root as a workspace. Saved workspaces persist across sessions, show the full path on hover, and can be removed. The workspace list updates immediately on add or remove."
+
+**Too detailed** (line-level — this belongs in ls-epic):
+> "AC-1.3: Workspace entries display the full filesystem path as a tooltip on mouse hover with a 200ms delay. AC-1.4: Removing a workspace triggers a confirmation dialog before deletion."
+
+The PRD uses the middle form. Each rolled-up AC is numbered and anchored to a scenario, covering a coherent cluster of behavior that ls-epic will later decompose into individual line-level ACs with test conditions.
 
 ---
 
@@ -96,7 +102,7 @@ NFRs are easy to defer and expensive to discover late. Surface them here so arch
 
 A brief section in the PRD covering the system shape, stack, and deployment model. Enough to understand the technical context for scoping epics — not a full architecture document.
 
-If the user is also producing a Tech Architecture document, this section is a concise summary with a pointer to the full document.
+If a Tech Architecture document exists or will be produced by `ls-arch`, this section is a concise summary with a pointer to the full document.
 
 Content:
 - System shape (monolith, client-server, services, etc.)
@@ -111,61 +117,168 @@ This section answers: "What technical world are we building in?" It does not ans
 
 ## Feature Sections (The Body)
 
-Each feature maps to one downstream epic. A PRD typically contains 3-6 features/epics — enough to deliver meaningful product capability, scoped tightly enough that each epic is manageable. If you're at 8+, consider whether some features should be grouped or deferred. Feature sections are lightweight epics — same structural DNA, lower altitude.
+Each feature maps to one downstream epic. A PRD typically contains 3-8 features/epics. If you're above 8, consider whether some features should be grouped or deferred.
+
+Feature sections are higher-altitude epics — same structural DNA, different altitude. Where an epic organizes around detailed flows with line-level ACs and TCs, a feature section organizes around user scenarios with numbered rolled-up AC ranges. The structure mirrors the epic so that downstream expansion is decomposition, not invention.
+
+### Choosing Feature Boundaries
+
+Each feature maps to one downstream epic. The boundary between features is one of the highest-leverage decisions in the PRD — bad boundaries produce awkward epics that are either too broad to manage or too tangled to implement independently.
+
+**Good feature boundaries share these traits:**
+- **User workflow boundary** — different user situation, different context, or a natural pause point in the user's work
+- **System capability boundary** — one coherent domain (read vs write, one data surface, one integration)
+- **Delivery boundary** — can ship independently and reach a feedback point without other features completing first
+- **Manageable epic scope** — 2-4 scenarios, roughly 5-15 rolled-up ACs. If a feature has 5+ scenarios or would need 20+ ACs, it's probably two features
+
+**Signs a feature should be split:**
+- Multiple distinct user profiles or contexts within one feature
+- Scenarios that don't share data, state, or user context with each other
+- The feature can't ship without another feature also shipping (entanglement, not dependency)
+
+**Signs features should be merged:**
+- Two features that share all scenarios and differ only in scope depth
+- A feature so small it would produce a 1-2 story epic with minimal ACs
+
+Don't over-optimize boundaries upfront. Get them roughly right, then refine as scenarios and ACs surface natural seams during drafting.
 
 ### Feature Section Structure
 
 ```
 ## Feature N: [Name]
 
-### Context
-Why this feature matters in the sequence. What it builds on, what it enables.
+### Feature Overview
+What the user can do after this feature ships. Why it matters in the sequence —
+what it builds on, what it enables. 1-3 sentences of positioning, then the
+capability description.
 
-### User Need
-What the user wants to do that they can't do today (or can only do badly).
+### Scope
 
-### In Scope
-Concrete capabilities this feature delivers. Bullet list.
+#### In Scope
+- Concrete capability
+- Concrete capability
 
-### Out of Scope
-What's excluded, with pointers to which feature handles it if applicable.
+#### Out of Scope
+- Excluded capability (which feature handles it, or "not planned")
 
-### Rolled-Up Acceptance Criteria
-Prose description of the expected behavior. Written as if describing the feature
-to someone who will test it — specific enough to verify, general enough to leave
-room for the epic phase to define precise ACs and TCs.
+### Scenarios
 
-### Mockup/Reference Pointers (optional)
+#### Scenario 1: [Name — the user situation]
+Prose description of this user scenario — when it applies, what the user is
+trying to accomplish, what the system does in response. High-level steps if
+the scenario is sequential, but broader than epic-level flow steps.
+
+**AC-1:** [Rolled-up criterion covering a coherent cluster of behavior]
+**AC-2:** [Another rolled-up criterion under this scenario]
+
+#### Scenario 2: [Name]
+[Same pattern]
+
+**AC-3:** [Criterion]
+**AC-4:** [Criterion]
+
+### Reference Pointers (optional)
 Pointers to mockups, wireframes, or reference material if available.
 ```
 
+### The Confidence Chain Starts Here
+
+Rolled-up ACs in the PRD are the seed material for the full confidence chain: AC → TC → Test → Implementation. Each rolled-up AC will be decomposed by the epic writer into line-level ACs, each with test conditions, each mapping to tests, each driving implementation.
+
+This means the quality of the rolled-up ACs directly determines the quality of everything downstream. Thin, vague criteria force the epic writer to invent behavior the PRD should have established. Strong criteria give the epic writer material to decompose rather than create.
+
+**The drafting discipline:** Think one layer down. For each rolled-up AC, consider what the line-level ACs would be. Then compress back up into the rolled-up form. This produces criteria that are specific enough to decompose but general enough to leave room for the epic phase. Writing directly at the rolled-up level without thinking through the decomposition tends to produce vague, untestable criteria.
+
 ### Writing Good Feature Sections
 
-**Context** should be 1-3 sentences explaining why this feature exists at this point in the sequence. "This is the foundation" or "After this, the app is usable daily" — positioning, not description.
+**Feature Overview** opens with why this feature exists at this point in the sequence — positioning, not description. Then describes what the user can do. "This feature is the foundation — after it ships, the app is usable for daily reading. The user opens any markdown file and sees clean rendered content with working links, code highlighting, and basic navigation."
 
-**User Need** is the user's perspective, not the product's. "The user clicks a file and sees clean rendered markdown" not "The system renders markdown to HTML."
+**Scope** prevents scope creep. In-scope items should be specific enough to argue about. "Mermaid diagram rendering (local, no remote services)" is good. "Rich content support" is too vague. Every out-of-scope item should say where it's handled if planned elsewhere. "Mermaid editing (not planned)" vs "Code syntax highlighting (Feature 3)."
 
-**In Scope** is a concrete list of capabilities. Each item should be specific enough that you could argue about whether it's done. "Mermaid diagram rendering (local, no remote services)" is good. "Rich content support" is too vague.
+**Scenarios** are the core of the feature section. Each scenario describes a user situation — when the user encounters it, what they're trying to accomplish, and what happens. Scenarios are broader than epic-level flows: a single scenario here might expand into 2-3 flows in the epic. Name scenarios after the user situation ("First-time file browsing," "Returning to a saved workspace") not after system operations ("File rendering pipeline," "Workspace persistence layer").
 
-**Out of Scope** prevents scope creep. Every out-of-scope item should say where it's handled if it's planned elsewhere. "Mermaid editing (not planned)" vs "Code syntax highlighting (Epic 3)."
-
-**Rolled-Up ACs** are the hardest section to get right. They should be:
-- Specific enough that someone could test the behavior described
-- General enough that the epic writer has room to decompose into precise ACs with TCs
+**Rolled-up ACs** are numbered and anchored under their scenarios. Each AC covers a coherent cluster of related behavior. They should be:
+- Specific enough that the epic writer can decompose into line-level ACs without inventing behavior
+- General enough that the epic writer has room to define precise TCs
 - Written as user-observable behavior, not implementation statements
-- Comprehensive enough that the epic scope is clear from reading them
+- Comprehensive enough that the feature's scope is clear from reading the AC ranges alone
 
-A good rolled-up AC paragraph covers one flow or capability area. It reads naturally as prose, not as a bulleted checklist pretending to be prose.
+### Example: A Good Feature Section
+
+```markdown
+## Feature 2: Workspace Management
+
+### Feature Overview
+
+After the foundation is usable for individual file reading, users need a way
+to organize their work across multiple projects. This feature lets users save
+filesystem roots as named workspaces and switch between them. It is the
+transition from "file viewer" to "daily-use tool."
+
+### Scope
+
+#### In Scope
+- Save the current root directory as a named workspace
+- List, switch between, and remove saved workspaces
+- Workspace state persists across application restarts
+- Show full filesystem path for each workspace on hover
+
+#### Out of Scope
+- Workspace sharing or export (not planned)
+- Per-workspace settings or configuration (Feature 5)
+- Workspace search or filtering (Feature 4, if workspace count warrants it)
+
+### Scenarios
+
+#### Scenario 1: Saving and Switching Workspaces
+
+The user has been browsing files in a project directory and wants to bookmark
+it for quick return. They save the current root as a workspace, then later
+switch to a different saved workspace and back.
+
+**AC-1:** The user can save the current root as a named workspace. The
+workspace list updates immediately. Duplicate names for different paths are
+prevented. The workspace entry shows the short name and displays the full
+filesystem path on hover.
+
+**AC-2:** The user can switch between saved workspaces. Switching loads the
+selected workspace's root directory and restores the file tree to that root.
+The previously active workspace remains in the list.
+
+#### Scenario 2: Managing the Workspace List
+
+The user has accumulated several workspaces and needs to clean up. They
+remove workspaces they no longer use and verify the list reflects the changes.
+
+**AC-3:** The user can remove a saved workspace. Removal is immediate and
+the list updates without requiring a refresh. Removing the currently active
+workspace returns to the default root or prompts for a new selection.
+
+#### Scenario 3: Persistence Across Sessions
+
+The user closes the application and reopens it. Their saved workspaces are
+still available, and the last active workspace is restored.
+
+**AC-4:** Saved workspaces persist across application restarts. On launch,
+the application restores the workspace list and re-opens the last active
+workspace. If the last active workspace's path no longer exists, the
+application shows the workspace list with an indicator that the path is
+unavailable.
+```
+
+This example shows the target altitude. Each scenario describes a user situation. Each AC covers a cluster of behavior that the epic writer will decompose — AC-1 alone might expand into 3-4 line-level ACs with TCs for naming validation, duplicate prevention, hover display, and list update behavior. But the PRD doesn't go there. It establishes what happens; the epic establishes exactly how to verify it.
 
 ### Common Feature Section Failures
 
-**Feature wishlist:** A long list of capabilities with no user grounding, no scope boundary, and no sequencing rationale. Every feature should trace to the user profile and problem statement.
+**Feature wishlist:** A list of capabilities with no user grounding, no scenarios, and no sequencing rationale. Every feature should trace to the user profile and problem statement. If you can't describe who does what and when, the feature isn't ready to write.
 
-**Premature precision:** Numbered ACs with TC-like specificity. If you're writing "AC-1.3: Tooltip displays full path on hover with 200ms delay," you've crossed into ls-epic territory. Pull back to: "Workspace entries show the full path on hover."
+**Thin scenarios that force invention:** Scenarios that name the situation but don't describe what happens. "The user manages workspaces" is a label, not a scenario. The epic writer needs enough behavioral detail to decompose — not invent — the flows and ACs.
 
-**Vague scope:** "Handles errors appropriately" or "Supports common formats." These aren't testable even at the rolled-up level. Be specific about which errors, which formats.
+**Vague ACs:** "Handles errors appropriately" or "Supports common formats." These aren't decomposable. Be specific about which errors, which formats, what the user sees.
 
-**Missing out-of-scope:** If the feature's in-scope list is clear but out-of-scope is empty, either the feature has no boundaries or you haven't thought about them. Both are problems.
+**Premature precision:** Individual line-level ACs with TC-like specificity. If you're writing "AC-1.3: Workspace entries display the full filesystem path as a tooltip on mouse hover with a 200ms delay," you've crossed into ls-epic territory. Pull back to the rolled-up form: a cluster of related behavior under one numbered AC.
+
+**Missing out-of-scope:** If the in-scope list is clear but out-of-scope is empty, either the feature has no boundaries or you haven't thought about them. Both are problems.
 
 **Implementation leaking in:** "Uses React Query for caching" or "Stores state in SQLite." These are tech design decisions. The PRD says "Data is cached" and "State persists across sessions."
 
@@ -208,7 +321,7 @@ Milestones matter because they define where to pause and validate assumptions be
 
 Product-level decisions that affect multiple features. Content format conventions, UX design constraints, interaction patterns, naming conventions. These are product decisions that would otherwise get re-litigated in every epic. UX constraints are especially valuable here — toolbar layout, modal patterns, navigation conventions, and interaction standards that apply across the entire product.
 
-If producing a tech architecture document, technical cross-cutting decisions (auth model, error handling, testing philosophy) go there instead. The PRD's cross-cutting section covers product and design decisions; the tech arch's covers technical ones.
+If a tech architecture document exists or will be produced by `ls-arch`, technical cross-cutting decisions (auth model, error handling, testing philosophy) go there instead. The PRD's cross-cutting section covers product and design decisions; the tech arch's covers technical ones.
 
 Each decision should have enough rationale that a downstream epic writer understands not just what was decided, but why — so they don't accidentally undermine it.
 
@@ -224,205 +337,27 @@ A brief note explaining how this PRD feeds into the spec pipeline. Each feature 
 
 ---
 
-## Technical Architecture Document
-
-If the user requested a tech architecture document (or both), produce it as a companion document. The tech architecture says **what technical world the epics must live inside.** It operates at 50,000 ft → 25,000 ft altitude — below the PRD's product framing but above tech design's implementation detail.
-
-Without this document, epics get scoped against the wrong seams and tech designs re-litigate the same foundational decisions across every epic.
-
-Use an advisory tone throughout — "recommended," "should," "the expected shape." The decisions are real and downstream should inherit them, but the rationale is what makes them stick. Models tend toward authoritative language by default; at this altitude, that creates an artificial sense of rigidity that discourages downstream designers from flagging legitimate exceptions.
-
-### Architecture Thesis
-
-One paragraph that captures the core architectural stance in plain language. This is the anchor for everything in the document. Example: "MD Viewer is a local-first client-server application. A single Fastify process serves both the API and static frontend. The server owns the filesystem; the client owns the interaction. Electron is an optional thin wrapper, not a core dependency."
-
-If someone reads only this paragraph and nothing else, they should understand the system's fundamental shape.
-
-### Core Stack
-
-The decisions that constrain everything downstream. Not every dependency — the ones where the choice changes what patterns, APIs, and approaches are available.
-
-| Component | Choice | Version | Rationale |
-|-----------|--------|---------|-----------|
-| Runtime | Node | 24 LTS | Long-term support, native fetch, stable ESM |
-| Package manager | Bun | 1.3.9+ | Workspace support, fast installs |
-| Web framework | Fastify | 5 | Local server, plugin ecosystem |
-| Frontend | Vanilla HTML/CSS/JS | — | No build step for client, minimal dependencies |
-| Styling | Tailwind | 4 | Utility-first, v4 CSS-native engine |
-| Data layer | Convex | — | Reactive queries, serverless backend |
-| Auth | WorkOS AuthKit | — | Enterprise SSO + social, hosted UI |
-| Testing | Vitest | — | Bun-compatible, good mocking APIs |
-| Lint + format | Biome | 2.x | Single tool, no ESLint + Prettier split |
-| Build | tsc | — | Sufficient for SDK + CLI |
-| CLI framework | citty | — | Lightweight, unjs ecosystem |
-| Deployment | Docker + Fly.io | — | Container-based, easy preview environments |
-| Cache/realtime | Redis | — | Session, drafts, pub/sub |
-
-Not all categories apply to every project. Include what's relevant. The version matters when it changes available APIs or patterns (React 18 vs 19, Tailwind 3 vs 4, Node 22 vs 24).
-
-### System Shape
-
-What the system is, what the major runtime surfaces are, and who owns what:
-
-- Is this a monolith, client-server, services + workers, plugin architecture?
-- What are the major runtime boundaries?
-- What talks to what?
-- Where does state live?
-- What is synchronous vs asynchronous?
-- What is user-facing vs background?
-
-This directly feeds the tech design's High Altitude (30,000 ft) System Context section. The tech arch establishes the world; the tech design places the epic's modules within it.
-
-### Cross-Cutting Decisions
-
-Decisions that affect multiple epics and would be expensive to reverse:
-
-- Auth model and session management
-- Error handling conventions
-- State management approach
-- Testing philosophy (TDD, mock strategy, integration approach)
-- Extensibility posture (plugin system, hooks, or closed)
-- Local vs cloud posture
-- Security and trust model
-
-Each decision needs:
-- **The choice** — what was decided
-- **The rationale** — why this and not the alternatives
-- **The consequence** — what downstream work must respect
-
-The rationale is what prevents re-litigation. A tech design that sees "Vanilla JS, not React" without knowing why might introduce React for "just this one component."
-
-### Boundaries and Flows
-
-Identify the major seams in the system and briefly sketch what crosses them. Not full API contracts — those belong in epics and tech design — but enough to understand the communication shape and the main request paths through the system.
-
-Keep this light. A few boundaries with brief contract sketches (example endpoints, transport type) and a few key flows as 4-5 step sequences. The goal is orientation, not implementation — downstream writers need to know the seams and traffic paths, not the exact payloads.
-
-### Constraints That Shape Epics
-
-Technical realities that affect product scoping. "No runtime execution of stored scripts" changes what an epic about skill management can promise. "Local-first, no cloud dependencies" eliminates entire categories of solutions. These constraints should be visible to epic writers, not just tech designers.
-
-### Open Questions for Tech Design
-
-Questions that this document intentionally leaves open for the tech design phase. "Whether PDF export should use Playwright or a browser-print pipeline" is an implementation question that shouldn't be locked at the architecture level. Listing them explicitly prevents downstream designers from assuming the question was already settled.
-
-### What Tech Architecture Does NOT Cover
-
-- Implementation details for individual features (tech design)
-- Module/component internal design (tech design)
-- API contracts, interface definitions (tech design / epic)
-- Database schemas, query patterns (tech design)
-- Library-specific configuration (tech design)
-- Test mapping, chunk plans, implementation sequences (tech design)
-
-### Relationship to Downstream
-
-Be explicit about the handoff:
-- **What this document settles:** system shape, stack, boundaries, cross-cutting patterns, major decisions
-- **What ls-epic settles:** functional requirements, ACs, TCs, data contracts, story breakdown
-- **What ls-tech-design still decides:** module decomposition, interfaces, test mapping, implementation sequences
-
-### Tech Architecture Template
-
-```markdown
-# [Product Name] — Technical Architecture
-
-## Status
-
-This document defines the technical architecture for [product name]. It
-establishes the system shape, core stack, and foundational decisions that
-all downstream epics and tech designs inherit.
-
----
-
-## Architecture Thesis
-
-[One paragraph: the core architectural stance in plain language. What the
-system is, how it's shaped, who owns what. If someone reads only this,
-they understand the fundamental shape.]
-
----
-
-## Core Stack
-
-| Component | Choice | Version | Rationale |
-|-----------|--------|---------|-----------|
-| Runtime | [choice] | [version] | [why] |
-| Package manager | [choice] | [version] | [why] |
-| Framework | [choice] | [version] | [why] |
-| [continue as relevant] | | | |
-
----
-
-## System Shape
-
-[Major runtime surfaces, boundaries, ownership. What talks to what.
-Where state lives. Sync vs async. User-facing vs background.]
-
----
-
-## Boundaries and Flows
-
-[Major seams with brief contract sketches. Key request paths as
-short numbered sequences. Keep light — orientation, not implementation.]
-
----
-
-## Cross-Cutting Decisions
-
-### [Decision Area — e.g., Authentication]
-
-**Choice:** [what was decided]
-**Rationale:** [why]
-**Consequence:** [what downstream work must respect]
-
-### [Decision Area — e.g., Error Handling]
-
-**Choice:** [what was decided]
-**Rationale:** [why]
-**Consequence:** [what downstream work must respect]
-
----
-
-## Constraints That Shape Epics
-
-- [Technical constraint and how it affects product scoping]
-- [Another constraint]
-
----
-
-## Open Questions for Tech Design
-
-- [Question explicitly deferred to the tech design phase]
-- [Another question]
-
----
-
-## Assumptions
-
-| ID | Assumption | Status | Notes |
-|----|------------|--------|-------|
-| A1 | [Architecture-relevant assumption] | [Status] | [Notes] |
-
----
-
-## Relationship to Downstream
-
-- **This document settles:** [list]
-- **Epic specs settle:** [list]
-- **Tech design still decides:** [list]
-```
-
----
-
 ## Validation Before Handoff
+
+### Consumer Test (Critical)
+
+Read each feature section as an epic-writing agent would. For each feature, ask: could I expand this into a full epic — flows, line-level ACs, TCs, scope boundaries — without needing to ask the human foundational questions?
+
+**Foundational questions** mean the PRD failed: "What does the user actually do here?", "What's this feature supposed to accomplish?", "What scenarios does this cover?"
+
+**Refinement questions** are healthy and expected: "Should this edge case be in scope?", "How should these two scenarios interact?", "What's the right error behavior when X happens?"
+
+If a feature section would force foundational questions during epic expansion, it isn't ready.
+
+### Structural Checklist
 
 Before handing to the epic pipeline:
 
 - [ ] User Profile grounds every feature (trace the connection)
 - [ ] Problem Statement justifies the product (not just the features)
-- [ ] Each feature has Context, User Need, In Scope, Out of Scope, and Rolled-Up ACs
-- [ ] Rolled-Up ACs are specific enough to scope but general enough for epic expansion
+- [ ] Each feature has Feature Overview, Scope, and Scenarios with numbered ACs
+- [ ] Scenarios describe user situations with enough behavioral detail to decompose into epic flows
+- [ ] Rolled-up ACs are numbered, anchored under scenarios, and specific enough to decompose without invention
 - [ ] No line-level ACs, TCs, or data contracts (those belong in ls-epic)
 - [ ] Epic sequencing has rationale, not just an ordered list
 - [ ] Milestones define feedback-gated delivery phases
@@ -432,20 +367,8 @@ Before handing to the epic pipeline:
 - [ ] Out-of-scope items point to where they're handled if planned
 - [ ] Future directions are clearly marked as non-v1
 
-If producing a tech architecture document:
-- [ ] Architecture thesis captures the system's fundamental shape in one paragraph
-- [ ] Core stack table covers the decisions that constrain downstream work, with versions where they matter
-- [ ] System shape establishes boundaries and ownership
-- [ ] Boundaries and flows orient downstream writers on seams and request paths
-- [ ] Cross-cutting decisions include choice, rationale, and consequence
-- [ ] Constraints that affect epic scoping are explicit
-- [ ] Open questions explicitly deferred to tech design (not left ambiguous)
-- [ ] Relationship to downstream is clear (what this settles vs what epics and tech design settle)
-- [ ] Stays at 50k-25k altitude (no module decomposition, interfaces, or test mapping)
-
 **Self-review:**
-- Read the feature sections as an epic writer would. Can you scope each epic from the rolled-up ACs? If not, the PRD isn't specific enough.
-- Read the architecture summary as a tech lead would. Can you start designing without re-litigating foundational decisions? If not, the architecture isn't decisive enough.
+- Read the feature sections as an epic writer would. Can you expand each feature into a full epic from the scenarios and ACs? If you'd need to ask foundational questions, the feature section isn't ready. If you'd only need refinement questions, it's doing its job.
 
 ---
 
@@ -463,9 +386,10 @@ Use the following template when producing a PRD.
 ## Status
 
 This PRD defines the product direction, feature scope, and epic sequencing for
-[product name]. Feature sections are shaped like lightweight epics — user context,
-scope, and rolled-up acceptance criteria — but stop short of line-level ACs and
-test conditions. Those belong in the full epic specs that follow.
+[product name]. Each feature section is a compressed proto-epic: user scenarios,
+numbered rolled-up acceptance criteria, and scope boundaries — structured for
+downstream expansion into full epics with line-level ACs, TCs, and story
+breakdowns.
 
 ---
 
@@ -540,27 +464,40 @@ Pointer to full tech architecture doc if applicable.]
 
 ## Feature 1: [Name]
 
-### Context
+### Feature Overview
 
-[Why this feature matters at this point in the sequence.]
+[What the user can do after this feature ships. Why it matters in the sequence —
+what it builds on, what it enables.]
 
-### User Need
+### Scope
 
-[What the user wants to do.]
+#### In Scope
 
-### In Scope
+- [Concrete capability]
+- [Concrete capability]
 
-- [Capability]
-- [Capability]
-
-### Out of Scope
+#### Out of Scope
 
 - [Excluded capability] ([which feature handles it, or "not planned"])
 
-### Rolled-Up Acceptance Criteria
+### Scenarios
 
-[Prose description of expected behavior. Specific enough to test against,
-general enough for the epic phase to decompose into precise ACs and TCs.]
+#### Scenario 1: [User situation name]
+
+[Prose description of this user scenario — when it applies, what the user is
+trying to accomplish, what the system does. High-level steps if sequential.]
+
+**AC-1:** [Rolled-up criterion covering a coherent cluster of behavior.
+Specific enough to decompose into line-level ACs, general enough to leave
+room for TCs.]
+
+**AC-2:** [Another rolled-up criterion under this scenario.]
+
+#### Scenario 2: [User situation name]
+
+[Same pattern]
+
+**AC-3:** [Criterion]
 
 ---
 
@@ -600,8 +537,9 @@ what* with traceability. The tech designs define *how*.
 
 - [ ] User Profile grounds every feature
 - [ ] Problem Statement justifies the product
-- [ ] Each feature has Context, User Need, Scope, and Rolled-Up ACs
-- [ ] Rolled-Up ACs are specific enough to scope, general enough for epic expansion
+- [ ] Each feature has Feature Overview, Scope, and Scenarios with numbered ACs
+- [ ] Scenarios describe user situations with enough detail to decompose into epic flows
+- [ ] Rolled-up ACs are decomposable without the epic writer inventing behavior
 - [ ] No line-level ACs, TCs, or data contracts
 - [ ] Out-of-scope items point to where they're handled if planned
 - [ ] Milestones define feedback-gated phases
@@ -609,6 +547,8 @@ what* with traceability. The tech designs define *how*.
 - [ ] Architecture summary establishes technical world
 - [ ] Cross-cutting decisions documented
 - [ ] Epic sequencing has rationale
+- [ ] Consumer test: each feature section can be expanded into a full epic
+  without foundational questions about user intent or feature purpose
 ```
 
 ### Template End

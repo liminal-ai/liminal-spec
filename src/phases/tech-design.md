@@ -4,6 +4,8 @@
 
 **This phase is the downstream consumer of the Epic.** If you can't design from it, the spec isn't ready. Validation is part of the quality gate.
 
+**When a Technical Architecture document exists,** also read it before designing. The tech arch establishes the technical world — system shape, core stack, cross-cutting decisions, and the top-tier surfaces (primary domains or organizing surfaces) that structure the system. The epic defines *what* this feature does. The tech arch defines *what technical world* it lives in. Your design works within both.
+
 ## Output Structure
 
 The tech design always produces at least two documents:
@@ -41,6 +43,12 @@ Before designing, validate the Epic:
 
 If issues found → return to BA for revision. Don't design from a broken spec.
 
+**When a tech arch exists,** also validate against it:
+- Does the epic's scope fit within the top-tier surfaces the tech arch defined?
+- Are the cross-cutting decisions (auth, error handling, state management) compatible with what this epic needs?
+- Are there tech arch assumptions that this epic's requirements challenge?
+- Flag tensions early — they're cheaper to resolve before design than during implementation.
+
 ### As Designer
 
 Once validated, produce:
@@ -57,6 +65,8 @@ Once validated, produce:
 Design from high to low. Don't skip levels. The template structures sections from system view down to interface definitions — use the altitude model to calibrate your depth at each level, but don't surface altitude labels in your output headings.
 
 ### High Altitude (30,000 ft) — System Context
+
+When a tech arch exists, the System Context inherits rather than re-derives. The tech arch already established system shape, boundaries, and communication patterns at 50k-20k ft. Your System Context narrows that to this epic's slice — which top-tier surfaces this epic touches, which external boundaries are relevant, what data flows through them for this epic's functionality. When no tech arch exists, derive from scratch.
 
 ```markdown
 ## System Context
@@ -75,6 +85,12 @@ Guidewire → Embed with params → Fetch locations → User selects → Return 
 ```
 
 ### Medium Altitude (10,000 ft) — Module Architecture
+
+**When a tech arch exists,** start from: which top-tier surfaces does this epic live in? The file tree and module responsibility matrix should nest within those inherited surfaces, not create a parallel organizing structure. If this epic needs a module that doesn't fit in any surface the tech arch defined, that's a deviation — document it in the Issues Found table and surface it upstream. The inherited surfaces are the shared vocabulary across all epics; respecting them keeps the system coherent.
+
+**When no tech arch exists,** still ask: what are the primary organizing surfaces of this system? If you can infer them from the codebase, state them as locally derived context. If the surface map is materially unclear, flag it as a discussion point with the human — don't silently invent a full system architecture. The goal is coherent decomposition for this epic, not a substitute tech arch.
+
+**Human-first module design.** The module structure should be designed for human navigability. If a human can't look at the responsibility matrix and immediately know where to go for any capability in this epic, it's over-segmented. If half the epic's functionality is jammed into one module, it's under-decomposed. Strong human abstractions are also the most model-navigable abstractions — models work better within clear responsibility boundaries than within structures optimized for technical purity.
 
 ```markdown
 ## Module Architecture
@@ -219,6 +235,8 @@ jest.mock('@/features/add-location/hooks/useLocations');
 
 **Why API boundary:** Tests the real integration (Component → Hook → React Query → mock). Catches hook wiring bugs.
 
+**When inherited top-tier surfaces exist,** they inform where to *enter* for high-leverage testing, not where to *mock*. Top-tier surfaces are internal responsibility zones — they're the natural entry points from which a single test exercises broad functionality with consistent input patterns. But mocking stays at external boundaries per the service mock philosophy: mock where your code ends and external systems begin (network, database, filesystem), never between your own internal domains. A test that enters at a top-tier surface boundary should exercise all internal modules within it and mock only what's truly external.
+
 ### TC to Test Mapping (Critical)
 
 The test plan must explicitly map every TC from the Epic to a test. This is the Confidence Chain in action: AC → TC → Test → Implementation.
@@ -314,15 +332,30 @@ Chunk 0 → Chunk 1 → Chunk 2
 
 ## Dependency and Version Grounding
 
+**When a tech arch exists,** distinguish between inherited and epic-scoped decisions. Core stack choices (framework, runtime, data layer, auth) are already settled — don't re-research them unless something specific to this epic challenges them. Epic-scoped dependencies (feature-specific libraries, adapters, connectors) get fresh research. If deeper research reveals that an inherited decision needs revision, treat it as a deviation: proceed with the better approach, document the rationale in the Issues Found table, and surface it upstream for backfill.
+
 Dependency and version choices must be grounded by current web research, not training data. This is especially important for fast-moving ecosystems (build tools, frameworks, runtimes, packaging tools). Training data goes stale; the npm registry and GitHub releases don't.
 
-Before pinning any version, research the current ecosystem status: latest stable version, known breaking changes, compatibility with the project's existing stack, and whether the package is actively maintained. Document your findings in a Stack Additions table:
+Before pinning any epic-scoped version, research the current ecosystem status: latest stable version, known breaking changes, compatibility with the project's existing stack, and whether the package is actively maintained. Document your findings in a Stack Additions table:
 
 | Package | Version | Purpose | Research Confirmed |
 |---------|---------|---------|-------------------|
 | [package] | [version] | [why this package] | Yes — [key finding from research] |
 
 Also document packages considered and rejected, with rationale. This prevents future designers from re-evaluating the same alternatives.
+
+---
+
+## Upstream Document Evolution
+
+Downstream work regularly surfaces new facts that reveal the need to realign upstream decisions. When the tech design discovers that a tech arch decision or an epic assumption needs revision — whether through deeper dependency research, implementation reality, or evolved understanding:
+
+- **Proceed with the better approach.** Don't block progress waiting for upstream approval.
+- **Document the deviation and rationale** in the Issues Found table. Include what the upstream document says, what the design does instead, and why.
+- **Surface it upstream** to the orchestrator or human as a suggested update. The orchestrator tracks the backfill task.
+- **The upstream documents are the starting position,** not inviolable sources of truth. Common sense and fresh appraisal of the problem space based on new knowledge, not artificial adherence to upstream documents.
+
+This applies to both the epic and the tech arch. The Issues Found table in the template already supports this — use the "Resolved — deviated" status for design-time deviations.
 
 ---
 
@@ -353,6 +386,10 @@ After completing the test plan, do a single mechanical reconciliation pass: per-
 - [ ] Non-TC decided tests identified and assigned to chunks
 - [ ] Test counts estimated (TC tests + non-TC tests)
 - [ ] No circular dependencies
+- [ ] Top-tier surfaces stated (inherited from tech arch, or locally derived with rationale)
+- [ ] Modules nest within inherited surfaces (or deviations documented in Issues Found)
+- [ ] Inherited stack decisions respected (or deviations documented with rationale)
+- [ ] Epic-scoped dependency additions grounded in fresh research
 
 **Self-review (CRITICAL):**
 - Read your own design critically
