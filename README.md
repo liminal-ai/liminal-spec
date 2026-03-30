@@ -55,13 +55,20 @@ You don't have to use the full pipeline. If you already have requirements, start
 
 ## Try It Out
 
-### If you have Claude Code
+### If you have Claude Code or another AI coding agent
 
 Download the skill pack from [Releases](https://github.com/liminal-ai/liminal-spec/releases) and unzip into your skills directory:
 
 ```bash
+# Claude Code
 unzip liminal-spec-skill-pack.zip -d ~/.claude/
+
+# Other agents (Copilot, Codex, Gemini CLI, Cursor, Windsurf, Antigravity, etc.)
+# These agents use the .agents directory as a shared skills harness
+unzip liminal-spec-skill-pack.zip -d ~/.agents/
 ```
+
+We do not support the Claude Code plugin and plugin marketplace formats. They are buggy, confusing, only work with Claude Code, and often lead to working with stale versions of the artifacts without realizing it. We are investigating simpler, better-functioning mechanisms to distribute a pack of skills, agents, and commands together that work more intuitively across coding agent platforms. Versions of this should be out by early to mid April 2026.
 
 Start a new conversation in your project. The easiest first experience is writing an epic for something you already understand well, like a feature you've been thinking about or a piece of work already on your board.
 
