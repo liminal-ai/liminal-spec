@@ -68,9 +68,9 @@ unzip liminal-spec-skill-pack.zip -d ~/.claude/
 unzip liminal-spec-skill-pack.zip -d ~/.agents/
 ```
 
-We do not support the Claude Code plugin and plugin marketplace formats. They are buggy, confusing, only work with Claude Code, and often lead to working with stale versions of the artifacts without realizing it. We are investigating simpler, better-functioning mechanisms to distribute a pack of skills, agents, and commands together that work more intuitively across coding agent platforms. Versions of this should be out by early to mid April 2026.
+We no longer support the Claude Code plugin and plugin marketplace formats. They are buggy, confusing, only work with Claude Code, and often lead to working with stale versions of the artifacts without realizing it. We are investigating simpler, better-functioning mechanisms to distribute a pack of skills, agents, and commands together that work more intuitively across coding agent platforms. Versions of this should be out by early to mid April 2026.
 
-Start a new conversation in your project. The easiest first experience is writing an epic for something you already understand well, like a feature you've been thinking about or a piece of work already on your board.
+Once installed, start a new conversation in your project. The easiest first experience is writing an epic for something you already understand well, like a feature you've been thinking about or a piece of work already on your board.
 
 Tell Claude: "I want to write a spec for [your feature]. Use ls-epic."
 
