@@ -6,6 +6,7 @@
  *
  * Output structure:
  *   dist/skills/{name}/SKILL.md              -- YAML frontmatter + composed content
+ *   dist/skills/{name}/references/*.md       -- Optional bundled companion guides
  *   dist/standalone/{name}-skill.md          -- Frontmatter-stripped single skill markdown
  *   dist/standalone/liminal-spec-skill-pack.zip
  *   dist/standalone/liminal-spec-markdown-pack.zip
@@ -26,6 +27,7 @@ interface SkillEntry {
   description: string;
   phases: string[];
   shared: string[];
+  references?: string[];
   templates?: string[];
   examples?: string[];
 }
@@ -61,6 +63,8 @@ const STANDALONE_NAMES: Record<string, string> = {
   "ls-epic": "02-epic",
   "ls-tech-design": "03-technical-design",
   "ls-publish-epic": "04-publish-epic",
+  "ls-current-docs": "05-current-docs",
+  "ls-codex-impl": "06c-codex-implementation",
   "ls-team-impl": "06-team-implementation",
   "ls-team-impl-cc": "06cc-team-implementation-claude-code",
   "ls-team-spec": "07-team-spec",
@@ -184,6 +188,24 @@ async function composeSkill(skill: SkillEntry): Promise<string> {
   return parts.join("\n");
 }
 
+async function copyBundledMarkdownFiles(
+  dirName: string,
+  fileIds: string[] | undefined,
+  destinationRoot: string
+): Promise<void> {
+  if (!fileIds || fileIds.length === 0) {
+    return;
+  }
+
+  const destinationDir = join(destinationRoot, dirName);
+  await mkdir(destinationDir, { recursive: true });
+
+  for (const fileId of fileIds) {
+    const content = await readSourceFile(`${dirName}/${fileId}.md`);
+    await Bun.write(join(destinationDir, `${fileId}.md`), content);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main build
 // ---------------------------------------------------------------------------
@@ -215,6 +237,7 @@ async function build(): Promise<void> {
     const skillDir = join(DIST_SKILLS, key);
     await mkdir(skillDir, { recursive: true });
     await Bun.write(join(skillDir, "SKILL.md"), composed);
+    await copyBundledMarkdownFiles("references", skill.references, skillDir);
 
     // Standalone .md output (no frontmatter, for paste-into-chat)
     const standalone = stripFrontmatter(composed);
@@ -227,6 +250,7 @@ async function build(): Promise<void> {
     const skillPkgDir = join(SKILL_PACK_DIR, key);
     await mkdir(skillPkgDir, { recursive: true });
     await Bun.write(join(skillPkgDir, "SKILL.md"), composed);
+    await copyBundledMarkdownFiles("references", skill.references, skillPkgDir);
 
     skillSummary.push({ name: key, lines: lineCount });
     console.log(`  skill: ${key} (${lineCount} lines)`);

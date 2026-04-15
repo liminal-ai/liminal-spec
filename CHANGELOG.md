@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.2.0 (2026-04-15)
+
+Codex-native implementation orchestration and current-docs continuity formalized as first-class release surfaces.
+
+### Added
+
+- **`ls-codex-impl` skill:** Codex-native implementation orchestration with `gpt-5.4 xhigh` as the persistent orchestrator, Codex workers as the implementation lane, and dual fresh verification from Codex and Claude Sonnet. The skill now includes explicit blocking-dependency continuation rules, waiting states, timeout recovery, no-fire-and-forget language for blocking work, durable report artifact requirements, and stronger role-boundary rules so the orchestrator stays an orchestrator rather than collapsing into a worker.
+
+### Changed
+
+- **`ls-current-docs` skill** (renamed from `ls-current-state`): continuity/current-docs skill is now presented under the final public name `ls-current-docs` across manifest, build outputs, standalone markdown, and user-facing docs.
+- **Scoped currentness discipline** added to `ls-current-docs`: current behavior must now be calibrated by producing surface, entrypoint, platform, and ownership seam. The skill now requires explicit distinction between currently produced behavior, supported-but-not-currently-produced behavior, and planned-not-current behavior.
+- **Config selection and refresh stability** tightened in `ls-current-docs`: runs must declare Config A vs Config B with justification, and refresh mode preserves prior layout unless there is a stated reason to restructure.
+- **Functional output contracts** tightened: compact and domain-level functional docs now require a stricter section floor and stronger extension guidance.
+- **Code-map contract** tightened: code maps must include targeted read orders for server/API, client/UI, and durable-state/data-model work, plus major behavior-owning routes, services, contract roots, persistence roots, non-obvious tested components, and repo-level workflow support surfaces when relevant.
+- **Technical baseline guidance** tightened: current technical docs now explicitly call out surface / entrypoint / platform scope where behavior differs by runtime or OS assumptions, and include workflow-support docs/scripts when they materially shape implementation or QA.
+- **Drift and consumer-test gates** strengthened: drift ledgers must track supported/planned-but-not-current surfaces, and completion now requires explicit answers about whether fresh spec, design, and implementation agents can proceed without historical replay and whether they can distinguish the real differences between current supported types or modes.
+
+---
+
 ## v1.1.1 (2026-04-05)
 
 Requirements intake discipline. Structured Socratic clarification for ls-prd and ls-epic before drafting from vague input.

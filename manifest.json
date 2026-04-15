@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
+  "version": "1.2.0",
   "skills": {
     "ls-prd": {
       "name": "ls-prd",
@@ -71,6 +71,31 @@
         "confidence-chain",
         "writing-style-epic"
       ]
+    },
+    "ls-current-docs": {
+      "name": "ls-current-docs",
+      "description": "Reconstruct an evidence-bound current-state baseline from implemented code, tests, runtime surfaces, and historical specs so fresh agents can onboard without replaying every prior epic. Use this whenever the user needs to understand what an implemented system currently does, wants current-state docs after an epic ships, is onboarding onto a mature codebase whose older epics no longer describe the whole, or needs current functional + technical truth before writing the next spec.",
+      "phases": [
+        "current-state"
+      ],
+      "shared": [
+        "confidence-chain",
+        "context-isolation",
+        "dimensional-reasoning"
+      ],
+      "references": [
+        "current-state-functional",
+        "current-state-technical",
+        "current-state-code-map"
+      ]
+    },
+    "ls-codex-impl": {
+      "name": "ls-codex-impl",
+      "description": "Orchestrate story-by-story implementation inside Codex with gpt-5.4 xhigh as the persistent orchestrator, Codex workers for implementation, and dual fresh verification from gpt-5.4 xhigh and claude sonnet 4.6 max. Use this whenever the user has published stories plus a tech design and test plan and wants Codex itself to run the implementation harness rather than Claude Code teams or a raw external CLI loop.",
+      "phases": [
+        "codex-impl"
+      ],
+      "shared": []
     },
     "ls-team-impl": {
       "name": "ls-team-impl",

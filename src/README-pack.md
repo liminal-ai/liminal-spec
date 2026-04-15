@@ -1,4 +1,4 @@
-# Liminal Spec — Skill Pack (v1.1.1)
+# Liminal Spec — Skill Pack (v1.2.0)
 
 A set of skills for spec-driven software development with AI coding assistants. Liminal Spec guides agents through a structured pipeline: define what you're building (PRD), settle the technical world (Tech Architecture), specify the requirements in detail (Epic), design the implementation (Tech Design), and publish implementable stories. Each phase produces an artifact the next phase reads cold — no shared conversation history, no accumulated assumptions. The traceability chain (requirement → test condition → test → code) means when tests go green, the implementation matches the spec.
 
@@ -11,6 +11,8 @@ A set of skills for spec-driven software development with AI coding assistants. 
 | **ls-epic** | Write a complete, traceable Epic — User Profile, Flows, ACs, TCs, Data Contracts, Story Breakdown. |
 | **ls-tech-design** | Transform an Epic into an implementable Tech Design with architecture, interfaces, and test mapping. |
 | **ls-publish-epic** | Publish an Epic as individual story files with full AC/TC detail and technical notes. |
+| **ls-current-docs** | Reconstruct the current functional baseline, technical baseline, and code-reading map from implemented code, tests, runtime surfaces, and historical specs. Bundles focused functional, technical, and code-map companion guides in the installed skill pack. |
+| **ls-codex-impl** | Codex-native implementation orchestration with one persistent gpt-5.4 orchestrator, Codex implementation lanes, and dual fresh verification from Codex and Sonnet. |
 | **ls-team-spec** | Orchestrate the full spec pipeline with agent teams and external CLI verification. |
 | **ls-team-impl** | Orchestrate implementation with agent teams and Codex/Copilot CLI. |
 | **ls-team-impl-cc** | Orchestrate implementation with Claude Code agent teams. Sonnet implements, Opus and Sonnet verify. |
@@ -36,6 +38,11 @@ Or cherry-pick individual skill directories — each is self-contained.
 Each `.md` file is a self-contained skill. Paste directly into Claude, ChatGPT, Codex, or any AI assistant that accepts instructions.
 
 ## Changelog
+
+### v1.2.0 (2026-04-15)
+
+- **`ls-codex-impl` added** — Codex-native implementation orchestration with one persistent `gpt-5.4 xhigh` orchestrator, Codex worker lanes, and dual fresh verification from Codex and Claude Sonnet.
+- **`ls-current-docs` formalized** — continuity/current-docs skill is now published under its final public name and tightened around scoped currentness: producing surface, entrypoint, platform dependence, and ownership seam must be made explicit when documenting current behavior.
 
 ### v1.1.1 (2026-04-05)
 

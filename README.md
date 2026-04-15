@@ -35,7 +35,7 @@ The specs produced by this process are blueprints for a build, not living applic
 
 ## How It Works
 
-The pipeline has five phases. Each produces an artifact the next phase consumes.
+The pipeline has five build phases plus one continuity skill. Each phase produces an artifact the next phase consumes. The continuity skill reconstructs the current baseline after implementation cycles so fresh agents can onboard without replaying every historical epic.
 
 **1. PRD** (`ls-prd`) -- Define what you're building across 3-8 features. Each feature section has user scenarios and acceptance criteria at a level of detail that lets the next phase expand them without going back to the human for basic questions. Run alongside `ls-arch` (Technical Architecture) to settle the technical world: stack, system shape, major boundaries.
 
@@ -45,13 +45,17 @@ The pipeline has five phases. Each produces an artifact the next phase consumes.
 
 **4. Publish Epic** (`ls-publish-epic`) -- Break the epic into individual story files, each with full acceptance criteria, test conditions, and technical notes from the tech design. Produces a coverage artifact proving every requirement is assigned to exactly one story. Optionally produces a PO-friendly business epic.
 
-**5. Implement** (`ls-team-impl-cc` or `ls-team-impl`) -- Orchestrate story-by-story implementation with agent teams. TDD methodology (skeleton, red, green per story). External model verification. Each story gets a fresh implementer and a fresh reviewer. No carrying assumptions between stories.
+**5. Implement** (`ls-codex-impl`, `ls-team-impl-cc`, or `ls-team-impl`) -- Orchestrate story-by-story implementation with a persistent orchestrator and fresh workers per story. `ls-codex-impl` is the Codex-native harness with Codex implementation lanes and dual fresh verification from Codex and Sonnet. `ls-team-impl-cc` is the Claude Code teams version. `ls-team-impl` uses external CLI workers.
 
-You don't have to use the full pipeline. If you already have requirements, start at step 2. If you have a spec, start at step 3. If you have stories, start at step 5.
+**Current Docs** (`ls-current-docs`) -- Reconstruct the current functional baseline, technical baseline, and code-reading map from implemented code, tests, runtime/config surfaces, and historical specs. Use it after one or more implementation cycles, or when onboarding onto a mature system whose prior epics no longer describe the current whole.
+
+`ls-current-docs` is best used from the installed skill pack. The installed version bundles focused companion guides for functional drafting, technical drafting, and code-map drafting while keeping the main skill file sufficient on its own.
+
+You don't have to use the full pipeline. If you already have requirements, start at step 2. If you have a spec, start at step 3. If you have stories, start at step 5. If you need to onboard onto an implemented system, start with `ls-current-docs`.
 
 ### Team Orchestration
 
-`ls-team-spec` orchestrates the spec pipeline (steps 1-4) with agent teams: drafters, external verifiers, and human review gates. `ls-team-impl-cc` and `ls-team-impl` orchestrate implementation (step 5) with Claude Code teams or external CLI models (Codex, Copilot).
+`ls-team-spec` orchestrates the spec pipeline (steps 1-4) with agent teams: drafters, external verifiers, and human review gates. `ls-codex-impl`, `ls-team-impl-cc`, and `ls-team-impl` orchestrate implementation (step 5) with Codex-native workers, Claude Code teams, or external CLI models (Codex, Copilot).
 
 ## Try It Out
 
@@ -68,7 +72,7 @@ unzip liminal-spec-skill-pack.zip -d ~/.claude/
 unzip liminal-spec-skill-pack.zip -d ~/.agents/
 ```
 
-We no longer support the Claude Code plugin and plugin marketplace formats. They are buggy, confusing, only work with Claude Code, and often lead to working with stale versions of the artifacts without realizing it. We are investigating simpler, better-functioning mechanisms to distribute a pack of skills, agents, and commands together that work more intuitively across coding agent platforms. Versions of this should be out by early to mid April 2026.
+We no longer support the Claude Code plugin and plugin marketplace formats. They are buggy, confusing, only work with Claude Code, and often lead to working with stale versions of the artifacts without realizing it. We are investigating simpler, better-functioning mechanisms to distribute a pack of skills, agents, and commands together that work more intuitively across coding agent platforms.
 
 Once installed, start a new conversation in your project. The easiest first experience is writing an epic for something you already understand well, like a feature you've been thinking about or a piece of work already on your board.
 
@@ -99,6 +103,8 @@ A good first test: after the epic is done, read the acceptance criteria and test
 | `ls-epic` | Functional specification: acceptance criteria, test conditions, story breakdown |
 | `ls-tech-design` | Implementation design: modules, interfaces, test mapping, work plan |
 | `ls-publish-epic` | Story files with full AC/TC detail, Jira markers, coverage artifact |
+| `ls-current-docs` | Current-state functional + technical baseline for onboarding and continuity |
+| `ls-codex-impl` | Codex-native implementation orchestration with Codex workers and Sonnet verification |
 | `ls-team-spec` | Spec pipeline orchestration with agent teams |
 | `ls-team-impl` | Implementation orchestration with Codex/Copilot CLI |
 | `ls-team-impl-cc` | Implementation orchestration with Claude Code agent teams |
@@ -126,6 +132,7 @@ bun run verify      # Build + validate + test (primary gate)
 ```
 src/
   phases/          -- Phase-specific content (one per skill)
+  references/      -- Bundled companion guides for installed-skill-first workflows
   shared/          -- Cross-cutting concepts used by multiple skills
   templates/       -- Artifact templates (tech design)
   examples/        -- Verification prompt templates

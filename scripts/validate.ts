@@ -3,6 +3,7 @@
  *
  * Checks dist/ output for structural correctness:
  *   - Skill files have valid YAML frontmatter
+ *   - Bundled reference files exist when declared in manifest.json
  *   - Standalone files exist and lack frontmatter
  *   - Pack zips exist and are non-empty
  *   - manifest.json conforms to schema
@@ -95,6 +96,7 @@ const SkillSchema = z.object({
   description: z.string().min(1),
   phases: z.array(z.string().min(1)).min(1),
   shared: z.array(z.string().min(1)),
+  references: z.array(z.string().min(1)).optional(),
   templates: z.array(z.string().min(1)).optional(),
   examples: z.array(z.string().min(1)).optional(),
 });
@@ -273,6 +275,40 @@ async function validateManifest(): Promise<void> {
   console.log(`  manifest.json: valid (v${parsed.data.version})`);
 }
 
+async function validateBundledReferences(): Promise<void> {
+  const manifestPath = join(ROOT, "manifest.json");
+  const parsed = ManifestSchema.safeParse(await Bun.file(manifestPath).json());
+  if (!parsed.success) {
+    return;
+  }
+
+  for (const [skillId, skill] of Object.entries(parsed.data.skills)) {
+    if (!skill.references || skill.references.length === 0) {
+      continue;
+    }
+
+    for (const ref of skill.references) {
+      const fullPath = join(DIST_SKILLS, skillId, "references", `${ref}.md`);
+      if (!(await fileExists(fullPath))) {
+        result.errors.push(
+          `Skill '${skillId}': missing bundled reference references/${ref}.md`
+        );
+        continue;
+      }
+
+      const content = await readFile(fullPath);
+      if (content.trim().length === 0) {
+        result.errors.push(
+          `Skill '${skillId}': bundled reference references/${ref}.md is empty`
+        );
+        continue;
+      }
+
+      console.log(`  reference: ${skillId}/references/${ref}.md`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -288,6 +324,9 @@ async function validate(): Promise<void> {
 
   console.log("\nManifest:");
   await validateManifest();
+
+  console.log("\nBundled References:");
+  await validateBundledReferences();
 
   // Summary
   console.log("\n---");

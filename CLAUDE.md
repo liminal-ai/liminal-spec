@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A spec-driven development methodology packaged as a **skill pack**. The pack contains 8 self-contained skills — 5 for the full pipeline and 3 for team orchestration.
+A spec-driven development methodology packaged as a **skill pack**. The pack contains 10 self-contained skills — 5 for the full pipeline, 1 current-docs continuity skill, and 4 team orchestration skills.
 
 This is NOT a library or npm package. The build output is markdown files organized as installable skill directories. There are two distribution channels:
 
@@ -22,6 +22,9 @@ dist/
     ls-epic/SKILL.md            -- Epic (Phase 1)
     ls-tech-design/SKILL.md     -- Tech Design (Phase 2)
     ls-publish-epic/SKILL.md    -- Publish Epic (Phase 3)
+    ls-codex-impl/SKILL.md      -- Codex Implementation Orchestration
+    ls-current-docs/SKILL.md   -- Current Docs Baseline
+    ls-current-docs/references/ -- Installed-skill companion guides for functional + technical + code-map drafting
     ls-team-spec/SKILL.md       -- Team: Spec Pipeline Orchestration
     ls-team-impl/SKILL.md       -- Team: Implementation with CLI
     ls-team-impl-cc/SKILL.md    -- Team: Implementation with Claude Code teams
@@ -31,7 +34,7 @@ dist/
     liminal-spec-markdown-pack.zip
 ```
 
-Each skill SKILL.md has YAML frontmatter (`name` + `description`) and is self-contained -- all shared concepts (confidence chain, writing style, etc.) are inlined by the build. No progressive disclosure, no reference file loading needed.
+Most skills are self-contained in `SKILL.md` with shared concepts inlined by the build. `ls-current-docs` also bundles focused companion reference docs for installed-skill use while keeping the main `SKILL.md` sufficient on its own.
 
 ## Project
 
@@ -41,7 +44,8 @@ Source-based skill with build composition. Edit in `src/`, never in `dist/`.
 
 ```
 src/
-  phases/          -- Phase-specific content (one per skill: prd, arch, epic, tech-design, publish-epic, team-impl, team-impl-cc, team-spec)
+  phases/          -- Phase-specific content (one per skill: prd, arch, epic, tech-design, publish-epic, current-state, team-impl, team-impl-cc, team-spec)
+  references/      -- Bundled companion guides for installed-skill-first workflows
   shared/          -- Cross-cutting concepts inlined into multiple skills by the build
   templates/       -- Artifact templates (tech design)
   examples/        -- Verification prompt templates
@@ -67,11 +71,11 @@ bun run verify      # Build + validate + tests
 
 ### How the Build Works
 
-`manifest.json` declares which shared files each phase skill needs. `scripts/build.ts` reads the manifest, concatenates phase content + shared content in declared order, wraps with SKILL.md YAML frontmatter, and outputs to `dist/skills/<name>/SKILL.md`. It also strips frontmatter and outputs per-phase markdown files (`dist/standalone/*-skill.md`) plus pack zips for release distribution.
+`manifest.json` declares which shared files each phase skill needs, and may also bundle companion references for installed-skill-first workflows. `scripts/build.ts` reads the manifest, concatenates phase content + shared content in declared order, wraps with SKILL.md YAML frontmatter, and outputs to `dist/skills/<name>/SKILL.md`. When a skill declares bundled references, the build copies them into `dist/skills/<name>/references/`. It also strips frontmatter and outputs per-phase markdown files (`dist/standalone/*-skill.md`) plus pack zips for release distribution.
 
 ### What Gets Built
 
-**Skills** (8 self-contained skills — 5 full pipeline, 3 team orchestration):
+**Skills** (10 self-contained skills — 5 full pipeline, 1 current-docs continuity, 4 team orchestration):
 
 | Skill | Phase | Primary source | Shared dependencies |
 |-------|-------|----------------|---------------------|
@@ -80,6 +84,8 @@ bun run verify      # Build + validate + tests
 | `ls-epic` | 1 | `src/phases/epic.md` | confidence-chain, context-isolation, writing-style-epic |
 | `ls-tech-design` | 2 | `src/phases/tech-design.md` | confidence-chain, verification-model, writing-style, testing |
 | `ls-publish-epic` | 3 | `src/phases/publish-epic.md` | confidence-chain, writing-style-epic |
+| `ls-current-docs` | Current | `src/phases/current-state.md` | confidence-chain, context-isolation, dimensional-reasoning |
+| `ls-codex-impl` | Team | `src/phases/codex-impl.md` | (none — self-contained) |
 | `ls-team-impl` | Team | `src/phases/team-impl.md` | (none — self-contained) |
 | `ls-team-impl-cc` | Team | `src/phases/team-impl-cc.md` | (none — self-contained) |
 | `ls-team-spec` | Team | `src/phases/team-spec.md` | (none — self-contained) |

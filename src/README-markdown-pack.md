@@ -1,4 +1,4 @@
-# Liminal Spec — Markdown Pack (v1.1.1)
+# Liminal Spec — Markdown Pack (v1.2.0)
 
 Paste-into-chat skills for spec-driven software development. Each file is a self-contained skill — paste directly into Claude, ChatGPT, Codex, or any AI assistant that accepts instructions. No installation required.
 
@@ -13,6 +13,8 @@ Liminal Spec guides agents through a structured pipeline: define what you're bui
 | `02-epic-skill.md` | ls-epic | Write a complete, traceable Epic — ACs, TCs, Data Contracts, Story Breakdown |
 | `03-technical-design-skill.md` | ls-tech-design | Transform an Epic into an implementable Tech Design |
 | `04-publish-epic-skill.md` | ls-publish-epic | Publish an Epic as individual story files with technical notes |
+| `05-current-docs-skill.md` | ls-current-docs | Reconstruct the current functional baseline, technical baseline, and code-reading map for onboarding onto implemented systems (installed skill pack preferred for bundled companion guides) |
+| `06c-codex-implementation-skill.md` | ls-codex-impl | Codex-native implementation orchestration with Codex workers and Sonnet verification |
 | `06-team-implementation-skill.md` | ls-team-impl | Orchestrate implementation with agent teams and Codex/Copilot CLI |
 | `06cc-team-implementation-claude-code-skill.md` | ls-team-impl-cc | Orchestrate implementation with Claude Code agent teams |
 | `07-team-spec-skill.md` | ls-team-spec | Orchestrate the full spec pipeline with agent teams |
@@ -22,6 +24,11 @@ Liminal Spec guides agents through a structured pipeline: define what you're bui
 Pick the file for the phase you need. Paste the entire contents into your AI assistant's system instructions or conversation. Each file is self-contained — no dependencies on other files.
 
 ## Changelog
+
+### v1.2.0 (2026-04-15)
+
+**Added:** `ls-codex-impl` — Codex-native implementation orchestration with Codex workers and dual fresh Codex/Sonnet verification.  
+**Changed:** `ls-current-docs` — continuity/current-docs skill finalized under its public name and tightened around scoped currentness (producing surface, entrypoint, platform dependence, and ownership seam).
 
 ### v1.1.1 (2026-04-05)
 

@@ -65,6 +65,8 @@ describe("build script", () => {
     expect(buildOutput).toContain("skill: ls-epic");
     expect(buildOutput).toContain("skill: ls-tech-design");
     expect(buildOutput).toContain("skill: ls-publish-epic");
+    expect(buildOutput).toContain("skill: ls-current-docs");
+    expect(buildOutput).toContain("skill: ls-codex-impl");
     expect(buildOutput).toContain("skill: ls-team-impl");
     expect(buildOutput).toContain("skill: ls-team-impl-cc");
     expect(buildOutput).toContain("skill: ls-team-spec");
@@ -92,6 +94,8 @@ describe("skill output", () => {
     "ls-epic",
     "ls-tech-design",
     "ls-publish-epic",
+    "ls-current-docs",
+    "ls-codex-impl",
     "ls-team-impl",
     "ls-team-impl-cc",
     "ls-team-spec",
@@ -120,6 +124,22 @@ describe("skill output", () => {
       join(DIST, "plugin", ".claude-plugin", "plugin.json")
     ).exists();
     expect(pluginJson).toBe(false);
+  });
+
+  test("bundles current-state companion references for installed-skill use", async () => {
+    const functionalRef = await Bun.file(
+      join(DIST_SKILLS, "ls-current-docs", "references", "current-state-functional.md")
+    ).exists();
+    const technicalRef = await Bun.file(
+      join(DIST_SKILLS, "ls-current-docs", "references", "current-state-technical.md")
+    ).exists();
+    const codeMapRef = await Bun.file(
+      join(DIST_SKILLS, "ls-current-docs", "references", "current-state-code-map.md")
+    ).exists();
+
+    expect(functionalRef).toBe(true);
+    expect(technicalRef).toBe(true);
+    expect(codeMapRef).toBe(true);
   });
 });
 
@@ -154,6 +174,34 @@ describe("skill content", () => {
     expect(content).toContain("# Publish Epic");
     expect(content).toContain("Build Individual Story Files");
     expect(content).toContain("Coverage Gate");
+  });
+
+  test("current-docs contains baseline reconstruction content", async () => {
+    const content = await Bun.file(
+      join(DIST_SKILLS, "ls-current-docs", "SKILL.md")
+    ).text();
+    expect(content).toContain("# Current State Baseline");
+    expect(content).toContain("Evidence Hierarchy");
+    expect(content).toContain("Config Selection Rule");
+    expect(content).toContain("Produced vs Supported vs Planned");
+    expect(content).toContain("Overstatement Review Pass");
+    expect(content).toContain("references/current-state-functional.md");
+    expect(content).toContain("references/current-state-technical.md");
+    expect(content).toContain("references/current-state-code-map.md");
+    expect(content).toContain("current-state-code-map.md");
+    expect(content).toContain("Subagent Pattern");
+  });
+
+  test("codex-impl contains Codex-native orchestration content", async () => {
+    const content = await Bun.file(
+      join(DIST_SKILLS, "ls-codex-impl", "SKILL.md")
+    ).text();
+    expect(content).toContain("# Codex Implementation Orchestration");
+    expect(content).toContain("Startup Orientation");
+    expect(content).toContain("codex-impl-log.md");
+    expect(content).toContain("Convergence Loop");
+    expect(content).toContain("Prompt 3: Story Verifier - Sonnet");
+    expect(content).toContain("Feature-Level Verification");
   });
 
   test("team-impl contains CLI orchestration content", async () => {
@@ -213,8 +261,10 @@ describe("skill content", () => {
       "ls-arch",
       "ls-epic",
       "ls-tech-design",
+      "ls-current-docs",
     ];
     const skillsWithout = [
+      "ls-codex-impl",
       "ls-publish-epic",
       "ls-team-impl",
       "ls-team-impl-cc",
@@ -251,6 +301,7 @@ describe("skill content", () => {
   test("generated skills do not include legacy phrases", async () => {
     const expectedSkills = [
       "ls-prd", "ls-arch", "ls-epic", "ls-tech-design", "ls-publish-epic",
+      "ls-current-docs",
       "ls-team-impl", "ls-team-impl-cc", "ls-team-spec",
     ];
     for (const skill of expectedSkills) {
@@ -274,6 +325,8 @@ describe("standalone output", () => {
     "02-epic-skill.md",
     "03-technical-design-skill.md",
     "04-publish-epic-skill.md",
+    "05-current-docs-skill.md",
+    "06c-codex-implementation-skill.md",
     "06-team-implementation-skill.md",
     "06cc-team-implementation-claude-code-skill.md",
     "07-team-spec-skill.md",
@@ -349,6 +402,10 @@ describe("source file safety", () => {
       "src/phases/epic.md",
       "src/phases/tech-design.md",
       "src/phases/publish-epic.md",
+      "src/phases/current-state.md",
+      "src/references/current-state-functional.md",
+      "src/references/current-state-technical.md",
+      "src/references/current-state-code-map.md",
       "src/phases/team-impl.md",
       "src/phases/team-impl-cc.md",
       "src/phases/team-spec.md",

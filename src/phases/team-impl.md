@@ -319,8 +319,7 @@ When a story is accepted and committed:
 2. Update boundary inventory — check status of all external dependencies.
 3. Update log state:
    - If more stories remain → set state to `BETWEEN_STORIES`
-   - If this was the last story (and more than one story in the epic) → set state to `PRE_EPIC_VERIFY`
-   - If this was the only story → set state to `COMPLETE` (per-story verification already covers the full scope — skip pre-verification cleanup and epic-level verification)
+   - If this was the last story in the epic → set state to `PRE_EPIC_VERIFY`
 
 **If more stories remain: RELOAD THIS SKILL and continue.** If the next story was started without reloading the skill, the user will interrupt and roll back.
 
@@ -381,7 +380,7 @@ Then proceed to epic-level verification with a cleaner codebase.
 
 ## Epic-Level Verification
 
-After all stories are accepted and committed (and pre-verification cleanup is done), run a full-codebase review before shipping. Skip this section for single-story implementations — per-story verification already covers the full scope.
+After all stories are accepted and committed (and pre-verification cleanup is done), run a full-codebase review before shipping. This also applies to a single-story implementation.
 
 **RELOAD THIS SKILL before starting epic verification.**
 
