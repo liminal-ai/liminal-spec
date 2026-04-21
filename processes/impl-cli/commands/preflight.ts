@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
-import { ZodError } from "zod";
 
 import { nextArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import { classifyCommandError } from "../core/command-errors";
 import { loadRunConfig } from "../core/config-schema";
 import { resolveVerificationGates } from "../core/gate-discovery";
 import { inspectPromptAssets } from "../core/prompt-assets";
@@ -72,7 +72,7 @@ function unavailableProviderErrors(
 ): CliError[] {
   const errors: CliError[] = [];
 
-  if (!providerMatrix.primary.available) {
+  if (providerMatrix.primary.tier === "unavailable") {
     errors.push({
       code: "PROVIDER_UNAVAILABLE",
       message: "Primary harness is unavailable",
@@ -81,7 +81,7 @@ function unavailableProviderErrors(
   }
 
   for (const provider of providerMatrix.secondary) {
-    if (!provider.available) {
+    if (provider.tier === "unavailable") {
       errors.push({
         code: "PROVIDER_UNAVAILABLE",
         message: `Requested secondary harness is unavailable: ${provider.harness}`,
@@ -91,6 +91,20 @@ function unavailableProviderErrors(
   }
 
   return errors;
+}
+
+function authStatusUnknownNotes(
+  providerMatrix: PreflightResult["providerMatrix"]
+): string[] {
+  return [providerMatrix.primary, ...providerMatrix.secondary]
+    .filter(
+      (provider) =>
+        provider.tier === "binary-present" || provider.tier === "auth-unknown"
+    )
+    .map(
+      (provider) =>
+        `${provider.harness} auth status unknown — proceed if CLI works in your environment.`
+    );
 }
 
 export default defineCommand({
@@ -124,13 +138,10 @@ export default defineCommand({
   },
   async run({ args }) {
     const startedAt = new Date().toISOString();
+    const artifactPath = await nextArtifactPath(args["spec-pack-root"], "preflight");
 
     try {
       const inspectResult = await inspectSpecPack(args["spec-pack-root"]);
-      const artifactPath = await nextArtifactPath(
-        inspectResult.specPackRoot,
-        "preflight"
-      );
 
       if (inspectResult.status !== "ready") {
         const envelope: OutputEnvelope = createResultEnvelope({
@@ -181,7 +192,10 @@ export default defineCommand({
         explicitEpicGate: args["epic-gate"],
       });
       const promptAssets = inspectPromptAssets();
-      const notes = [...inspectResult.notes];
+      const notes = [
+        ...inspectResult.notes,
+        ...authStatusUnknownNotes(providerMatrix),
+      ];
 
       if (
         [
@@ -255,16 +269,11 @@ export default defineCommand({
       });
       process.exitCode = exitCodeForStatus(envelope.status, envelope.outcome);
     } catch (error) {
-      if (
-        error instanceof ZodError ||
-        (error instanceof Error &&
-          (error.message.includes("Cannot parse") ||
-            error.message.includes("Required config") ||
-            error.message.includes("JSON")))
-      ) {
+      const classification = classifyCommandError(error);
+      if (classification.code === "INVALID_RUN_CONFIG") {
         const envelope: OutputEnvelope = createResultEnvelope({
           command: "preflight",
-          outcome: "blocked",
+          outcome: classification.outcome,
           errors: [
             {
               code: "INVALID_RUN_CONFIG",
@@ -272,10 +281,17 @@ export default defineCommand({
               detail: error instanceof Error ? error.message : String(error),
             },
           ],
+          artifacts: [
+            {
+              kind: "result-envelope",
+              path: artifactPath,
+            },
+          ],
           startedAt,
           finishedAt: new Date().toISOString(),
         });
 
+        await writeJsonArtifact(artifactPath, envelope);
         emitOutput({
           envelope,
           json: Boolean(args.json),
@@ -293,10 +309,17 @@ export default defineCommand({
             message: error instanceof Error ? error.message : String(error),
           },
         ],
+        artifacts: [
+          {
+            kind: "result-envelope",
+            path: artifactPath,
+          },
+        ],
         startedAt,
         finishedAt: new Date().toISOString(),
       });
 
+      await writeJsonArtifact(artifactPath, envelope);
       emitOutput({
         envelope,
         json: Boolean(args.json),

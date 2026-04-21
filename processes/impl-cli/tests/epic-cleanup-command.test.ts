@@ -218,6 +218,107 @@ test("treats a reviewed cleanup batch with zero approved items as a cleaned no-o
   expect(envelope.result.changeSummary).toContain("no-op");
 });
 
+test("does not treat negated or superseded APPROVED text as actionable cleanup work", async () => {
+  const specPackRoot = await createEpicSpecPack("epic-cleanup-negated-approved");
+  await writeRunConfig(specPackRoot, createRunConfig());
+  const cleanupBatchPath = await writeCleanupBatch(
+    specPackRoot,
+    "cleanup-negated-approved.md",
+    [
+      "# Cleanup Batch",
+      "",
+      "- NOT APPROVED: do not widen the cleanup scope.",
+      "- pre-APPROVED drafts are not actionable.",
+      "- previously APPROVED but superseded by later review.",
+    ].join("\n")
+  );
+  const providerBinDir = await createTempDir("epic-cleanup-negated-approved-provider");
+  const { env, logPath } = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "codex",
+    responses: [],
+  });
+
+  const run = await runSourceCli(
+    [
+      "epic-cleanup",
+      "--spec-pack-root",
+      specPackRoot,
+      "--cleanup-batch",
+      cleanupBatchPath,
+      "--json",
+    ],
+    {
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    }
+  );
+
+  expect(run.exitCode).toBe(0);
+
+  const envelope = parseJsonOutput<any>(run.stdout);
+  expect(envelope.outcome).toBe("cleaned");
+  expect(envelope.result.filesChanged).toEqual([]);
+
+  expect(await Bun.file(logPath).exists()).toBe(false);
+});
+
+test("still treats the batch as actionable when a real approved item appears alongside plain-text not approved notes", async () => {
+  const specPackRoot = await createEpicSpecPack("epic-cleanup-mixed-approved");
+  await writeRunConfig(specPackRoot, createRunConfig());
+  const cleanupBatchPath = await writeCleanupBatch(
+    specPackRoot,
+    "cleanup-mixed-approved.md",
+    [
+      "# Cleanup Batch",
+      "",
+      "- APPROVED: apply the bounded cleanup correction.",
+      "",
+      "Reviewer note: this unrelated idea is not approved for the current pass.",
+    ].join("\n")
+  );
+  const providerBinDir = await createTempDir("epic-cleanup-mixed-approved-provider");
+  const { env, logPath } = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "codex",
+    responses: [
+      {
+        stdout: providerResult(
+          "codex-epic-cleanup-mixed-001",
+          baseCleanupPayload(cleanupBatchPath)
+        ),
+      },
+    ],
+  });
+
+  const run = await runSourceCli(
+    [
+      "epic-cleanup",
+      "--spec-pack-root",
+      specPackRoot,
+      "--cleanup-batch",
+      cleanupBatchPath,
+      "--json",
+    ],
+    {
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    }
+  );
+
+  expect(run.exitCode).toBe(0);
+
+  const envelope = parseJsonOutput<any>(run.stdout);
+  expect(envelope.outcome).toBe("cleaned");
+
+  const invocations = await readJsonLines<{ args: string[] }>(logPath);
+  expect(invocations).toHaveLength(1);
+});
+
 test("blocks epic-cleanup with INVALID_SPEC_PACK when the spec-pack root is outside any git repo", async () => {
   const specPackRoot = await createExternalSpecPack("epic-cleanup-no-git-repo");
   const cleanupBatchPath = await writeCleanupBatch(

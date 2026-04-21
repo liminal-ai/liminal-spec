@@ -1,5 +1,5 @@
 import { readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { pathExists, readTextFile } from "./fs-utils";
 import type { CliError } from "./result-contracts";
@@ -65,10 +65,28 @@ function resolveGateValue(input: {
   };
 }
 
+async function findRepoRoot(start: string): Promise<string | undefined> {
+  let current = resolve(start);
+
+  while (true) {
+    if (await pathExists(join(current, ".git"))) {
+      return current;
+    }
+
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+
+    current = parent;
+  }
+}
+
 async function packageScriptCandidates(
-  specPackRoot: string
+  searchRoot: string,
+  source: string
 ): Promise<GateSourceCandidates[]> {
-  const packageJsonPath = join(specPackRoot, "package.json");
+  const packageJsonPath = join(searchRoot, "package.json");
   if (!(await pathExists(packageJsonPath))) {
     return [];
   }
@@ -84,22 +102,25 @@ async function packageScriptCandidates(
 
   return [
     {
-      story: scripts["green-verify"] ? [scripts["green-verify"]] : [],
-      epic: scripts["verify-all"] ? [scripts["verify-all"]] : [],
-      source: "package.json scripts",
+      story: scripts["green-verify"] ? ["bun run green-verify"] : [],
+      epic: scripts["verify-all"] ? ["bun run verify-all"] : [],
+      source,
     },
   ];
 }
 
-async function docCandidates(specPackRoot: string): Promise<GateSourceCandidates[]> {
+async function docCandidates(
+  searchRoot: string,
+  source: string
+): Promise<GateSourceCandidates[]> {
   const candidates: GateSourceCandidates = {
     story: [],
     epic: [],
-    source: "project policy docs",
+    source,
   };
 
   for (const fileName of ["AGENTS.md", "README.md"]) {
-    const filePath = join(specPackRoot, fileName);
+    const filePath = join(searchRoot, fileName);
     if (!(await pathExists(filePath))) {
       continue;
     }
@@ -120,8 +141,11 @@ async function docCandidates(specPackRoot: string): Promise<GateSourceCandidates
   return [candidates];
 }
 
-async function ciCandidates(specPackRoot: string): Promise<GateSourceCandidates[]> {
-  const workflowsDir = join(specPackRoot, ".github", "workflows");
+async function ciCandidates(
+  searchRoot: string,
+  source: string
+): Promise<GateSourceCandidates[]> {
+  const workflowsDir = join(searchRoot, ".github", "workflows");
   if (!(await pathExists(workflowsDir))) {
     return [];
   }
@@ -130,7 +154,7 @@ async function ciCandidates(specPackRoot: string): Promise<GateSourceCandidates[
   const candidates: GateSourceCandidates = {
     story: [],
     epic: [],
-    source: "CI configuration",
+    source,
   };
 
   for (const entry of entries) {
@@ -157,17 +181,52 @@ async function ciCandidates(specPackRoot: string): Promise<GateSourceCandidates[
   return [candidates];
 }
 
+async function localAndRepoRootCandidates(
+  specPackRoot: string
+): Promise<GateSourceCandidates[]> {
+  const repoRoot = await findRepoRoot(specPackRoot);
+  const searchRoots = [
+    {
+      root: specPackRoot,
+      packageSource: "local package.json scripts",
+      docSource: "project policy docs",
+      ciSource: "CI configuration",
+    },
+    ...(repoRoot && repoRoot !== specPackRoot
+      ? [
+          {
+            root: repoRoot,
+            packageSource: "repo-root package.json scripts",
+            docSource: "repo-root project policy docs",
+            ciSource: "repo-root CI configuration",
+          },
+        ]
+      : []),
+  ];
+
+  const sourceCandidates: GateSourceCandidates[] = [];
+  for (const searchRoot of searchRoots) {
+    sourceCandidates.push(
+      ...(await packageScriptCandidates(searchRoot.root, searchRoot.packageSource))
+    );
+    sourceCandidates.push(
+      ...(await docCandidates(searchRoot.root, searchRoot.docSource))
+    );
+    sourceCandidates.push(
+      ...(await ciCandidates(searchRoot.root, searchRoot.ciSource))
+    );
+  }
+
+  return sourceCandidates;
+}
+
 export async function resolveVerificationGates(input: {
   specPackRoot: string;
   explicitStoryGate?: string;
   explicitEpicGate?: string;
 }): Promise<GateDiscoveryResult> {
   const specPackRoot = resolve(input.specPackRoot);
-  const sourceCandidates = [
-    ...(await packageScriptCandidates(specPackRoot)),
-    ...(await docCandidates(specPackRoot)),
-    ...(await ciCandidates(specPackRoot)),
-  ];
+  const sourceCandidates = await localAndRepoRootCandidates(specPackRoot);
   const storyResolution = resolveGateValue({
     explicitValue: input.explicitStoryGate,
     sourceCandidates,

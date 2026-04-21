@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
-import { ZodError } from "zod";
 
 import { nextGroupedArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import { classifyCommandError } from "../core/command-errors";
 import { runEpicVerify } from "../core/epic-verifier";
 import {
   cliResultEnvelopeSchema,
@@ -117,22 +117,13 @@ export default defineCommand({
       });
       process.exitCode = exitCodeForStatus(envelope.status, envelope.outcome);
     } catch (error) {
+      const classification = classifyCommandError(error, "block");
       const envelope: OutputEnvelope = createResultEnvelope({
         command: "epic-verify",
-        outcome:
-          error instanceof ZodError ||
-          (error instanceof Error &&
-            error.message.toLowerCase().includes("config"))
-            ? "block"
-            : "error",
+        outcome: classification.outcome,
         errors: [
           {
-            code:
-              error instanceof ZodError ||
-              (error instanceof Error &&
-                error.message.toLowerCase().includes("config"))
-                ? "INVALID_RUN_CONFIG"
-                : "UNEXPECTED_ERROR",
+            code: classification.code,
             message: error instanceof Error ? error.message : String(error),
           },
         ],

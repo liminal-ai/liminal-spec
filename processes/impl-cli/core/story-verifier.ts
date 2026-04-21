@@ -332,7 +332,6 @@ export async function runStoryVerify(input: {
           storyId: context.story.id,
           storyTitle: context.story.title,
           storyPath: context.story.path,
-          epicPath: context.paths.epicPath,
           techDesignPath: context.paths.techDesignPath,
           techDesignCompanionPaths: context.paths.techDesignCompanionPaths,
           testPlanPath: context.paths.testPlanPath,

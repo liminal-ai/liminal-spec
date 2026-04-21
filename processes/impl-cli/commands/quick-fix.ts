@@ -4,6 +4,7 @@ import { defineCommand } from "citty";
 import { z } from "zod";
 
 import { nextArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import { classifyCommandError } from "../core/command-errors";
 import { readTextFile } from "../core/fs-utils";
 import { runQuickFix } from "../core/quick-fix";
 import {
@@ -188,14 +189,13 @@ export default defineCommand({
       process.exitCode = exitCodeForStatus(envelope.status, envelope.outcome);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const configClassification = classifyCommandError(error);
       const code =
         message.includes("--request-") ||
         message.includes("Provide exactly one") ||
         message.includes("does not accept story-aware flags")
           ? "INVALID_INVOCATION"
-          : message.toLowerCase().includes("config")
-            ? "INVALID_RUN_CONFIG"
-            : "UNEXPECTED_ERROR";
+          : configClassification.code;
       const outcome = code === "INVALID_RUN_CONFIG" ? "blocked" : "error";
       const envelope: OutputEnvelope = createResultEnvelope({
         command: "quick-fix",

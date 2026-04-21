@@ -198,7 +198,30 @@ describe("inspect command", () => {
     const envelope = parseJsonOutput<any>(run.stdout);
     expect(envelope.status).toBe("blocked");
     expect(envelope.result.blockers).toContain(
-      "Invalid tech-design companion layout: expected tech-design-cli-runtime.md and tech-design-skill-process.md for the four-file configuration"
+      "Invalid tech-design companion layout: expected exactly two additional tech-design-*.md companion files for the four-file configuration"
     );
+  });
+
+  test("accepts lexically sorted tech-design companions that match the generic tech-design-*.md pattern", async () => {
+    const specPackRoot = await createSpecPack("inspect-generic-companions");
+    await writeTextFile(`${specPackRoot}/tech-design-bar.md`, "# Bar Companion\n");
+    await writeTextFile(`${specPackRoot}/tech-design-foo.md`, "# Foo Companion\n");
+
+    const run = await runSourceCli([
+      "inspect",
+      "--spec-pack-root",
+      specPackRoot,
+      "--json",
+    ]);
+
+    expect(run.exitCode).toBe(0);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.outcome).toBe("ready");
+    expect(envelope.result.techDesignShape).toBe("four-file");
+    expect(envelope.result.artifacts.techDesignCompanionPaths).toEqual([
+      `${specPackRoot}/tech-design-bar.md`,
+      `${specPackRoot}/tech-design-foo.md`,
+    ]);
   });
 });

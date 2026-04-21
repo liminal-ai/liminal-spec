@@ -141,7 +141,7 @@ async function prepareCleanupContext(input: {
 }
 
 function hasApprovedCleanupItems(content: string): boolean {
-  return /\bAPPROVED\b/i.test(content);
+  return /^\s*[-*]\s+APPROVED\b/mi.test(content);
 }
 
 function buildCleanupPrompt(context: PreparedCleanupContext): string {

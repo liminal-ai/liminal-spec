@@ -2,12 +2,14 @@
 
 ## Run Overview
 
-- **State:** COMPLETE (all 9 stories accepted; closeout pass accepted; strict-parser fix accepted)
+- **State:** EPIC_VERIFY_POST_FIX_COMPLETE (4-way epic verify + synthesizer → 15-item fix pass → dual verifier both PASS; ready for final closeout)
 - **Spec Pack Root:** `docs/spec-build/epics/01-claude-impl-cli-skill/`
-- **Current Story:** none — implementation pipeline + closeout pass + strict-parser fix all complete
-- **Current Phase:** between-stories
+- **Current Story:** none
+- **Current Phase:** between-stories (post fix-pass acceptance, awaiting orchestrator-owned final epic gate discussion)
 - **Started:** 2026-04-20
-- **Latest Test Baseline:** 247 (after strict-parser fix)
+- **Latest Test Baseline:** 266 (after post-epic-verify fix pass)
+- **Epic Verification Entered:** 2026-04-21
+- **Fix Pass Accepted:** 2026-04-21
 
 ## Run Configuration
 
@@ -18,7 +20,7 @@
 - **Quick Fixer:** codex / gpt-5.4 / medium (fresh per fix; no story binding)
 - **Self Review Passes:** 3 (passes 2 and 3 via codex session resume)
 - **Degraded Diversity:** false
-- **Epic Verify / Synthesis:** deferred per user direction
+- **Epic Verify / Synthesis:** ACTIVE — 4-way formal epic verification + codex gpt-5.4 xhigh synthesizer
 
 ## Verification Gates
 
@@ -516,10 +518,62 @@ Meta-observations across multiple story dispatches that suggest methodology or s
 
 ## Cleanup / Epic Verification
 
-- **Cleanup Artifact:** not yet materialized
-- **Cleanup Status:** not-started
-- **Epic Verification Status:** deferred per user direction
+- **Cleanup Artifact:** not materialized as a separate cleanup batch — closeout pass + strict-parser fix served as the de-facto cleanup (cross-cutting AC closure + contract hardening). No residual deferred items after those two passes.
+- **Cleanup Status:** absorbed into closeout pass and strict-parser fix, both accepted
+- **Epic Verification Status:** ACTIVE — 4-way formal epic verification + codex gpt-5.4 xhigh synthesizer; entered 2026-04-21
+
+### Epic Verification (formal 4-way) — Plan
+
+- **Process rationale:** The per-story dual-verifier discipline (5 consecutive dual-PASS runs across stories 6/7/8, closeout pass, strict-parser fix) is strong signal but operates at story granularity. Epic-level verification has orthogonal value: cross-story integration, architecture consistency, whole-codebase mock audit, whole-epic AC/TC coverage assessment, and independent synthesis. Run it now against the final accepted state (247 tests, strict parser contracts in place, Copilot adapter complete).
+- **Artifact Root:** `artifacts/epic-verification/`
+- **Prompt Root:** `artifacts/epic-verification/prompts/` (per-role prompt files; `epic-verifier-common.md` holds the shared body; per-verifier prefaces assign reviewerLabel/provider/model)
+
+#### Verifier Roster (fresh sessions, parallel dispatch)
+
+| Label | Provider | Model | Effort | Harness | Artifact |
+|---|---|---|---|---|---|
+| `epic-verifier-1` | codex | `gpt-5.4` | xhigh | codex-subagent | `001-verifier-1-codex-gpt54-xhigh.jsonl` |
+| `epic-verifier-2` | codex | `gpt-5.3-codex` | xhigh | codex-subagent | `002-verifier-2-codex-gpt53codex-xhigh.jsonl` |
+| `epic-verifier-3` | claude-code | `claude-opus-4-7[1m]` | max | claude-subagent | `003-verifier-3-claude-opus47-1m.json` |
+| `epic-verifier-4` | claude-code | `claude-sonnet-4-6[1m]` | max | claude-subagent | `004-verifier-4-claude-sonnet46-1m.json` |
+
+#### Synthesizer
+
+| Role | Provider | Model | Effort | Artifact |
+|---|---|---|---|---|
+| `epic-synthesizer` | codex | `gpt-5.4` | xhigh | `005-synthesizer-codex-gpt54-xhigh.jsonl` |
+
+#### Prompt Composition
+
+The verifier and synthesizer prompts match the composition that `ls-impl-cli epic-verify` and `epic-synthesize` would produce via `prompt-assembly.ts`:
+
+- `epic-verifier.md` base + snippets `[reading-journey, gate-instructions, report-contract, mock-audit]`, interpolated with runtime values (epic path, tech design paths, test plan path, gate commands, reviewer label, `RESULT_CONTRACT_NAME=EpicVerifierResult`).
+- `epic-synthesizer.md` base + snippets `[reading-journey, gate-instructions, report-contract]`, interpolated with runtime values (epic path, tech design paths, test plan path, verifierReportPaths, gate commands, `RESULT_CONTRACT_NAME=EpicSynthesisResult`, routing guidance).
+
+Each prompt file additionally inlines the full `EpicVerifierResult` / `EpicSynthesisResult` Zod-strict schema so the model knows the exact field set (with unknown-key rejection now enforced at runtime per the strict-parser fix).
+
+#### Permission Envelope
+
+- Codex verifiers: default sandbox + network from `~/.codex/config.toml` (`danger-full-access` + `live` web search). Read-only intent; prompt framing is the constraint. Codex invocation: `codex exec --json [-m gpt-5.3-codex] -c model_reasoning_effort=xhigh - <<'PROMPT' ... PROMPT > ARTIFACT 2>/dev/null`.
+- Claude verifiers: `--permission-mode default --allowedTools Read,Grep,Glob,Bash`. Read-only + gate execution allowed; edits would require a permission prompt. Claude invocation: `claude-result --json exec "$(cat PROMPT_FILE)" --model "claude-opus-4-7[1m]" --effort max --permission-mode default --allowedTools Read,Grep,Glob,Bash > ARTIFACT 2>/dev/null`.
+
+#### Review Directions Embedded in Prompts
+
+Each verifier is instructed to:
+1. Read epic + tech design + companions + test plan in order (500-line chunks, reflect after each).
+2. Spot-check the codebase — do not trust the design docs alone.
+3. Run `bun run green-verify` AND `bun run verify-all` themselves; record gate results.
+4. Mock/shim audit production paths in `processes/impl-cli/core/`, `processes/impl-cli/commands/`, `scripts/`.
+5. Cross-story consistency: flows connected, prompt-assembly artifacts match provider-adapter expectations, implementor→continue round-trip, epic-verify→synthesize pipe.
+6. Architecture consistency: provider-agnostic seams; no provider-specific logic leaking into command modules.
+7. AC/TC coverage: sample at least 10 ACs across all 8 sections.
+8. Recent-change validation: strict-parser fix correctness (strict applied to inner payloads, NOT wrappers; quick-fix intentionally not strict); Copilot adapter correctness (fresh-session invocation, retained-session rejection).
+9. Severity discipline: no inflated findings; file:line evidence required for blocking.
+
+#### Open Items During Verification
+
+- none yet
 
 ## Open Risks / Accepted Risks
 
-- none
+- **Live-provider payload drift (observed, not closed):** Strict-parser fix was validated against test-fake provider outputs only. If real codex/claude-code/copilot start emitting incidental metadata in inner payload, strict mode will reject with `PROVIDER_OUTPUT_INVALID`. The fix's improved diagnostic detail (Zod-derived unexpected-key paths) will make drift events obvious, but the first-occurrence cost is a blocked command. Mitigation: defer; accept the tradeoff; rely on diagnostic-driven debugging when/if drift appears.

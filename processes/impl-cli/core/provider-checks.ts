@@ -69,6 +69,19 @@ function executableForHarness(harness: "claude-code" | SecondaryHarness): string
   }
 }
 
+function authCommandForHarness(
+  harness: "claude-code" | SecondaryHarness
+): string[] | undefined {
+  switch (harness) {
+    case "claude-code":
+    case "codex":
+    case "copilot":
+      return ["auth", "status"];
+    case "none":
+      return undefined;
+  }
+}
+
 function failureNotes(result: {
   stderr: string;
   timedOut?: boolean;
@@ -85,6 +98,21 @@ function failureNotes(result: {
   return [`Unable to execute ${executable} ${step}`];
 }
 
+function looksLikeMissingAuthCommand(stderr: string): boolean {
+  const lower = stderr.toLowerCase();
+  return lower.includes("unexpected auth invocation");
+}
+
+function looksLikeExplicitAuthFailure(stderr: string): boolean {
+  const lower = stderr.toLowerCase();
+  return (
+    lower.includes("missing") ||
+    lower.includes("not logged in") ||
+    lower.includes("unauth") ||
+    lower.includes("sign in")
+  );
+}
+
 async function checkHarnessAvailability(input: {
   harness: "claude-code" | SecondaryHarness;
   cwd: string;
@@ -96,6 +124,7 @@ async function checkHarnessAvailability(input: {
     return {
       harness: "none",
       available: true,
+      tier: "binary-present",
       authStatus: "unknown",
       notes: [],
     };
@@ -112,31 +141,62 @@ async function checkHarnessAvailability(input: {
     return {
       harness: input.harness,
       available: false,
+      tier: "unavailable",
       authStatus: version.code === "ENOENT" ? "missing" : "unknown",
       notes: failureNotes(version, executable, "--version"),
     };
   }
 
+  const authCommand = authCommandForHarness(input.harness);
+  if (!authCommand) {
+    return {
+      harness: input.harness,
+      available: true,
+      tier: "binary-present",
+      version: version.stdout,
+      authStatus: "unknown",
+      notes: [
+        `No non-mutating auth status command is available for ${input.harness}.`,
+      ],
+    };
+  }
+
   const auth = await runCommand({
     file: executable,
-    args: ["auth", "status"],
+    args: authCommand,
     cwd: input.cwd,
     env: input.env,
     timeoutMs: input.timeoutMs,
   });
   if (!auth.success) {
-    const authStatus =
-      auth.timedOut || auth.code === "ETIMEDOUT"
-        ? "unknown"
-        : auth.code === 1 || auth.stderr.toLowerCase().includes("missing")
-          ? "missing"
-          : "unknown";
+    if (looksLikeMissingAuthCommand(auth.stderr)) {
+      return {
+        harness: input.harness,
+        available: true,
+        tier: "binary-present",
+        version: version.stdout,
+        authStatus: "unknown",
+        notes: failureNotes(auth, executable, "auth status"),
+      };
+    }
+
+    if (!auth.timedOut && !looksLikeExplicitAuthFailure(auth.stderr)) {
+      return {
+        harness: input.harness,
+        available: true,
+        tier: "auth-unknown",
+        version: version.stdout,
+        authStatus: "unknown",
+        notes: failureNotes(auth, executable, "auth status"),
+      };
+    }
 
     return {
       harness: input.harness,
       available: false,
+      tier: "unavailable",
       version: version.stdout,
-      authStatus,
+      authStatus: looksLikeExplicitAuthFailure(auth.stderr) ? "missing" : "unknown",
       notes: failureNotes(auth, executable, "auth status"),
     };
   }
@@ -144,6 +204,7 @@ async function checkHarnessAvailability(input: {
   return {
     harness: input.harness,
     available: true,
+    tier: "authenticated-known",
     version: version.stdout,
     authStatus: "authenticated",
     notes: auth.stdout ? [auth.stdout] : [],

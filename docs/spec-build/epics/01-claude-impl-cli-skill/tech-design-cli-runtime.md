@@ -172,7 +172,7 @@ This matrix is authoritative for handler implementation and tests.
 | `needs-more-cleanup` | `ok` | 2 | continue cleanup cycle |
 | `needs-fixes` | `ok` | 2 | route fixes before closeout |
 | `needs-more-verification` | `ok` | 2 | launch additional verification/synthesis |
-| `blocked` | `blocked` | 3 | stop and inspect blocking error details |
+| `block` | `blocked` | 3 | stop and inspect blocking error details |
 | parse/schema/runtime failure | `error` | 1 | treat as CLI failure rather than feature-state outcome |
 
 ## Runtime Module Layout
@@ -527,7 +527,7 @@ Invalid examples:
 
 - one companion file only
 - three or more companion files
-- unrelated files such as `tech-design-notes.md` or `tech-design-archive.md` inside the spec-pack root
+- files outside the `tech-design-*.md` pattern do not count toward the companion total
 
 These should return `blocked` with an explicit shape error rather than being ignored silently.
 
@@ -775,6 +775,7 @@ The outer `CliResultEnvelope` is the only required contract for quick-fix. The i
 At epic closeout the CLI executes three different kinds of work: cleanup-only correction, epic-level verifier batches, and synthesis. The orchestrator still determines whether the run can close. The CLI should never blur these responsibilities into one vague “finish the epic” command.
 
 The cleanup operation is distinct because it acts on an orchestrator-curated cleanup batch. It is not a general-purpose retry. It is a bounded correction-only workflow designed to start epic verification from the cleaned state rather than from an accumulation of known-but-deferred issues.
+Cleanup execution uses the `quick_fixer` role configuration from `impl-run.config.json`; there is no separate `cleanup_fixer` role in v1.
 
 ```mermaid
 sequenceDiagram
@@ -982,6 +983,8 @@ This mapping should appear consistently in:
 - `team-impl-log.md`
 - prompt assembly inputs
 - process-playbook examples
+
+When gate discovery comes from `package.json` scripts, surface the canonical invocable command (`bun run <script-name>`) rather than the expanded script body.
 
 ## Packaging and Build Integration
 

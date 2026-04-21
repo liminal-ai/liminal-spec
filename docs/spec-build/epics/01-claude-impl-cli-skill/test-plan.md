@@ -368,7 +368,9 @@ After TDD Green for the final chunk, run a manual smoke on a fixture spec pack:
 | `processes/impl-cli/tests/config-schema.test.ts` | 8 |
 | `processes/impl-cli/tests/result-contracts.test.ts` | 8 |
 | `processes/impl-cli/tests/cli-io-contract.test.ts` | 3 |
-| `processes/impl-cli/tests/packaged-cli-smoke.test.ts` | 4 |
+| `scripts/__tests__/claude-impl-build.test.ts` | 4 |
+
+Interim packaged-CLI coverage lives in `scripts/__tests__/claude-impl-build.test.ts`, which checks manifest wiring, packaged references, bundled artifact presence, and a Node-run `inspect` smoke until `smoke:impl-cli` is implemented.
 
 ### Story 1: Skill Surface
 

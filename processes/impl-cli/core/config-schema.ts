@@ -5,19 +5,33 @@ import { z } from "zod";
 
 export const RUN_CONFIG_FILE_NAME = "impl-run.config.json";
 
+export class ConfigLoadError extends Error {
+  override cause?: unknown;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = "ConfigLoadError";
+    this.cause = options?.cause;
+  }
+}
+
 export const reasoningEffortSchema = z.enum(["low", "medium", "high", "xhigh"]);
 export const primaryHarnessSchema = z.literal("claude-code");
 export const secondaryHarnessSchema = z.enum(["codex", "copilot", "none"]);
 
-export const roleAssignmentSchema = z.object({
-  secondary_harness: secondaryHarnessSchema,
-  model: z.string().min(1),
-  reasoning_effort: reasoningEffortSchema,
-});
+export const roleAssignmentSchema = z
+  .object({
+    secondary_harness: secondaryHarnessSchema,
+    model: z.string().min(1),
+    reasoning_effort: reasoningEffortSchema,
+  })
+  .strict();
 
-export const epicVerifierAssignmentSchema = roleAssignmentSchema.extend({
-  label: z.string().min(1),
-});
+export const epicVerifierAssignmentSchema = roleAssignmentSchema
+  .extend({
+    label: z.string().min(1),
+  })
+  .strict();
 
 export const implRunConfigSchema = z
   .object({
@@ -27,12 +41,15 @@ export const implRunConfigSchema = z
     quick_fixer: roleAssignmentSchema,
     story_verifier_1: roleAssignmentSchema,
     story_verifier_2: roleAssignmentSchema,
-    self_review: z.object({
-      passes: z.number().int().min(1).max(5),
-    }),
+    self_review: z
+      .object({
+        passes: z.number().int().min(1).max(5),
+      })
+      .strict(),
     epic_verifiers: z.array(epicVerifierAssignmentSchema).min(1),
     epic_synthesizer: roleAssignmentSchema,
   })
+  .strict()
   .superRefine((value, ctx) => {
     if (value.story_implementor.secondary_harness === "copilot") {
       ctx.addIssue({
@@ -74,21 +91,45 @@ export function resolveRunConfigPath(
   return resolve(specPackRoot, configPath);
 }
 
+function formatConfigLoadError(error: unknown, resolvedPath: string): string {
+  if (error instanceof z.ZodError) {
+    const issues = error.issues
+      .map((issue) => {
+        const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
+        return `${path}: ${issue.message}`;
+      })
+      .join("; ");
+    return `Run-config validation failed for ${resolvedPath}: ${issues}`;
+  }
+
+  if (error instanceof Error) {
+    return `Run-config load failed for ${resolvedPath}: ${error.message}`;
+  }
+
+  return `Run-config load failed for ${resolvedPath}: ${String(error)}`;
+}
+
 export async function loadRunConfig(input: {
   specPackRoot: string;
   configPath?: string;
 }): Promise<ImplRunConfig> {
   const resolvedPath = resolveRunConfigPath(input.specPackRoot, input.configPath);
-  const { config } = await loadConfig({
-    cwd: resolve(input.specPackRoot),
-    configFile: relative(resolve(input.specPackRoot), resolvedPath),
-    configFileRequired: true,
-    rcFile: false,
-    globalRc: false,
-    packageJson: false,
-    dotenv: false,
-    extend: false,
-  });
+  try {
+    const { config } = await loadConfig({
+      cwd: resolve(input.specPackRoot),
+      configFile: relative(resolve(input.specPackRoot), resolvedPath),
+      configFileRequired: true,
+      rcFile: false,
+      globalRc: false,
+      packageJson: false,
+      dotenv: false,
+      extend: false,
+    });
 
-  return implRunConfigSchema.parse(config);
+    return implRunConfigSchema.parse(config);
+  } catch (error) {
+    throw new ConfigLoadError(formatConfigLoadError(error, resolvedPath), {
+      cause: error,
+    });
+  }
 }

@@ -345,6 +345,7 @@ Supporting scripts to add:
 - `smoke:impl-cli`: run a bundled-CLI smoke test against a minimal fixture spec pack
 
 If no deeper integration smoke exists yet, `smoke:impl-cli` may emit a visible skip notice in its earliest version, but it must not silently pass as if a real smoke already ran.
+Interim packaged-CLI coverage (manifest, bundled artifact presence, and Node-run `inspect` smoke) lives in `scripts/__tests__/claude-impl-build.test.ts` until `smoke:impl-cli` is implemented.
 
 ## Work Breakdown Summary
 

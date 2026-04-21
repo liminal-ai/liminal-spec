@@ -6,11 +6,6 @@ import { resolveGitRepoRoot } from "./git-repo";
 import { inspectResultSchema, type InspectResult } from "./result-contracts";
 import { resolveStoryOrder } from "./story-order";
 
-const ALLOWED_TECH_DESIGN_COMPANIONS = [
-  "tech-design-cli-runtime.md",
-  "tech-design-skill-process.md",
-] as const;
-
 async function pathIsDirectory(path: string): Promise<boolean> {
   try {
     return (await stat(path)).isDirectory();
@@ -27,9 +22,7 @@ function resolveTechDesignArtifacts(entries: string[]): {
   const companionFiles = entries
     .filter(
       (entry) =>
-        entry.startsWith("tech-design-") &&
-        entry.endsWith(".md") &&
-        entry !== "tech-design.md"
+        /^tech-design-.+\.md$/.test(entry) && entry !== "tech-design.md"
     )
     .sort((left, right) => left.localeCompare(right));
 
@@ -41,11 +34,7 @@ function resolveTechDesignArtifacts(entries: string[]): {
     };
   }
 
-  const allowed = [...ALLOWED_TECH_DESIGN_COMPANIONS].sort((left, right) =>
-    left.localeCompare(right)
-  );
-
-  if (JSON.stringify(companionFiles) === JSON.stringify(allowed)) {
+  if (companionFiles.length === 2) {
     return {
       techDesignShape: "four-file",
       companionPaths: companionFiles,
@@ -57,7 +46,7 @@ function resolveTechDesignArtifacts(entries: string[]): {
     techDesignShape: "two-file",
     companionPaths: [],
     blockers: [
-      "Invalid tech-design companion layout: expected tech-design-cli-runtime.md and tech-design-skill-process.md for the four-file configuration",
+      "Invalid tech-design companion layout: expected exactly two additional tech-design-*.md companion files for the four-file configuration",
     ],
   };
 }

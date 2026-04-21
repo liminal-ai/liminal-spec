@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
-import { assemblePrompt } from "../core/prompt-assembly";
+import { assemblePrompt, PromptInsertError } from "../core/prompt-assembly";
 import { createSpecPack, writeTextFile } from "./test-helpers";
 
 async function createPromptSpecPack(
@@ -285,6 +285,55 @@ describe("prompt assembly", () => {
     expect(assembled.prompt).toContain(fixture.testPlanPath);
   });
 
+  test("omits the epic path from story-role reading journeys while preserving it for epic-role prompts", async () => {
+    const fixture = await createPromptSpecPack("prompt-assembly-bounded-journey");
+
+    const implementor = await assemblePrompt({
+      role: "story_implementor",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+    const verifier = await assemblePrompt({
+      role: "story_verifier",
+      verifierLabel: "story-verifier-1",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+    const epicVerifier = await assemblePrompt({
+      role: "epic_verifier",
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+    const epicSynthesizer = await assemblePrompt({
+      role: "epic_synthesizer",
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+
+    expect(implementor.prompt).not.toContain(`- Epic: ${fixture.epicPath}`);
+    expect(verifier.prompt).not.toContain(`- Epic: ${fixture.epicPath}`);
+    expect(epicVerifier.prompt).toContain(`- Epic: ${fixture.epicPath}`);
+    expect(epicSynthesizer.prompt).toContain(`- Epic: ${fixture.epicPath}`);
+  });
+
   test("TC-3.4c keeps the quick-fix handoff narrow and skips the full story reading journey", async () => {
     const fixture = await createPromptSpecPack("prompt-assembly-quick-fix");
 
@@ -376,5 +425,26 @@ describe("prompt assembly", () => {
     expect(passTwo.snippetIds).toContain("self-review-pass-2");
     expect(passOne.prompt).toContain("Self-review pass 1");
     expect(passTwo.prompt).toContain("Self-review pass 2");
+  });
+
+  test("rejects oversized public inserts even when a future non-story role passes an insert path", async () => {
+    const fixture = await createPromptSpecPack("prompt-assembly-oversized-epic-role");
+    const oversizedInsertPath = join(
+      fixture.specPackRoot,
+      "custom-arbitrary-prompt-insert.md"
+    );
+    await writeTextFile(oversizedInsertPath, "A".repeat(64 * 1024 + 1));
+
+    await expect(
+      assemblePrompt({
+        role: "epic_verifier",
+        epicPath: fixture.epicPath,
+        techDesignPath: fixture.techDesignPath,
+        techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+        testPlanPath: fixture.testPlanPath,
+        gateCommands: fixture.gateCommands,
+        implementationPromptInsertPath: oversizedInsertPath,
+      } as any)
+    ).rejects.toBeInstanceOf(PromptInsertError);
   });
 });

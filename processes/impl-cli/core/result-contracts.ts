@@ -20,6 +20,13 @@ export const cliStatusSchema = z.enum([
   "error",
 ]);
 
+export const harnessAvailabilityTierSchema = z.enum([
+  "binary-present",
+  "authenticated-known",
+  "auth-unknown",
+  "unavailable",
+]);
+
 export const inspectOutcomeSchema = z.enum([
   "ready",
   "needs-user-decision",
@@ -56,6 +63,7 @@ export const inspectResultSchema = z.object({
 export const harnessAvailabilitySchema = z.object({
   harness: z.enum(["claude-code", "codex", "copilot", "none"]),
   available: z.boolean(),
+  tier: harnessAvailabilityTierSchema,
   version: z.string().min(1).optional(),
   authStatus: z.enum(["authenticated", "unknown", "missing"]).optional(),
   notes: z.array(z.string()),
@@ -377,6 +385,9 @@ export type CliArtifactRef = z.infer<typeof cliArtifactRefSchema>;
 export type CliStatus = z.infer<typeof cliStatusSchema>;
 export type InspectOutcome = z.infer<typeof inspectOutcomeSchema>;
 export type InspectResult = z.infer<typeof inspectResultSchema>;
+export type HarnessAvailabilityTier = z.infer<
+  typeof harnessAvailabilityTierSchema
+>;
 export type HarnessAvailability = z.infer<typeof harnessAvailabilitySchema>;
 export type ProviderMatrix = z.infer<typeof providerMatrixSchema>;
 export type VerificationGates = z.infer<typeof verificationGatesSchema>;
@@ -401,7 +412,7 @@ export type EpicVerifierBatchResult = z.infer<
 >;
 export type EpicSynthesisResult = z.infer<typeof epicSynthesisResultSchema>;
 
-function statusForOutcome(outcome: string): CliStatus {
+export function statusForOutcome(outcome: string): CliStatus {
   switch (outcome) {
     case "ready":
     case "ready-for-verification":

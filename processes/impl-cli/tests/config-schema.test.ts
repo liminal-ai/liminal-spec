@@ -436,4 +436,125 @@ describe("impl-run config schema", () => {
     expect(loaded.version).toBe(1);
     expect(loaded.story_implementor.model).toBe("claude-sonnet");
   });
+
+  test("throws ConfigLoadError when the loaded config includes an unknown top-level key", async () => {
+    const { ConfigLoadError, loadRunConfig } = await import("../core/config-schema");
+
+    const specPackRoot = await createSpecPack("config-schema-unknown-top-level");
+    await writeTextFile(
+      join(specPackRoot, "impl-run.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          primary_harness: "claude-code",
+          story_implementor: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          quick_fixer: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "medium",
+          },
+          story_verifier_1: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          story_verifier_2: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          self_review: {
+            passes: 2,
+          },
+          epic_verifiers: [
+            {
+              label: "epic-verifier-1",
+              secondary_harness: "none",
+              model: "claude-sonnet",
+              reasoning_effort: "high",
+            },
+          ],
+          epic_synthesizer: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          unknown_field: "value",
+        },
+        null,
+        2
+      )
+    );
+
+    await expect(
+      loadRunConfig({
+        specPackRoot,
+      })
+    ).rejects.toBeInstanceOf(ConfigLoadError);
+  });
+
+  test("throws ConfigLoadError when nested config objects include unknown keys", async () => {
+    const { ConfigLoadError, loadRunConfig } = await import("../core/config-schema");
+
+    const specPackRoot = await createSpecPack("config-schema-unknown-nested");
+    await writeTextFile(
+      join(specPackRoot, "impl-run.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          primary_harness: "claude-code",
+          story_implementor: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+            extra_nested: true,
+          },
+          quick_fixer: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "medium",
+          },
+          story_verifier_1: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          story_verifier_2: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+          self_review: {
+            passes: 2,
+            unexpected: "nested",
+          },
+          epic_verifiers: [
+            {
+              label: "epic-verifier-1",
+              secondary_harness: "none",
+              model: "claude-sonnet",
+              reasoning_effort: "high",
+            },
+          ],
+          epic_synthesizer: {
+            secondary_harness: "none",
+            model: "claude-sonnet",
+            reasoning_effort: "high",
+          },
+        },
+        null,
+        2
+      )
+    );
+
+    await expect(
+      loadRunConfig({
+        specPackRoot,
+      })
+    ).rejects.toBeInstanceOf(ConfigLoadError);
+  });
 });

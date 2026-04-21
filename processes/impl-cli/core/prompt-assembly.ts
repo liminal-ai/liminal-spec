@@ -147,7 +147,11 @@ function buildReadingJourney(input: PromptAssemblyInput): string {
   if (input.storyPath) {
     commonLines.push(`- Story: ${input.storyPath}`);
   }
-  if (input.epicPath) {
+  if (
+    input.epicPath &&
+    input.role !== "story_implementor" &&
+    input.role !== "story_verifier"
+  ) {
     commonLines.push(`- Epic: ${input.epicPath}`);
   }
   if (input.techDesignPath) {
@@ -313,6 +317,26 @@ async function loadPublicInsert(
   }
 }
 
+function publicInsertPathForInput(input: PromptAssemblyInput): string | undefined {
+  // Keep the size/readability guard structural so any future role-specific insert
+  // path still passes through the same validation boundary.
+  if (
+    "implementationPromptInsertPath" in input &&
+    typeof input.implementationPromptInsertPath === "string"
+  ) {
+    return input.implementationPromptInsertPath;
+  }
+
+  if (
+    "verifierPromptInsertPath" in input &&
+    typeof input.verifierPromptInsertPath === "string"
+  ) {
+    return input.verifierPromptInsertPath;
+  }
+
+  return undefined;
+}
+
 function selfReviewSection(input: PromptAssemblyInput): string {
   if (input.role !== "story_implementor" || !input.selfReviewPass) {
     return "";
@@ -336,12 +360,7 @@ export async function assemblePrompt(
   const basePromptId = basePromptIdForRole(input.role);
   const snippetIds = snippetIdsForInput(input);
   const values = runtimeValues(input);
-  const publicInsert =
-    input.role === "story_implementor"
-      ? await loadPublicInsert(input.implementationPromptInsertPath)
-      : input.role === "story_verifier"
-        ? await loadPublicInsert(input.verifierPromptInsertPath)
-        : {};
+  const publicInsert = await loadPublicInsert(publicInsertPathForInput(input));
 
   const sections = [
     interpolateTemplate(assets.base[basePromptId], values),

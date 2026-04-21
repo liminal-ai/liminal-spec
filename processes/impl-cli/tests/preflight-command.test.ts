@@ -155,9 +155,9 @@ async function writeProviderBinary(params: {
   dir: string;
   name: string;
   version: string;
-  authStatus?: "authenticated" | "missing";
+  authBehavior?: "authenticated" | "missing" | "unsupported" | "unknown-command";
 }) {
-  const authStatus = params.authStatus ?? "authenticated";
+  const authBehavior = params.authBehavior ?? "authenticated";
   const scriptPath = join(params.dir, params.name);
   const script = [
     "#!/bin/sh",
@@ -166,8 +166,20 @@ async function writeProviderBinary(params: {
     "  exit 0",
     "fi",
     'if [ "$1" = "auth" ] && [ "$2" = "status" ]; then',
-    authStatus === "authenticated" ? '  echo "authenticated"' : '  echo "missing" >&2',
-    authStatus === "authenticated" ? "  exit 0" : "  exit 1",
+    authBehavior === "authenticated"
+      ? '  echo "authenticated"'
+      : authBehavior === "missing"
+        ? '  echo "missing" >&2'
+        : authBehavior === "unknown-command"
+          ? '  echo "unknown command: auth" >&2'
+          : '  echo "unexpected auth invocation" >&2',
+    authBehavior === "authenticated"
+      ? "  exit 0"
+      : authBehavior === "missing"
+        ? "  exit 1"
+        : authBehavior === "unknown-command"
+          ? "  exit 64"
+          : "  exit 1",
     "fi",
     'echo "unexpected invocation" >&2',
     "exit 1",
@@ -182,7 +194,7 @@ async function setupProviderPath(
   providers: Array<{
     name: string;
     version: string;
-    authStatus?: "authenticated" | "missing";
+    authBehavior?: "authenticated" | "missing" | "unsupported" | "unknown-command";
   }>
 ) {
   const providerBinDir = await createTempDir(scope);
@@ -248,6 +260,99 @@ describe("preflight command", () => {
         code: "INVALID_RUN_CONFIG",
       })
     );
+  });
+
+  test("persists the malformed run-config envelope under artifacts/preflight and mirrors stdout", async () => {
+    const specPackRoot = await createSpecPack("preflight-invalid-json-artifact");
+    await writeTextFile(
+      join(specPackRoot, "impl-run.config.json"),
+      "{ invalid json\n"
+    );
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath(
+      "preflight-invalid-json-artifact-bins",
+      [
+        {
+          name: "claude",
+          version: "claude 1.0.0",
+        },
+      ]
+    );
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(3);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.artifacts).toHaveLength(1);
+    expect(envelope.artifacts[0].path).toContain("/artifacts/preflight/001-preflight.json");
+
+    const persisted = JSON.parse(await Bun.file(envelope.artifacts[0].path).text());
+    expect(persisted).toEqual(envelope);
+  });
+
+  test("persists a blocked envelope when the run-config file is missing", async () => {
+    const specPackRoot = await createSpecPack("preflight-missing-config-file");
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath("preflight-missing-config-file-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(3);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.errors).toContainEqual(
+      expect.objectContaining({
+        code: "INVALID_RUN_CONFIG",
+      })
+    );
+    expect(envelope.artifacts[0].path).toContain("/artifacts/preflight/001-preflight.json");
+
+    const persisted = JSON.parse(await Bun.file(envelope.artifacts[0].path).text());
+    expect(persisted).toEqual(envelope);
   });
 
   test("blocks with INVALID_RUN_CONFIG when required role assignments are missing", async () => {
@@ -327,6 +432,55 @@ describe("preflight command", () => {
     );
   });
 
+  test("persists a blocked envelope when strict config validation rejects an unknown key", async () => {
+    const specPackRoot = await createSpecPack("preflight-strict-unknown-key");
+    await writeRunConfig(specPackRoot, {
+      ...claudeOnlyConfig(),
+      unknown_field: "value",
+    });
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath("preflight-strict-unknown-key-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(3);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.errors).toContainEqual(
+      expect.objectContaining({
+        code: "INVALID_RUN_CONFIG",
+      })
+    );
+    expect(envelope.artifacts[0].path).toContain("/artifacts/preflight/001-preflight.json");
+
+    const persisted = JSON.parse(await Bun.file(envelope.artifacts[0].path).text());
+    expect(persisted).toEqual(envelope);
+  });
+
   test("TC-1.6a discovers gates from project policy and carries them into readiness output", async () => {
     const specPackRoot = await createSpecPack("preflight-gates");
     await writeRunConfig(specPackRoot, codexBackedConfig());
@@ -371,10 +525,10 @@ describe("preflight command", () => {
     expect(envelope.status).toBe("ok");
     expect(envelope.outcome).toBe("ready");
     expect(envelope.result.verificationGates).toEqual({
-      storyGate: "pnpm lint && pnpm test:story",
-      epicGate: "pnpm test:epic",
-      storyGateSource: "package.json scripts",
-      epicGateSource: "package.json scripts",
+      storyGate: "bun run green-verify",
+      epicGate: "bun run verify-all",
+      storyGateSource: "local package.json scripts",
+      epicGateSource: "local package.json scripts",
     });
   });
 
@@ -564,6 +718,209 @@ describe("preflight command", () => {
     expect(envelope.result.providerMatrix.secondary).toEqual([]);
     expect(envelope.result.notes).toContain(
       "GPT-capable secondary harnesses are unavailable for this run; the orchestrator should record the Claude-only degraded mode."
+    );
+  });
+
+  test("reports the authenticated-known provider tier when auth state is explicitly confirmed", async () => {
+    const specPackRoot = await createSpecPack("preflight-authenticated-known");
+    await writeRunConfig(specPackRoot, claudeOnlyConfig());
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "bun run green-verify",
+            "verify-all": "bun run verify-all",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath(
+      "preflight-authenticated-known-bins",
+      [
+        {
+          name: "claude",
+          version: "claude 1.0.0",
+          authBehavior: "authenticated",
+        },
+      ]
+    );
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(0);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.result.providerMatrix.primary).toMatchObject({
+      harness: "claude-code",
+      available: true,
+      tier: "authenticated-known",
+      authStatus: "authenticated",
+    });
+  });
+
+  test("reports the binary-present provider tier when the CLI binary is usable without a non-mutating auth-state command", async () => {
+    const specPackRoot = await createSpecPack("preflight-binary-present");
+    await writeRunConfig(specPackRoot, codexBackedConfig());
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "bun run green-verify",
+            "verify-all": "bun run verify-all",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath("preflight-binary-present-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+      },
+      {
+        name: "codex",
+        version: "codex 2.0.0",
+        authBehavior: "unsupported",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(0);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.result.providerMatrix.secondary).toContainEqual(
+      expect.objectContaining({
+        harness: "codex",
+        available: true,
+        tier: "binary-present",
+        authStatus: "unknown",
+      })
+    );
+    expect(envelope.result.notes).toContain(
+      "codex auth status unknown — proceed if CLI works in your environment."
+    );
+  });
+
+  test("reports the auth-unknown provider tier when the auth command is not recognized but the binary is present", async () => {
+    const specPackRoot = await createSpecPack("preflight-auth-unknown");
+    await writeRunConfig(specPackRoot, claudeOnlyConfig());
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "bun run green-verify",
+            "verify-all": "bun run verify-all",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath("preflight-auth-unknown-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+        authBehavior: "unknown-command",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(0);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.result.providerMatrix.primary).toMatchObject({
+      harness: "claude-code",
+      available: true,
+      tier: "auth-unknown",
+      authStatus: "unknown",
+    });
+    expect(envelope.result.notes).toContain(
+      "claude-code auth status unknown — proceed if CLI works in your environment."
+    );
+  });
+
+  test("blocks preflight only for the unavailable provider tier when authentication explicitly fails", async () => {
+    const specPackRoot = await createSpecPack("preflight-unavailable");
+    await writeRunConfig(specPackRoot, copilotFallbackConfig());
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "bun run green-verify",
+            "verify-all": "bun run verify-all",
+          },
+        },
+        null,
+        2
+      )
+    );
+    const pathValue = await setupProviderPath("preflight-unavailable-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+      },
+      {
+        name: "copilot",
+        version: "copilot 3.0.0",
+        authBehavior: "missing",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      ["preflight", "--spec-pack-root", specPackRoot, "--json"],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(3);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.status).toBe("blocked");
+    expect(envelope.errors).toContainEqual(
+      expect.objectContaining({
+        code: "PROVIDER_UNAVAILABLE",
+      })
+    );
+    expect(envelope.result.providerMatrix.secondary).toContainEqual(
+      expect.objectContaining({
+        harness: "copilot",
+        available: false,
+        tier: "unavailable",
+        authStatus: "missing",
+      })
     );
   });
 });

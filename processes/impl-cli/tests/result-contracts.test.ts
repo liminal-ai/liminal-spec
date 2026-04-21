@@ -8,6 +8,7 @@ import {
   epicVerifierBatchResultSchema,
   implementorResultSchema,
   inspectResultSchema,
+  statusForOutcome,
   storyVerifierBatchResultSchema,
 } from "../core/result-contracts";
 
@@ -520,5 +521,9 @@ describe("result contracts", () => {
       "Epic verification is mandatory before closeout.",
     ]);
     expect(parsed.result?.disputedOrUnconfirmedIssues).toHaveLength(1);
+  });
+
+  test("returns an error status for unknown outcomes instead of throwing", () => {
+    expect(statusForOutcome("future-outcome-not-yet-mapped")).toBe("error");
   });
 });

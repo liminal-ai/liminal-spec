@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
-import { createSpecPack, writeTextFile } from "./test-helpers";
+import { createSpecPack, createTempDir, writeTextFile } from "./test-helpers";
 
 describe("verification gate discovery", () => {
   test("TC-1.6a honors explicit flags ahead of package scripts, docs, and CI evidence", async () => {
@@ -58,7 +60,7 @@ describe("verification gate discovery", () => {
     });
   });
 
-  test("uses the actual package script commands and prefers them over docs and CI", async () => {
+  test("uses canonical package script invocations and prefers them over docs and CI", async () => {
     const { resolveVerificationGates } = await import("../core/gate-discovery");
 
     const specPackRoot = await createSpecPack("gate-discovery-package-precedence");
@@ -103,10 +105,51 @@ describe("verification gate discovery", () => {
 
     expect(result.status).toBe("ready");
     expect(result.verificationGates).toEqual({
-      storyGate: "pnpm lint && pnpm test:story",
-      epicGate: "pnpm test:epic",
-      storyGateSource: "package.json scripts",
-      epicGateSource: "package.json scripts",
+      storyGate: "bun run green-verify",
+      epicGate: "bun run verify-all",
+      storyGateSource: "local package.json scripts",
+      epicGateSource: "local package.json scripts",
+    });
+  });
+
+  test("discovers canonical package-script gates from the repo root when a nested spec pack has no local policy files", async () => {
+    const { resolveVerificationGates } = await import("../core/gate-discovery");
+
+    const repoRoot = await createTempDir("gate-discovery-nested-repo-root");
+    await writeTextFile(join(repoRoot, ".git", "HEAD"), "ref: refs/heads/main\n");
+    await writeTextFile(
+      join(repoRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "pnpm lint && pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+
+    const specPackRoot = join(
+      repoRoot,
+      "docs",
+      "spec-build",
+      "epics",
+      "01-nested-spec-pack"
+    );
+    await writeTextFile(join(specPackRoot, "epic.md"), "# Epic\n");
+
+    const result = await resolveVerificationGates({
+      specPackRoot,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.verificationGates).toEqual({
+      storyGate: "bun run green-verify",
+      epicGate: "bun run verify-all",
+      storyGateSource: "repo-root package.json scripts",
+      epicGateSource: "repo-root package.json scripts",
     });
   });
 
@@ -206,5 +249,24 @@ describe("verification gate discovery", () => {
       detail:
         "Provide --story-gate and --epic-gate explicitly or clarify the project policy.",
     });
+  });
+
+  test("returns needs-user-decision instead of crashing when no local policy exists and no repo root is found", async () => {
+    const { resolveVerificationGates } = await import("../core/gate-discovery");
+
+    const tempRoot = await mkdtemp(join(tmpdir(), "gate-discovery-no-repo-"));
+    const specPackRoot = join(tempRoot, "nested", "spec-pack");
+    await writeTextFile(join(specPackRoot, "epic.md"), "# Epic\n");
+
+    const result = await resolveVerificationGates({
+      specPackRoot,
+    });
+
+    expect(result.status).toBe("needs-user-decision");
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: "VERIFICATION_GATE_UNRESOLVED",
+      })
+    );
   });
 });

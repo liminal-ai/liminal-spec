@@ -17,7 +17,7 @@ async function writeProviderBinary(params: {
   name: string;
   version: string;
   authStatus?: "authenticated" | "missing";
-  authBehavior?: "normal" | "timeout" | "unknown";
+  authBehavior?: "normal" | "timeout" | "unknown" | "unsupported";
   captureCwdPath?: string;
   failureStderr?: string;
   authFailureStderr?: string;
@@ -39,6 +39,8 @@ async function writeProviderBinary(params: {
     'if [ "$1" = "auth" ] && [ "$2" = "status" ]; then',
     params.authBehavior === "timeout"
       ? "  sleep 2"
+      : params.authBehavior === "unsupported"
+        ? `  echo "${params.authFailureStderr ?? "unexpected auth invocation"}" >&2`
       : params.authBehavior === "unknown"
         ? `  echo "${params.authFailureStderr ?? "transient provider failure"}" >&2`
         : authStatus === "authenticated"
@@ -46,6 +48,8 @@ async function writeProviderBinary(params: {
           : '  echo "missing" >&2',
     params.authBehavior === "timeout"
       ? "  exit 0"
+      : params.authBehavior === "unsupported"
+        ? "  exit 1"
       : params.authBehavior === "unknown"
         ? "  exit 70"
         : authStatus === "authenticated"
@@ -127,6 +131,7 @@ describe("provider availability checks", () => {
     expect(providerMatrix.primary).toMatchObject({
       harness: "claude-code",
       available: true,
+      tier: "authenticated-known",
       authStatus: "authenticated",
       version: "claude 1.0.0",
     });
@@ -134,6 +139,7 @@ describe("provider availability checks", () => {
       expect.objectContaining({
         harness: "codex",
         available: true,
+        tier: "authenticated-known",
         authStatus: "authenticated",
         version: "codex 2.0.0",
       })
@@ -209,6 +215,7 @@ describe("provider availability checks", () => {
       expect.objectContaining({
         harness: "copilot",
         available: false,
+        tier: "unavailable",
         authStatus: "missing",
       })
     );
@@ -285,7 +292,8 @@ describe("provider availability checks", () => {
     expect(providerMatrix.secondary).toContainEqual(
       expect.objectContaining({
         harness: "codex",
-        available: false,
+        available: true,
+        tier: "auth-unknown",
         authStatus: "unknown",
       })
     );
