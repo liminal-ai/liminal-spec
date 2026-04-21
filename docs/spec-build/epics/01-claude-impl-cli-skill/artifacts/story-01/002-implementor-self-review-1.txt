@@ -1,0 +1,21 @@
+I’m doing a focused pass on the Story 1 contract versus the actual tests and runtime paths now, then I’ll patch only clear local issues and rerun the full gate.
+
+I found one clear omission: the implementation and runtime tests cover the resolved config shapes, but the skill-content tests weren’t actually asserting the Story 1 default/fallback teaching for AC-2.2 / AC-2.3. I’m tightening that now in the doc surface and its tests, then I’ll refresh the red-phase baseline and rerun the full gate.
+
+**findings fixed**  
+- **P1-F1** — Skill-content coverage was missing explicit assertions for the Story 1 provider fallback chain and role-specific default matrix, even though the runtime/config tests covered the authored config shapes.  
+  **files changed:** `src/phases/claude-impl.md`, `scripts/__tests__/claude-impl-skill.test.ts`
+
+**findings surfaced to orchestrator**  
+- none
+
+**files changed in this pass**  
+- `src/phases/claude-impl.md`
+- `scripts/__tests__/claude-impl-skill.test.ts`
+
+**gate result after this pass**  
+- **pass** (`bun run green-verify`)
+
+**recommended next step**  
+Proceed to self-review pass 2 of 3, focusing on requirement-to-test alignment and boundary/edge-case coverage rather than broad omissions.
+

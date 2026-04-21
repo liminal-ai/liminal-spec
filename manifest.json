@@ -89,14 +89,6 @@
         "current-state-code-map"
       ]
     },
-    "ls-codex-impl": {
-      "name": "ls-codex-impl",
-      "description": "Orchestrate story-by-story implementation inside Codex with gpt-5.4 xhigh as the persistent orchestrator, Codex workers for implementation, and dual fresh verification from gpt-5.4 xhigh and claude sonnet 4.6 max. Use this whenever the user has published stories plus a tech design and test plan and wants Codex itself to run the implementation harness rather than Claude Code teams or a raw external CLI loop.",
-      "phases": [
-        "codex-impl"
-      ],
-      "shared": []
-    },
     "ls-team-impl": {
       "name": "ls-team-impl",
       "description": "Orchestrate story-by-story implementation with agent teams and an external CLI model (Codex or Copilot). Opus teammates manage external model subagents for implementation and verification.",
@@ -112,6 +104,26 @@
         "team-impl-cc"
       ],
       "shared": []
+    },
+    "ls-claude-impl": {
+      "name": "ls-claude-impl",
+      "description": "Orchestrate implementation inside Claude Code with progressive-disclosure docs, a durable team-impl log, and the bundled ls-impl-cli runtime.",
+      "phases": [
+        "claude-impl"
+      ],
+      "shared": [],
+      "references": [
+        "claude-impl-reading-journey",
+        "claude-impl-process-playbook",
+        "claude-impl-cli-operations",
+        "claude-impl-prompt-system"
+      ],
+      "bundledArtifacts": [
+        {
+          "source": "dist/generated/ls-impl-cli.cjs",
+          "destination": "bin/ls-impl-cli.cjs"
+        }
+      ]
     },
     "ls-team-spec": {
       "name": "ls-team-spec",

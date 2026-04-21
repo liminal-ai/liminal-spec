@@ -1,0 +1,102 @@
+I’m reading the Story 1 spec set first so I can keep the implementation tightly inside scope, then I’ll map the impacted tests and runtime surfaces before writing red tests.
+
+I’ve got the document sizes. Next I’m reading them in the requested order and will keep notes on the key constraints that bind the implementation and tests.
+
+First pass is consistent with the dispatch: Story 1 is about **preflight only**—story inventory, gate discovery, provider/default resolution, and returning enough validated config for the orchestrator to log. A key boundary is explicit in the story and dispatch: the CLI must **not** write resolved run-config into `team-impl-log.md`; it should surface that config so the orchestrator can persist it.
+
+The process companion sharpens two important constraints for implementation. First, `preflight` owns deterministic **resolution**—story order, gates, provider/default matrix, degraded-diversity signaling—but the **orchestrator** owns durable artifacts and log updates. Second, gate discovery must follow a strict precedence chain and ambiguity must surface as `needs-user-decision`, not a guessed default.
+
+The runtime companion makes the implementation contract concrete: `preflight` must return a validated config, provider matrix, and resolved gates inside the shared result envelope, with `needs-user-decision` reserved for unresolved gate ambiguity. It also nails down the config rules I’ll need to encode and test—explicit-file `c12` loading only, `copilot` forbidden for the retained story implementor role, and provider checks only for harnesses actually requested.
+
+The test plan aligns with the requested workflow: Story 1 spans both runtime and skill-content tests, with runtime coverage centered on `preflight`, gate discovery, config schema, provider checks, and existing security guardrails. It also confirms the fake-binary pattern for provider availability tests, so I can keep production code using real subprocesses while exercising those boundaries safely in tests.
+
+I’ve finished the required reading set. The remaining implementation work is now constrained by a pretty crisp contract: `inspect` already owns story inventory, while Story 1 adds `preflight`, full run-config validation, real gate discovery with ambiguity handling, provider availability checks, and skill docs that explicitly teach story reading, gate precedence, ambiguity pause, and orchestrator-side config logging.
+
+I’ve confirmed the runtime is only partially present: `inspect`, schema, result contracts, and the initial test suite exist, but Story 1 files like `preflight` and gate discovery aren’t there yet. I’m reading the existing implementation and skill sources now so the red tests land on the right seams.
+
+The current state is exactly what the story dispatch described: Story 0 laid the floor, but Story 1’s runtime and docs mostly still need to be added. I’m reading the test helpers, build/skill sources, and artifact plumbing next so the new tests fit existing patterns and I can keep `inspect` behavior intact.
+
+I’ve got enough context to lock a plan. I’m writing a short session plan now, then I’ll run the existing verification baseline before adding Story 1 red tests.
+
+Baseline is clean at **85 passing tests**. I’m moving into the red phase now: adding Story 1 tests across runtime and skill docs before I touch implementation.
+
+The first test patch hit a context mismatch in `config-schema.test.ts`, so I’m re-reading the affected files and applying the red test batch more surgically.
+
+The red suite is in place. I’m running the Story 1-focused tests now to make sure they fail on the missing behavior, not on unrelated regressions.
+
+The red failures are the right ones: missing core modules/exports, no `preflight` subcommand yet, and the skill startup text still lacks the new Story 1 guidance. I’m implementing the runtime pieces now, starting with the schema/contracts and the shared core resolvers so `inspect` and `preflight` can both stay thin.
+
+The core pieces are wired: config loading/validation, story ordering, gate discovery, provider availability, `preflight`, and the startup guidance update. I’m rerunning the Story 1-focused suite now to shake out any contract mismatches before I broaden to the full gate.
+
+The Story 1 slice is green. I’m updating the session plan and then running the repository gate (`green-verify`) so the new runtime/doc changes prove out against the whole suite, not just the targeted tests.
+
+`green-verify` is clean, including the post-red test-file guard. I’m pulling a final diff summary now so the handoff can list the exact file set, test delta, and any surfaced uncertainties without guessing.
+
+**story id and title**  
+story-01 — Run Setup and Environment Resolution
+
+**plan summary**  
+ACs: AC-1.5, AC-1.6, AC-2.1, AC-2.2, AC-2.3, AC-2.4.  
+TCs: TC-1.5a, TC-1.6a, TC-1.6b, TC-2.1a, TC-2.2a, TC-2.2b, TC-2.2c, TC-2.3a-e, TC-2.4a.  
+Approach: wrote red tests for story ordering, gate discovery, provider availability, preflight, config schema, guardrail ambiguity handling, and skill startup guidance; then implemented explicit-file `c12` config loading, schema validation, provider matrix checks, gate precedence resolution, `preflight`, and the startup/process guidance updates.  
+Likely failure modes covered: mixed story filename patterns, ambiguous or missing gate policy, invalid run-config shape, forbidden Copilot retained implementor config, duplicate epic verifier labels, missing/unauthenticated provider CLIs, and Claude-only degraded runs.
+
+**changed files**  
+- `processes/impl-cli/core/config-schema.ts` — added full `impl-run.config.json` schema, validation rules, types, and explicit-file `c12` loading.
+- `processes/impl-cli/core/result-contracts.ts` — added provider matrix, verification gate, and preflight result schemas/types.
+- `processes/impl-cli/core/spec-pack.ts` — switched story inventory resolution to shared story-order logic and surfaced `needs-user-decision` for ambiguous ordering.
+- `processes/impl-cli/core/story-order.ts` — added deterministic story ordering and mixed-pattern ambiguity detection.
+- `processes/impl-cli/core/gate-discovery.ts` — added gate discovery precedence and ambiguity handling.
+- `processes/impl-cli/core/provider-checks.ts` — added real subprocess-based provider availability/auth checks and provider matrix resolution.
+- `processes/impl-cli/commands/preflight.ts` — added the new preflight command and result/artifact emission.
+- `processes/impl-cli/cli.ts` — registered `preflight`.
+- `processes/impl-cli/tests/test-helpers.ts` — allowed CLI test env overrides for PATH-based fake provider binaries.
+- `processes/impl-cli/tests/config-schema.test.ts` — expanded schema coverage for TC-2.3a-e plus invalid config cases and explicit-file loading.
+- `processes/impl-cli/tests/preflight-command.test.ts` — added preflight runtime coverage for gates, provider matrix, validated config, and Claude-only mode.
+- `processes/impl-cli/tests/gate-discovery.test.ts` — added precedence and ambiguity tests.
+- `processes/impl-cli/tests/provider-adapter.test.ts` — added PATH-fixture provider availability tests.
+- `processes/impl-cli/tests/story-order.test.ts` — added ordering and ambiguity tests.
+- `processes/impl-cli/tests/security-guardrails.test.ts` — added ambiguous-gate `needs-user-decision` guardrail coverage.
+- `scripts/__tests__/claude-impl-skill.test.ts` — added startup-guidance tests for full story reads, gate precedence, ambiguity pause, and orchestrator-side config logging.
+- `src/phases/claude-impl.md` — taught the Story 1 startup contract, gate precedence, preflight logging handoff, and default/fallback rules.
+
+**tests**  
+Added:
+- `processes/impl-cli/tests/preflight-command.test.ts`
+- `processes/impl-cli/tests/gate-discovery.test.ts`
+- `processes/impl-cli/tests/provider-adapter.test.ts`
+- `processes/impl-cli/tests/story-order.test.ts`
+
+Modified:
+- `processes/impl-cli/tests/config-schema.test.ts`
+- `processes/impl-cli/tests/security-guardrails.test.ts`
+- `scripts/__tests__/claude-impl-skill.test.ts`
+
+Removed:
+- none
+
+Total count after story: 108  
+Delta vs prior baseline: +23
+
+**gates run + result**  
+- `bun run verify` — pass  
+- `bun test processes/impl-cli/tests/story-order.test.ts processes/impl-cli/tests/gate-discovery.test.ts processes/impl-cli/tests/provider-adapter.test.ts processes/impl-cli/tests/preflight-command.test.ts processes/impl-cli/tests/config-schema.test.ts processes/impl-cli/tests/security-guardrails.test.ts scripts/__tests__/claude-impl-skill.test.ts` — fail  
+- `bun run capture:test-baseline --force` — pass  
+- `bun test processes/impl-cli/tests/story-order.test.ts processes/impl-cli/tests/gate-discovery.test.ts processes/impl-cli/tests/provider-adapter.test.ts processes/impl-cli/tests/preflight-command.test.ts processes/impl-cli/tests/config-schema.test.ts processes/impl-cli/tests/security-guardrails.test.ts scripts/__tests__/claude-impl-skill.test.ts` — pass  
+- `bun run green-verify` — pass
+
+**self-review findings fixed in this dispatch**  
+- none
+
+**self-review findings surfaced to orchestrator**  
+- none
+
+**open questions**  
+- none
+
+**spec deviations**  
+- none
+
+**recommended next step**  
+Use the new `preflight` validated config/gate/provider contracts as the foundation for Story 2 prompt assembly.
+

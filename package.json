@@ -4,16 +4,36 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.9",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "sync:codex-impl-assets": "bun run scripts/sync-codex-impl-assets.ts",
+    "sync:impl-cli-assets": "bun run scripts/sync-impl-cli-assets.ts",
     "build": "bun run scripts/build.ts",
     "validate": "bun run scripts/validate.ts",
     "check": "bun run build && bun run validate",
-    "verify": "bun run build && bun run validate && bun test",
+    "typecheck": "bunx tsc --noEmit",
+    "capture:test-baseline": "bun run scripts/capture-test-baseline.ts",
+    "red-verify": "bun run typecheck && bun run build && bun run validate",
+    "verify": "bun run red-verify && bun test",
+    "green-verify": "bun run verify && bun run guard:no-test-changes",
+    "verify-all": "bun run green-verify && bun run smoke:impl-cli",
+    "guard:no-test-changes": "bun run scripts/guard-no-test-changes.ts",
+    "smoke:impl-cli": "bun run scripts/smoke-impl-cli.ts",
+    "codex-impl:process": "bun run processes/codex-impl/cli.ts",
     "clean": "rm -rf dist",
     "prebuild": "bun run clean",
     "test": "bun test"
   },
   "devDependencies": {
+    "@types/node": "22.19.17",
+    "bun-types": "^1.3.13",
+    "typescript": "6.0.3",
     "zod": "^4.0.0"
+  },
+  "dependencies": {
+    "c12": "3.3.4",
+    "citty": "0.2.2"
   }
 }

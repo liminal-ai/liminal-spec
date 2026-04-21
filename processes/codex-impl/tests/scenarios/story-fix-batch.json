@@ -1,0 +1,15 @@
+{
+  "events": [
+    { "target": "00-foundation", "step": "story_implement", "status": "DONE", "milestones": ["story-implemented"], "nextRecommendedAction": "story_verify_primary", "notes": "Story implemented." },
+    { "target": "00-foundation", "step": "story_verify_primary", "status": "NEEDS_REWORK", "milestones": ["story-reviewed"], "nextRecommendedAction": "story_synthesize", "notes": "Primary verifier requests a fix batch.", "unresolvedFindings": [{ "title": "Missing test coverage", "disposition": "fixed", "severity": "MAJOR" }] },
+    { "target": "00-foundation", "step": "story_verify_secondary", "status": "DONE", "milestones": ["story-reviewed"], "nextRecommendedAction": "story_synthesize", "notes": "Secondary verifier passes." },
+    { "target": "00-foundation", "step": "story_synthesize", "status": "NEEDS_REWORK", "decision": "REVISE", "milestones": ["fix-batch-required"], "nextRecommendedAction": "story_fix_batch", "notes": "Apply bounded fixes.", "unresolvedFindings": [{ "title": "Missing test coverage", "disposition": "fixed", "severity": "MAJOR" }] },
+    { "target": "00-foundation", "step": "story_fix_batch", "status": "DONE", "milestones": ["fix-batch-applied"], "nextRecommendedAction": "story_verify_primary", "notes": "Fix batch applied." },
+    { "target": "00-foundation", "step": "story_verify_primary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_verify_secondary", "notes": "Primary verifier pass after fix." },
+    { "target": "00-foundation", "step": "story_verify_secondary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_synthesize", "notes": "Secondary verifier pass after fix." },
+    { "target": "00-foundation", "step": "story_synthesize", "status": "DONE", "decision": "PASS", "milestones": ["story-accepted"], "nextRecommendedAction": "story_accept", "notes": "Accept fixed story." },
+    { "target": "feature", "step": "feature_verify_primary", "status": "DONE", "milestones": ["feature-verified"], "nextRecommendedAction": "feature_verify_secondary", "notes": "Primary feature verifier pass.", "featureVerification": true },
+    { "target": "feature", "step": "feature_verify_secondary", "status": "DONE", "milestones": ["feature-verified"], "nextRecommendedAction": "feature_synthesize", "notes": "Secondary feature verifier pass.", "featureVerification": true },
+    { "target": "feature", "step": "feature_synthesize", "status": "DONE", "decision": "PASS", "milestones": ["feature-accepted"], "nextRecommendedAction": "feature_accept", "notes": "Accept feature.", "featureVerification": true }
+  ]
+}

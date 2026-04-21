@@ -45,7 +45,7 @@ The pipeline has five build phases plus one continuity skill. Each phase produce
 
 **4. Publish Epic** (`ls-publish-epic`) -- Break the epic into individual story files, each with full acceptance criteria, test conditions, and technical notes from the tech design. Produces a coverage artifact proving every requirement is assigned to exactly one story. Optionally produces a PO-friendly business epic.
 
-**5. Implement** (`ls-codex-impl`, `ls-team-impl-cc`, or `ls-team-impl`) -- Orchestrate story-by-story implementation with a persistent orchestrator and fresh workers per story. `ls-codex-impl` is the Codex-native harness with Codex implementation lanes and dual fresh verification from Codex and Sonnet. `ls-team-impl-cc` is the Claude Code teams version. `ls-team-impl` uses external CLI workers.
+**5. Implement** (`ls-team-impl-cc` or `ls-team-impl`) -- Orchestrate story-by-story implementation with a persistent orchestrator and fresh workers per story. `ls-team-impl-cc` is the Claude Code teams version. `ls-team-impl` uses external CLI workers.
 
 **Current Docs** (`ls-current-docs`) -- Reconstruct the current functional baseline, technical baseline, and code-reading map from implemented code, tests, runtime/config surfaces, and historical specs. Use it after one or more implementation cycles, or when onboarding onto a mature system whose prior epics no longer describe the current whole.
 
@@ -55,7 +55,7 @@ You don't have to use the full pipeline. If you already have requirements, start
 
 ### Team Orchestration
 
-`ls-team-spec` orchestrates the spec pipeline (steps 1-4) with agent teams: drafters, external verifiers, and human review gates. `ls-codex-impl`, `ls-team-impl-cc`, and `ls-team-impl` orchestrate implementation (step 5) with Codex-native workers, Claude Code teams, or external CLI models (Codex, Copilot).
+`ls-team-spec` orchestrates the spec pipeline (steps 1-4) with agent teams: drafters, external verifiers, and human review gates. `ls-team-impl-cc` and `ls-team-impl` orchestrate implementation (step 5) with Claude Code teams or external CLI models (Codex, Copilot).
 
 ## Try It Out
 
@@ -104,7 +104,6 @@ A good first test: after the epic is done, read the acceptance criteria and test
 | `ls-tech-design` | Implementation design: modules, interfaces, test mapping, work plan |
 | `ls-publish-epic` | Story files with full AC/TC detail, Jira markers, coverage artifact |
 | `ls-current-docs` | Current-state functional + technical baseline for onboarding and continuity |
-| `ls-codex-impl` | Codex-native implementation orchestration with Codex workers and Sonnet verification |
 | `ls-team-spec` | Spec pipeline orchestration with agent teams |
 | `ls-team-impl` | Implementation orchestration with Codex/Copilot CLI |
 | `ls-team-impl-cc` | Implementation orchestration with Claude Code agent teams |

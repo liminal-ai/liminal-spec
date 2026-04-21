@@ -1,0 +1,21 @@
+{
+  "events": [
+    {
+      "target": "00-foundation",
+      "step": "story_implement",
+      "status": "DONE",
+      "milestones": ["story-implemented"],
+      "nextRecommendedAction": "story_verify_primary",
+      "notes": "Story implemented."
+    },
+    {
+      "target": "00-foundation",
+      "step": "story_verify_primary",
+      "status": "DONE",
+      "milestones": ["story-reviewed"],
+      "nextRecommendedAction": "story_verify_secondary",
+      "notes": "Primary verifier returned an incomplete report.",
+      "reportMarkdown": "# Broken Review\n\n## VERDICT\n\nPASS\n"
+    }
+  ]
+}

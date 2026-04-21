@@ -14,10 +14,10 @@ Liminal Spec guides agents through a structured pipeline: define what you're bui
 | `03-technical-design-skill.md` | ls-tech-design | Transform an Epic into an implementable Tech Design |
 | `04-publish-epic-skill.md` | ls-publish-epic | Publish an Epic as individual story files with technical notes |
 | `05-current-docs-skill.md` | ls-current-docs | Reconstruct the current functional baseline, technical baseline, and code-reading map for onboarding onto implemented systems (installed skill pack preferred for bundled companion guides) |
-| `06c-codex-implementation-skill.md` | ls-codex-impl | Codex-native implementation orchestration with Codex workers and Sonnet verification |
 | `06-team-implementation-skill.md` | ls-team-impl | Orchestrate implementation with agent teams and Codex/Copilot CLI |
 | `06cc-team-implementation-claude-code-skill.md` | ls-team-impl-cc | Orchestrate implementation with Claude Code agent teams |
 | `07-team-spec-skill.md` | ls-team-spec | Orchestrate the full spec pipeline with agent teams |
+| `08-claude-implementation-cli-skill.md` | ls-claude-impl | Orchestrate implementation in Claude Code with progressive-disclosure docs and the bundled ls-impl-cli runtime |
 
 ## Usage
 
@@ -27,7 +27,6 @@ Pick the file for the phase you need. Paste the entire contents into your AI ass
 
 ### v1.2.0 (2026-04-15)
 
-**Added:** `ls-codex-impl` — Codex-native implementation orchestration with Codex workers and dual fresh Codex/Sonnet verification.  
 **Changed:** `ls-current-docs` — continuity/current-docs skill finalized under its public name and tightened around scoped currentness (producing surface, entrypoint, platform dependence, and ownership seam).
 
 ### v1.1.1 (2026-04-05)

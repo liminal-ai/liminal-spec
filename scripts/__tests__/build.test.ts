@@ -66,7 +66,6 @@ describe("build script", () => {
     expect(buildOutput).toContain("skill: ls-tech-design");
     expect(buildOutput).toContain("skill: ls-publish-epic");
     expect(buildOutput).toContain("skill: ls-current-docs");
-    expect(buildOutput).toContain("skill: ls-codex-impl");
     expect(buildOutput).toContain("skill: ls-team-impl");
     expect(buildOutput).toContain("skill: ls-team-impl-cc");
     expect(buildOutput).toContain("skill: ls-team-spec");
@@ -95,7 +94,6 @@ describe("skill output", () => {
     "ls-tech-design",
     "ls-publish-epic",
     "ls-current-docs",
-    "ls-codex-impl",
     "ls-team-impl",
     "ls-team-impl-cc",
     "ls-team-spec",
@@ -141,6 +139,7 @@ describe("skill output", () => {
     expect(technicalRef).toBe(true);
     expect(codeMapRef).toBe(true);
   });
+
 });
 
 // -------------------------------------------------------------------------
@@ -190,18 +189,6 @@ describe("skill content", () => {
     expect(content).toContain("references/current-state-code-map.md");
     expect(content).toContain("current-state-code-map.md");
     expect(content).toContain("Subagent Pattern");
-  });
-
-  test("codex-impl contains Codex-native orchestration content", async () => {
-    const content = await Bun.file(
-      join(DIST_SKILLS, "ls-codex-impl", "SKILL.md")
-    ).text();
-    expect(content).toContain("# Codex Implementation Orchestration");
-    expect(content).toContain("Startup Orientation");
-    expect(content).toContain("codex-impl-log.md");
-    expect(content).toContain("Convergence Loop");
-    expect(content).toContain("Prompt 3: Story Verifier - Sonnet");
-    expect(content).toContain("Feature-Level Verification");
   });
 
   test("team-impl contains CLI orchestration content", async () => {
@@ -264,7 +251,6 @@ describe("skill content", () => {
       "ls-current-docs",
     ];
     const skillsWithout = [
-      "ls-codex-impl",
       "ls-publish-epic",
       "ls-team-impl",
       "ls-team-impl-cc",
@@ -326,7 +312,6 @@ describe("standalone output", () => {
     "03-technical-design-skill.md",
     "04-publish-epic-skill.md",
     "05-current-docs-skill.md",
-    "06c-codex-implementation-skill.md",
     "06-team-implementation-skill.md",
     "06cc-team-implementation-claude-code-skill.md",
     "07-team-spec-skill.md",

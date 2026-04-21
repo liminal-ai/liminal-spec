@@ -1,0 +1,15 @@
+{
+  "events": [
+    { "target": "00-foundation", "step": "story_implement", "status": "DONE", "milestones": ["story-implemented"], "nextRecommendedAction": "story_verify_primary", "notes": "Story 0 implemented." },
+    { "target": "00-foundation", "step": "story_verify_primary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_verify_secondary", "notes": "Primary verifier pass." },
+    { "target": "00-foundation", "step": "story_verify_secondary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_synthesize", "notes": "Secondary verifier pass." },
+    { "target": "00-foundation", "step": "story_synthesize", "status": "DONE", "decision": "PASS", "milestones": ["story-accepted"], "nextRecommendedAction": "story_accept", "notes": "Accept story 0." },
+    { "target": "01-feature", "step": "story_implement", "status": "DONE", "milestones": ["story-implemented"], "nextRecommendedAction": "story_verify_primary", "notes": "Story 1 implemented." },
+    { "target": "01-feature", "step": "story_verify_primary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_verify_secondary", "notes": "Primary verifier pass." },
+    { "target": "01-feature", "step": "story_verify_secondary", "status": "DONE", "milestones": ["story-verified"], "nextRecommendedAction": "story_synthesize", "notes": "Secondary verifier pass." },
+    { "target": "01-feature", "step": "story_synthesize", "status": "DONE", "decision": "PASS", "milestones": ["story-accepted"], "nextRecommendedAction": "story_accept", "notes": "Accept story 1." },
+    { "target": "feature", "step": "feature_verify_primary", "status": "DONE", "milestones": ["feature-verified"], "nextRecommendedAction": "feature_verify_secondary", "notes": "Primary feature verifier pass.", "featureVerification": true },
+    { "target": "feature", "step": "feature_verify_secondary", "status": "DONE", "milestones": ["feature-verified"], "nextRecommendedAction": "feature_synthesize", "notes": "Secondary feature verifier pass.", "featureVerification": true },
+    { "target": "feature", "step": "feature_synthesize", "status": "DONE", "decision": "PASS", "milestones": ["feature-accepted"], "nextRecommendedAction": "feature_accept", "notes": "Accept feature.", "featureVerification": true }
+  ]
+}

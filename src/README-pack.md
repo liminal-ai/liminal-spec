@@ -12,19 +12,19 @@ A set of skills for spec-driven software development with AI coding assistants. 
 | **ls-tech-design** | Transform an Epic into an implementable Tech Design with architecture, interfaces, and test mapping. |
 | **ls-publish-epic** | Publish an Epic as individual story files with full AC/TC detail and technical notes. |
 | **ls-current-docs** | Reconstruct the current functional baseline, technical baseline, and code-reading map from implemented code, tests, runtime surfaces, and historical specs. Bundles focused functional, technical, and code-map companion guides in the installed skill pack. |
-| **ls-codex-impl** | Codex-native implementation orchestration with one persistent gpt-5.4 orchestrator, Codex implementation lanes, and dual fresh verification from Codex and Sonnet. |
 | **ls-team-spec** | Orchestrate the full spec pipeline with agent teams and external CLI verification. |
 | **ls-team-impl** | Orchestrate implementation with agent teams and Codex/Copilot CLI. |
 | **ls-team-impl-cc** | Orchestrate implementation with Claude Code agent teams. Sonnet implements, Opus and Sonnet verify. |
+| **ls-claude-impl** | Orchestrate implementation in Claude Code with a durable run log, progressive-disclosure docs, and a bundled bounded-operation CLI. |
 
 ## Installation
 
 ### Skill Pack
 
-This zip extracts a `skills/` directory. Unzip directly into `~/.claude/` (or `~/.agents/`):
+This zip extracts a `skills/` directory. Unzip directly into the root your agent expects:
 
 ```bash
-# Claude Code — unzip into ~/.claude/ so skills land at ~/.claude/skills/ls-epic/ etc.
+# Claude Code
 unzip liminal-spec-skill-pack.zip -d ~/.claude/
 
 # Or for .agents-based setups
@@ -41,7 +41,6 @@ Each `.md` file is a self-contained skill. Paste directly into Claude, ChatGPT, 
 
 ### v1.2.0 (2026-04-15)
 
-- **`ls-codex-impl` added** — Codex-native implementation orchestration with one persistent `gpt-5.4 xhigh` orchestrator, Codex worker lanes, and dual fresh verification from Codex and Claude Sonnet.
 - **`ls-current-docs` formalized** — continuity/current-docs skill is now published under its final public name and tightened around scoped currentness: producing surface, entrypoint, platform dependence, and ownership seam must be made explicit when documenting current behavior.
 
 ### v1.1.1 (2026-04-05)

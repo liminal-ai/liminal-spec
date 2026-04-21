@@ -1,0 +1,6 @@
+{
+  "events": [
+    { "target": "00-foundation", "step": "story_implement", "transportOutcome": "stall", "notes": "First attempt stalls." },
+    { "target": "00-foundation", "step": "story_implement", "transportOutcome": "stall", "notes": "Second attempt stalls." }
+  ]
+}

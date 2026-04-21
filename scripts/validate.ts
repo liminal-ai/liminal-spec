@@ -99,6 +99,14 @@ const SkillSchema = z.object({
   references: z.array(z.string().min(1)).optional(),
   templates: z.array(z.string().min(1)).optional(),
   examples: z.array(z.string().min(1)).optional(),
+  bundledArtifacts: z
+    .array(
+      z.object({
+        source: z.string().min(1),
+        destination: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 const ManifestSchema = z.object({
@@ -309,6 +317,36 @@ async function validateBundledReferences(): Promise<void> {
   }
 }
 
+async function validateBundledArtifacts(): Promise<void> {
+  const manifestPath = join(ROOT, "manifest.json");
+  const parsed = ManifestSchema.safeParse(await Bun.file(manifestPath).json());
+  if (!parsed.success) {
+    return;
+  }
+
+  for (const [skillId, skill] of Object.entries(parsed.data.skills)) {
+    for (const artifact of skill.bundledArtifacts ?? []) {
+      const fullPath = join(DIST_SKILLS, skillId, artifact.destination);
+      if (!(await fileExists(fullPath))) {
+        result.errors.push(
+          `Skill '${skillId}': missing bundled artifact ${artifact.destination}`
+        );
+        continue;
+      }
+
+      const file = Bun.file(fullPath);
+      if (file.size === 0) {
+        result.errors.push(
+          `Skill '${skillId}': bundled artifact ${artifact.destination} is empty`
+        );
+        continue;
+      }
+
+      console.log(`  artifact: ${skillId}/${artifact.destination}`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -327,6 +365,9 @@ async function validate(): Promise<void> {
 
   console.log("\nBundled References:");
   await validateBundledReferences();
+
+  console.log("\nBundled Artifacts:");
+  await validateBundledArtifacts();
 
   // Summary
   console.log("\n---");

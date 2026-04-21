@@ -15,8 +15,10 @@
  *   DIST_DIR -- output root directory (default: dist)
  */
 
-import { mkdir, rm } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { cp, mkdir, rm } from "node:fs/promises";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+
+import { syncImplCliAssets } from "./sync-impl-cli-assets";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,6 +32,10 @@ interface SkillEntry {
   references?: string[];
   templates?: string[];
   examples?: string[];
+  bundledArtifacts?: Array<{
+    source: string;
+    destination: string;
+  }>;
 }
 
 interface Manifest {
@@ -64,9 +70,9 @@ const STANDALONE_NAMES: Record<string, string> = {
   "ls-tech-design": "03-technical-design",
   "ls-publish-epic": "04-publish-epic",
   "ls-current-docs": "05-current-docs",
-  "ls-codex-impl": "06c-codex-implementation",
   "ls-team-impl": "06-team-implementation",
   "ls-team-impl-cc": "06cc-team-implementation-claude-code",
+  "ls-claude-impl": "08-claude-implementation-cli",
   "ls-team-spec": "07-team-spec",
 };
 
@@ -206,6 +212,89 @@ async function copyBundledMarkdownFiles(
   }
 }
 
+function resolveArtifactSourcePath(source: string): string {
+  if (source.startsWith("dist/")) {
+    return join(DIST, source.slice("dist/".length));
+  }
+
+  return join(ROOT, source);
+}
+
+async function buildBundledArtifact(source: string): Promise<void> {
+  const sourcePath = resolveArtifactSourcePath(source);
+
+  switch (source) {
+    case "dist/generated/ls-impl-cli.cjs": {
+      await syncImplCliAssets();
+      await mkdir(dirname(sourcePath), { recursive: true });
+      const proc = Bun.spawn(
+        [
+          "bun",
+          "build",
+          join(ROOT, "processes/impl-cli/cli.ts"),
+          "--target=node",
+          "--format=cjs",
+          "--outfile",
+          sourcePath,
+        ],
+        {
+          cwd: ROOT,
+          stdout: "pipe",
+          stderr: "pipe",
+        }
+      );
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        const stdout = await new Response(proc.stdout).text();
+        const stderr = await new Response(proc.stderr).text();
+        throw new Error(
+          `Failed to bundle ${source} (exit ${exitCode}): ${(stdout + stderr).trim()}`
+        );
+      }
+
+      if (!(await Bun.file(sourcePath).exists())) {
+        throw new Error(`Bundled artifact was not created at ${sourcePath}`);
+      }
+
+      console.log(`  bundled artifact: ${source}`);
+      return;
+    }
+    default:
+      throw new Error(`No build rule defined for bundled artifact: ${source}`);
+  }
+}
+
+async function ensureBundledArtifacts(manifest: Manifest): Promise<void> {
+  const sources = new Set<string>();
+
+  for (const skill of Object.values(manifest.skills)) {
+    for (const artifact of skill.bundledArtifacts ?? []) {
+      sources.add(artifact.source);
+    }
+  }
+
+  for (const source of sources) {
+    await buildBundledArtifact(source);
+  }
+}
+
+async function copyBundledArtifacts(
+  artifacts: SkillEntry["bundledArtifacts"],
+  destinationRoot: string
+): Promise<void> {
+  if (!artifacts || artifacts.length === 0) {
+    return;
+  }
+
+  for (const artifact of artifacts) {
+    const sourcePath = resolveArtifactSourcePath(artifact.source);
+    const destinationPath = join(destinationRoot, artifact.destination);
+    await mkdir(dirname(destinationPath), { recursive: true });
+    await cp(sourcePath, destinationPath, { force: true });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main build
 // ---------------------------------------------------------------------------
@@ -227,6 +316,7 @@ async function build(): Promise<void> {
   await mkdir(DIST_STANDALONE, { recursive: true });
   await mkdir(SKILL_PACK_DIR, { recursive: true });
   await mkdir(MARKDOWN_PACK_DIR, { recursive: true });
+  await ensureBundledArtifacts(manifest);
 
   // ----- Skills -----
   for (const [key, skill] of Object.entries(manifest.skills)) {
@@ -238,6 +328,7 @@ async function build(): Promise<void> {
     await mkdir(skillDir, { recursive: true });
     await Bun.write(join(skillDir, "SKILL.md"), composed);
     await copyBundledMarkdownFiles("references", skill.references, skillDir);
+    await copyBundledArtifacts(skill.bundledArtifacts, skillDir);
 
     // Standalone .md output (no frontmatter, for paste-into-chat)
     const standalone = stripFrontmatter(composed);
@@ -251,6 +342,7 @@ async function build(): Promise<void> {
     await mkdir(skillPkgDir, { recursive: true });
     await Bun.write(join(skillPkgDir, "SKILL.md"), composed);
     await copyBundledMarkdownFiles("references", skill.references, skillPkgDir);
+    await copyBundledArtifacts(skill.bundledArtifacts, skillPkgDir);
 
     skillSummary.push({ name: key, lines: lineCount });
     console.log(`  skill: ${key} (${lineCount} lines)`);

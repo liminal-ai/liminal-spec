@@ -1,0 +1,35 @@
+I found a real Story 1 gap set worth fixing: invalid/malformed run-config failures are still surfacing as generic CLI errors instead of `INVALID_RUN_CONFIG`, and provider availability checks still lack the bounded subprocess behavior the Story 1 guardrails expect. I’m tightening those boundaries with tests first, then I’ll rerun the full gate.
+
+I’m closing the remaining Story 1 boundary gaps with tests first: invalid run-configs should block as `INVALID_RUN_CONFIG`, and provider checks should be bounded, repo-rooted, and redact sensitive stderr before it can flow into preflight artifacts.
+
+I’ve wired the boundary fixes: invalid run-configs now map to a blocked `INVALID_RUN_CONFIG` path, and provider availability checks are timeout-bounded, repo-rooted, and stderr-redacting. I’m running the pass-3 slice now to catch any contract mismatches before the full gate.
+
+One test typo surfaced in the new provider boundary coverage; I’m correcting it and rerunning the targeted slice immediately.
+
+The pass-3 boundary slice is green. I’m running the full repo gate one last time to make sure the tightened error/timeout handling didn’t disturb anything outside Story 1.
+
+**findings fixed**  
+- **P3-F1** — Invalid or malformed `impl-run.config.json` failures were surfacing as generic CLI errors instead of a blocked `INVALID_RUN_CONFIG` outcome, leaving Story 1’s run-config boundary under-specified for downstream consumers.  
+  **files changed:** `processes/impl-cli/commands/preflight.ts`, `processes/impl-cli/tests/preflight-command.test.ts`
+- **P3-F2** — Provider availability checks lacked bounded subprocess behavior, repo-root cwd locking, auth-unknown distinction, and redaction of sensitive stderr that can flow into the preflight result/artifact surface.  
+  **files changed:** `processes/impl-cli/core/provider-checks.ts`, `processes/impl-cli/tests/provider-adapter.test.ts`
+
+**findings surfaced to orchestrator**  
+- []
+
+**files changed in this pass**  
+- `processes/impl-cli/commands/preflight.ts`
+- `processes/impl-cli/core/provider-checks.ts`
+- `processes/impl-cli/tests/preflight-command.test.ts`
+- `processes/impl-cli/tests/provider-adapter.test.ts`
+
+**gate result after this pass**  
+- **pass** (`bun run green-verify`)
+
+**final test count and delta from pass-2**  
+- Final test count: **116**
+- Delta from pass-2: **+4**
+
+**final recommended next step**  
+- **ready-for-verification**
+

@@ -1,0 +1,38 @@
+I found one likely real issue already: gate discovery currently hardcodes `bun run green-verify` / `bun run verify-all` whenever those script keys exist, so the test passes without proving the resolver uses the actual configured commands. I’m tightening that path and adding stronger precedence coverage now.
+
+I’m making two concrete corrections: using the actual script commands in gate discovery instead of hardcoded names, and expanding the precedence tests so they really prove package-scripts-over-docs-over-CI behavior. I’m also tightening the doc-contract tests so the pass-1 additions assert the fallback matrix more meaningfully.
+
+The main fixes are in: gate discovery now resolves real script values and the tests prove the precedence chain instead of just the happy explicit path. I’m rerunning the affected slice first, then the full gate.
+
+**findings fixed**  
+- **P2-F1** — Gate discovery used hardcoded `bun run green-verify` / `bun run verify-all` values whenever those script keys existed, so the runtime and tests did not prove that actual configured package-script commands were discovered.  
+  **files changed:** `processes/impl-cli/core/gate-discovery.ts`, `processes/impl-cli/tests/gate-discovery.test.ts`, `processes/impl-cli/tests/preflight-command.test.ts`
+- **P2-F2** — The pass-1 skill-content checks for AC-2.2 / AC-2.3 were too shallow; they matched loose phrases rather than the documented fallback chain / role-default matrix as a coherent section contract.  
+  **files changed:** `scripts/__tests__/claude-impl-skill.test.ts`
+
+**findings surfaced to orchestrator**  
+- none
+
+**mock/shim audit findings**  
+- **none** — Story 1 runtime coverage still uses real filesystem temp dirs and PATH-fixture executables for provider subprocess checks; no mocks/shims were introduced on production paths in `processes/impl-cli/`.
+
+**pass-1 additions defense**  
+- `TC-1.5a teaches the orchestrator to read every story before implementation starts` — **yes**; AC-1.5 is explicitly a skill/process contract, not CLI runtime behavior, so a source-content assertion is the correct seam.
+- `TC-1.6a teaches verification-gate discovery with the documented precedence` — **yes**; this remains warranted, and runtime coverage now also proves precedence behavior instead of relying only on the docs.
+- `TC-1.6b teaches the orchestrator to pause when gate policy stays ambiguous` — **yes**; ambiguity pause is both a doc contract and a runtime outcome, so the dual coverage is appropriate.
+- `TC-2.4a teaches the orchestrator to record the resolved run configuration after preflight` — **yes**; the dispatch explicitly says the orchestrator, not the CLI, owns the log write, so this belongs in skill-content tests.
+- `TC-2.2a / TC-2.2b / TC-2.2c teaches the provider fallback chain` — **yes**; strengthened in this pass to assert the exact `Default Resolution Contract` bullets rather than shallow substrings.
+- `TC-2.3a / TC-2.3b / TC-2.3c / TC-2.3d / TC-2.3e teaches the role-specific defaults and Claude-only fallback` — **yes**; strengthened in this pass to assert the exact role-default matrix lines inside the default-resolution section.
+
+**files changed in this pass**  
+- `processes/impl-cli/core/gate-discovery.ts`
+- `processes/impl-cli/tests/gate-discovery.test.ts`
+- `processes/impl-cli/tests/preflight-command.test.ts`
+- `scripts/__tests__/claude-impl-skill.test.ts`
+
+**gate result after this pass**  
+- **pass** (`bun run green-verify`)
+
+**recommended next step**  
+Proceed to self-review pass 3 of 3, focusing on residual risk, boundary integrity, and any scope creep beyond Story 1.
+
