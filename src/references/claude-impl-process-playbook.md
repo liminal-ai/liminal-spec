@@ -6,13 +6,15 @@ This is the main process reference after setup. Use it to decide which bounded C
 
 1. Setup: resolve the spec pack, initialize or resume `team-impl-log.md`, and discover verification gates.
 2. Preflight: validate the authored run configuration before any provider-backed work starts.
-3. Story cycle: implement, verify, run the final story gate, record the story receipt, then decide whether to advance.
+3. Story cycle: implement, self-review, verify, run the final story gate, record the story receipt, then decide whether to advance.
 4. Closeout: complete cleanup, epic verification, synthesis, and the final orchestrator-owned gate.
 
 ## Setup Rules
 
 - Use `inspect` for structural discovery.
 - Do not start implementation until the story gate and epic gate are recorded.
+- Expect `preflight` to persist resolved `verification_gates` into `impl-run.config.json` for downstream commands; record that persisted gate choice in the log.
+- When gate-discovery rationale is available, record candidate gates considered and why the selected story and epic gates won.
 - If gate policy is ambiguous after checking project policy docs and package scripts, pause with a user decision instead of guessing.
 - Resume from disk artifacts, not conversation memory.
 
@@ -21,6 +23,29 @@ This is the main process reference after setup. Use it to decide which bounded C
 - `impl-run.config.json`: the run shape chosen by the orchestrator
 - `team-impl-log.md`: the durable record of state, gates, receipts, and risks
 - CLI result artifacts under `artifacts/`: machine-readable evidence returned by each bounded operation
+- Story operation artifacts live under `artifacts/<story-id>/`; quick-fix artifacts live under `artifacts/quick-fix/`.
+- Runtime progress artifacts for provider-backed operations:
+  - `progress/<artifact-base>.status.json`: latest pollable snapshot
+  - `progress/<artifact-base>.progress.jsonl`: lifecycle history
+  - `streams/<artifact-base>.stdout.log` and `.stderr.log`: raw provider output
+
+## Polling Long-Running Work
+
+- When a provider-backed operation is still running, check the runtime artifacts on disk rather than waiting blind.
+- Poll in this order:
+  - read `status.json`
+  - compare `updatedAt` and `lastOutputAt`
+  - tail the stream logs if you need more detail
+- Use `status.json` to answer:
+  - Is the process alive?
+  - Which phase is it in?
+  - When did it last emit output?
+- Use these bands as reporting guidance only:
+  - `healthy` — output or lifecycle update within 5 minutes
+  - `slow` — no output for 5 to 15 minutes
+  - `suspected-stall` — no output for 15+ minutes
+  - `hard-stall` — no output for 30+ minutes
+- Do not reroute, accept, or fail the story from runtime progress alone. The final JSON envelope remains the routing source of truth.
 
 ## Story Receipt Minimum
 
@@ -55,12 +80,19 @@ Before accepting a story, record:
 ## Fix Routing Rules
 
 - If `story-implement` returns `needs-human-ruling`, keep the surfaced uncertainty explicit and pause for an orchestrator routing decision instead of auto-fixing it away.
+- After a clean `story-implement` or `story-continue` result, run `story-self-review` with the explicit continuation handle before you dispatch `story-verify`.
+- Use `story-verify` initial mode to start the retained verifier session for the story. After the implementor responds, use `story-verify` follow-up mode with the explicit verifier continuation handle, the full implementor response, and any concise orchestrator framing needed for convergence.
+- The orchestrator never overrides verification-identified blockers. Route blockers to the implementor, back through verification, or to the user for a ruling.
 - When that uncertainty is surfaced, choose explicitly from this routing menu:
   - `story-continue` with the same-session implementor when more context-aware follow-up work can likely resolve it without changing the plan shape.
+  - `story-self-review` when the retained session is ready for bounded same-session review before verification.
   - `quick-fix` for a small bounded correction that does not justify restarting the full story implementor workflow.
   - Human escalation when design ambiguity or product intent is still blocking progress.
-- If verifier results disagree materially, do not auto-resolve the disagreement. Keep both verifier result sets visible and route to fresh follow-up verification or human escalation.
+- If the retained verifier and implementor still disagree materially, do not auto-resolve the disagreement. Keep both the verifier evidence and implementor response visible and route to retained verifier follow-up or human escalation.
 - Use `quick-fix` only for small mechanical corrections that do not justify restarting the full story implementor workflow.
+- Never allow non-specified or non-designed shims, mocks, fake adapters, test-only branches, or placeholder production paths without explicit user approval.
+- Treat declared `specDeviations` as routing signals. Do not let them become passive receipt notes.
+- Do not accept a verifier blocker as risk because an implementor says it is out of scope unless concrete spec or tech-design evidence supports that interpretation and the user or verifier accepts it.
 
 ## Epic Closeout Rules
 
@@ -83,6 +115,7 @@ Before accepting a story, record:
 If execution is interrupted, restart from the files on disk: `team-impl-log.md`, `impl-run.config.json`, and the command result artifacts already written under `artifacts/`.
 
 - Recover the active story, current phase, and any retained implementor continuation handle from `team-impl-log.md` before dispatching more work.
+- Recover the retained verifier continuation handle as well when verification is active or follow-up verification is expected next.
 - Keep `Current Phase` coarse and `Last Completed Checkpoint` specific so an interrupted story cycle can resume from the last durable step.
 - Compare the recorded phase and checkpoint to the expected result artifact for that phase before resuming.
 - If an in-flight implementor, quick-fix, or verifier step has no durable result artifact yet, treat it as incomplete rather than assuming it finished.

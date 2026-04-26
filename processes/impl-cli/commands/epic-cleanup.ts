@@ -1,6 +1,11 @@
 import { defineCommand } from "citty";
 
-import { nextGroupedArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import {
+  buildRuntimeProgressPaths,
+  buildStreamOutputPaths,
+  nextGroupedArtifactPath,
+  writeJsonArtifact,
+} from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
 import { runEpicCleanup } from "../core/epic-cleanup";
 import {
@@ -97,6 +102,9 @@ export default defineCommand({
         cleanupBatchPath: args["cleanup-batch"],
         configPath: args.config,
         env: process.env,
+        artifactPath,
+        streamOutputPaths: buildStreamOutputPaths(artifactPath),
+        runtimeProgressPaths: buildRuntimeProgressPaths(artifactPath),
       });
       const envelope = cliResultEnvelopeSchema(epicCleanupResultSchema).parse(
         createResultEnvelope({

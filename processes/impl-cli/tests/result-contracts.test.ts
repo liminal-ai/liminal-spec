@@ -9,7 +9,8 @@ import {
   implementorResultSchema,
   inspectResultSchema,
   statusForOutcome,
-  storyVerifierBatchResultSchema,
+  storySelfReviewResultSchema,
+  storyVerifierResultSchema,
 } from "../core/result-contracts";
 
 describe("result contracts", () => {
@@ -132,10 +133,8 @@ describe("result contracts", () => {
           },
         ],
         selfReview: {
-          passesRun: 3,
-          findingsFixed: [
-            "Aligned the continuation artifact path with the explicit session handle contract.",
-          ],
+          passesRun: 0,
+          findingsFixed: [],
           findingsSurfaced: [],
         },
         openQuestions: [],
@@ -206,72 +205,166 @@ describe("result contracts", () => {
     ).toThrow();
   });
 
-  test("TC-5.2a accepts a valid story verifier batch envelope with identity, coverage, gate results, and routing guidance", () => {
-    const parsed = cliResultEnvelopeSchema(storyVerifierBatchResultSchema).parse({
+  test("accepts a valid story self-review batch envelope with ordered pass artifacts and continuation fields", () => {
+    const parsed = cliResultEnvelopeSchema(storySelfReviewResultSchema).parse({
+      command: "story-self-review",
+      version: 1,
+      status: "ok",
+      outcome: "ready-for-verification",
+      result: {
+        resultId: "self-review-result-001",
+        provider: "codex",
+        model: "gpt-5.4",
+        role: "story_self_review",
+        sessionId: "codex-session-123",
+        continuation: {
+          provider: "codex",
+          sessionId: "codex-session-123",
+          storyId: "03-story-implementor-workflow",
+        },
+        outcome: "ready-for-verification",
+        story: {
+          id: "03-story-implementor-workflow",
+          title: "Story 3: Story Implementor Workflow",
+        },
+        passesRequested: 3,
+        passesCompleted: 3,
+        passArtifacts: [
+          {
+            passNumber: 1,
+            path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/002-self-review-pass-1.json",
+          },
+          {
+            passNumber: 2,
+            path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/003-self-review-pass-2.json",
+          },
+          {
+            passNumber: 3,
+            path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/004-self-review-pass-3.json",
+          },
+        ],
+        planSummary:
+          "Self-review completed against the retained implementor session with no remaining concerns.",
+        changedFiles: [],
+        tests: {
+          added: [],
+          modified: [],
+          removed: [],
+        },
+        gatesRun: [],
+        selfReview: {
+          passesRun: 3,
+          findingsFixed: [],
+          findingsSurfaced: [],
+        },
+        openQuestions: [],
+        specDeviations: [],
+        recommendedNextStep: "Run story verification.",
+      },
+      errors: [],
+      warnings: [],
+      artifacts: [
+        {
+          kind: "self-review-pass",
+          path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/002-self-review-pass-1.json",
+        },
+        {
+          kind: "self-review-pass",
+          path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/003-self-review-pass-2.json",
+        },
+        {
+          kind: "self-review-pass",
+          path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/004-self-review-pass-3.json",
+        },
+        {
+          kind: "result-envelope",
+          path: "/tmp/spec-pack/artifacts/03-story-implementor-workflow/005-self-review-batch.json",
+        },
+      ],
+      startedAt: "2026-04-20T00:00:00.000Z",
+      finishedAt: "2026-04-20T00:00:01.000Z",
+    });
+
+    expect(parsed.result?.passesRequested).toBe(3);
+    expect(parsed.result?.passArtifacts).toHaveLength(3);
+  });
+
+  test("TC-5.2a accepts a valid retained story verifier envelope with identity, continuation, and convergence fields", () => {
+    const parsed = cliResultEnvelopeSchema(storyVerifierResultSchema).parse({
       command: "story-verify",
       version: 1,
       status: "ok",
       outcome: "pass",
       result: {
-        outcome: "pass",
+        resultId: "verify-result-1",
+        role: "story_verifier",
+        provider: "codex",
+        model: "gpt-5.4",
+        sessionId: "codex-story-verify-001",
+        continuation: {
+          provider: "codex",
+          sessionId: "codex-story-verify-001",
+          storyId: "04-story-verification-workflow",
+        },
+        mode: "initial",
         story: {
           id: "04-story-verification-workflow",
           title: "Story 4: Story Verification Workflow",
         },
-        verifierResults: [
+        artifactsRead: [
+          "/tmp/spec-pack/stories/04-story-verification-workflow.md",
+          "/tmp/spec-pack/tech-design.md",
+          "/tmp/spec-pack/test-plan.md",
+        ],
+        reviewScopeSummary:
+          "Reviewed the story requirements, verification routing, and provider evidence.",
+        priorFindingStatuses: [],
+        newFindings: [
           {
-            resultId: "verify-result-1",
-            verifierLabel: "story-verifier-1",
-            provider: "codex",
-            model: "gpt-5.4",
-            story: {
-              id: "04-story-verification-workflow",
-              title: "Story 4: Story Verification Workflow",
-            },
-            artifactsRead: [
-              "/tmp/spec-pack/stories/04-story-verification-workflow.md",
-              "/tmp/spec-pack/tech-design.md",
-              "/tmp/spec-pack/test-plan.md",
-            ],
-            reviewScopeSummary:
-              "Reviewed the story requirements, verification routing, and provider evidence.",
-            findings: [
-              {
-                id: "verify-finding-1",
-                severity: "major",
-                title: "Verifier finding shape is preserved",
-                evidence:
-                  "The verifier found one requirement-coverage gap in the current implementation batch.",
-                affectedFiles: [
-                  "processes/impl-cli/commands/story-verify.ts",
-                ],
-                requirementIds: ["TC-5.2a"],
-                recommendedFixScope: "quick-fix",
-                blocking: false,
-              },
-            ],
-            requirementCoverage: {
-              verified: ["AC-5.1", "AC-5.2", "TC-5.1a", "TC-5.2a"],
-              unverified: [],
-            },
-            gatesRun: [
-              {
-                command: "bun run green-verify",
-                result: "not-run",
-              },
-            ],
-            mockOrShimAuditFindings: [
-              "The verifier found no fake success path, but it explicitly audited the production adapter path.",
-            ],
-            recommendedNextStep: "pass",
-            recommendedFixScope: "same-session-implementor",
-            openQuestions: [
-              "Should future verifier batches attach persisted provider stdout artifacts?",
-            ],
-            additionalObservations: [
-              "No additional finding, but artifact persistence remains easy to audit.",
-            ],
+            id: "verify-finding-1",
+            severity: "major",
+            title: "Verifier finding shape is preserved",
+            evidence:
+              "The verifier found one requirement-coverage gap in the current implementation batch.",
+            affectedFiles: ["processes/impl-cli/commands/story-verify.ts"],
+            requirementIds: ["TC-5.2a"],
+            recommendedFixScope: "quick-fix",
+            blocking: false,
           },
+        ],
+        openFindings: [
+          {
+            id: "verify-finding-1",
+            severity: "major",
+            title: "Verifier finding shape is preserved",
+            evidence:
+              "The verifier found one requirement-coverage gap in the current implementation batch.",
+            affectedFiles: ["processes/impl-cli/commands/story-verify.ts"],
+            requirementIds: ["TC-5.2a"],
+            recommendedFixScope: "quick-fix",
+            blocking: false,
+          },
+        ],
+        requirementCoverage: {
+          verified: ["AC-5.1", "AC-5.2", "TC-5.1a", "TC-5.2a"],
+          unverified: [],
+        },
+        gatesRun: [
+          {
+            command: "bun run green-verify",
+            result: "not-run",
+          },
+        ],
+        mockOrShimAuditFindings: [
+          "The verifier found no fake success path, but it explicitly audited the production adapter path.",
+        ],
+        recommendedNextStep: "pass",
+        recommendedFixScope: "same-session-implementor",
+        openQuestions: [
+          "Should future verifier passes attach persisted provider stdout artifacts?",
+        ],
+        additionalObservations: [
+          "No additional finding, but artifact persistence remains easy to audit.",
         ],
       },
       errors: [],
@@ -279,62 +372,61 @@ describe("result contracts", () => {
       artifacts: [
         {
           kind: "result-envelope",
-          path: "/tmp/spec-pack/artifacts/04-story-verification-workflow/001-verify-batch.json",
+          path: "/tmp/spec-pack/artifacts/04-story-verification-workflow/001-verify.json",
         },
       ],
       startedAt: "2026-04-20T00:00:00.000Z",
       finishedAt: "2026-04-20T00:00:01.000Z",
     });
 
-    expect(parsed.result?.verifierResults[0]?.verifierLabel).toBe(
-      "story-verifier-1"
+    expect(parsed.result?.sessionId).toBe("codex-story-verify-001");
+    expect(parsed.result?.continuation.storyId).toBe(
+      "04-story-verification-workflow"
     );
-    expect(parsed.result?.verifierResults[0]?.findings[0]).toMatchObject({
+    expect(parsed.result?.openFindings[0]).toMatchObject({
       id: "verify-finding-1",
       severity: "major",
       recommendedFixScope: "quick-fix",
       blocking: false,
     });
-    expect(
-      parsed.result?.verifierResults[0]?.mockOrShimAuditFindings[0]
-    ).toContain("production adapter path");
+    expect(parsed.result?.mockOrShimAuditFindings[0]).toContain(
+      "production adapter path"
+    );
   });
 
-  test("rejects a story verifier batch envelope when the verifier contract drops required coverage or observation fields", () => {
+  test("rejects a retained story verifier envelope when the verifier contract drops required convergence fields", () => {
     expect(() =>
-      cliResultEnvelopeSchema(storyVerifierBatchResultSchema).parse({
+      cliResultEnvelopeSchema(storyVerifierResultSchema).parse({
         command: "story-verify",
         version: 1,
         status: "ok",
         outcome: "revise",
         result: {
-          outcome: "revise",
+          resultId: "verify-result-2",
+          role: "story_verifier",
+          provider: "claude-code",
+          model: "claude-sonnet",
+          sessionId: "claude-story-verify-002",
+          continuation: {
+            provider: "claude-code",
+            sessionId: "claude-story-verify-002",
+            storyId: "04-story-verification-workflow",
+          },
+          mode: "followup",
           story: {
             id: "04-story-verification-workflow",
             title: "Story 4: Story Verification Workflow",
           },
-          verifierResults: [
-            {
-              resultId: "verify-result-2",
-              verifierLabel: "story-verifier-2",
-              provider: "claude-code",
-              model: "claude-sonnet",
-              story: {
-                id: "04-story-verification-workflow",
-                title: "Story 4: Story Verification Workflow",
-              },
-              artifactsRead: [
-                "/tmp/spec-pack/stories/04-story-verification-workflow.md",
-              ],
-              reviewScopeSummary: "Missing several required verifier fields.",
-              findings: [],
-              gatesRun: [],
-              mockOrShimAuditFindings: [],
-              recommendedNextStep: "revise",
-              recommendedFixScope: "quick-fix",
-              openQuestions: [],
-            },
-          ],
+          artifactsRead: ["/tmp/spec-pack/stories/04-story-verification-workflow.md"],
+          reviewScopeSummary: "Missing several required verifier fields.",
+          priorFindingStatuses: [],
+          newFindings: [],
+          openFindings: [],
+          gatesRun: [],
+          mockOrShimAuditFindings: [],
+          recommendedNextStep: "revise",
+          recommendedFixScope: "quick-fix",
+          openQuestions: [],
         },
         errors: [],
         warnings: [],
@@ -343,6 +435,75 @@ describe("result contracts", () => {
         finishedAt: "2026-04-20T00:00:01.000Z",
       })
     ).toThrow();
+  });
+
+  test("accepts a retained story verifier envelope that escalates to needs-human-ruling", () => {
+    const parsed = cliResultEnvelopeSchema(storyVerifierResultSchema).parse({
+      command: "story-verify",
+      version: 1,
+      status: "needs-user-decision",
+      outcome: "needs-human-ruling",
+      result: {
+        resultId: "verify-result-3",
+        role: "story_verifier",
+        provider: "codex",
+        model: "gpt-5.4",
+        sessionId: "codex-story-verify-003",
+        continuation: {
+          provider: "codex",
+          sessionId: "codex-story-verify-003",
+          storyId: "04-story-verification-workflow",
+        },
+        mode: "followup",
+        story: {
+          id: "04-story-verification-workflow",
+          title: "Story 4: Story Verification Workflow",
+        },
+        artifactsRead: [
+          "/tmp/spec-pack/stories/04-story-verification-workflow.md",
+          "/tmp/spec-pack/test-plan.md",
+        ],
+        reviewScopeSummary: "Verifier and implementor still disagree on scope.",
+        priorFindingStatuses: [
+          {
+            id: "verify-finding-1",
+            status: "needs-human-ruling",
+            rationale: "Spec evidence is ambiguous and requires a user ruling.",
+          },
+        ],
+        newFindings: [],
+        openFindings: [
+          {
+            id: "verify-finding-1",
+            severity: "major",
+            title: "Scope disagreement remains unresolved",
+            evidence: "Verifier still sees missing production-path behavior.",
+            affectedFiles: ["processes/impl-cli/commands/story-verify.ts"],
+            requirementIds: ["TC-5.2a"],
+            recommendedFixScope: "human-ruling",
+            blocking: true,
+          },
+        ],
+        requirementCoverage: {
+          verified: [],
+          unverified: ["TC-5.2a"],
+        },
+        gatesRun: [],
+        mockOrShimAuditFindings: [],
+        recommendedNextStep: "needs-human-ruling",
+        recommendedFixScope: "human-ruling",
+        openQuestions: [],
+        additionalObservations: [],
+      },
+      errors: [],
+      warnings: [],
+      artifacts: [],
+      startedAt: "2026-04-20T00:00:00.000Z",
+      finishedAt: "2026-04-20T00:00:01.000Z",
+    });
+
+    expect(parsed.outcome).toBe("needs-human-ruling");
+    expect(parsed.status).toBe("needs-user-decision");
   });
 
   test("TC-5.3b accepts a quick-fix envelope while validating only the shared outer wrapper", () => {
@@ -354,8 +515,12 @@ describe("result contracts", () => {
       result: {
         provider: "codex",
         model: "gpt-5.4",
-        rawProviderOutput:
+        rawProviderOutputPreview:
           "{\"type\":\"item.completed\",\"message\":\"Applied the requested fix.\"}",
+        rawProviderOutputBytes: 61,
+        rawProviderOutputTruncated: false,
+        rawProviderOutputLogPath:
+          "/tmp/spec-pack/artifacts/quick-fix/streams/001-quick-fix.stdout.log",
         arbitraryProviderMetadata: {
           session: "quick-fix-001",
         },
@@ -374,7 +539,7 @@ describe("result contracts", () => {
 
     expect(parsed.result).toMatchObject({
       provider: "codex",
-      rawProviderOutput:
+      rawProviderOutputPreview:
         "{\"type\":\"item.completed\",\"message\":\"Applied the requested fix.\"}",
     });
   });

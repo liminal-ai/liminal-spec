@@ -1,60 +1,37 @@
-# Claude Implementation
+# Liminal Spec: ls-claude-impl
 
-Use `ls-claude-impl` when a completed spec pack already exists and Claude Code needs a disciplined implementation workflow with a bundled bounded-operation CLI.
+## Introduction & Onboarding
 
-## Startup Orientation
+You will be orchestrating the implementation of all the stories in an epic (sometimes a subset), based on a spec pack consisting of an epic, one or more tech design files, a test plan, and a list of story files.
 
-Resolve the spec-pack root before reading deeply. The minimum v1 layout is:
+To onboard this skill properly, you will read the following files sequentially in 400-line chunks. After each chunk, pause and capture the key rules, boundaries, and filenames you will need to retain for the rest of the session. After each file, write a compact carry-forward note summarizing what the file established.
 
-- `epic.md`
-- `tech-design.md`
-- `test-plan.md`
-- `stories/`
+In a long-running session your early tool calls and file reads will get removed, so retained notes are what will carry the skill's operating essentials forward.
 
-Run `bin/ls-impl-cli.cjs inspect --spec-pack-root <path> --json` as the first runtime check. Capture the returned tech-design shape, required artifacts, story inventory, and insert status before you move on to run configuration or provider-backed work.
+1. `onboarding/01-orientation.md`
+2. `onboarding/02-terminology.md`
+3. `onboarding/03-operating-model.md`
+4. `onboarding/04-stage-map.md`
+5. `onboarding/05-initialization-overview.md`
 
-Read every story file in `stories/` in order before starting Story 0 or Story 1. Do not begin implementation from a partial story read.
+## Orchestration Setup
 
-## Initialization Steps
+Next, begin initialization. These files guide you to find the spec-pack root, confirm the pack is complete, read the pack in the correct order, create or resume durable state, and complete setup before provider-backed work starts.
 
-1. Confirm the spec-pack root and run `inspect`.
-2. If `team-impl-log.md` is absent, create `team-impl-log.md` and initialize the run in `SETUP`.
-3. If `team-impl-log.md` already exists, read it first and resume from the recorded state.
-4. Treat `team-impl-log.md`, `impl-run.config.json`, and the CLI result artifacts under `artifacts/` as the recovery surface for a resumed run.
-5. Treat missing prior chat or tool-call context as a normal recovery case, not a blocker.
-6. Record whether the spec pack is a two-file or four-file tech-design layout.
-7. Record whether `custom-story-impl-prompt-insert.md` and `custom-story-verifier-prompt-insert.md` are present. Their absence is non-blocking.
-8. Discover verification gates in this precedence order: explicit CLI flags, `impl-run.config.json` entries if the run uses them later, package scripts, project policy docs, then CI configuration.
-9. If the policy stays ambiguous after that precedence order, pause for a user decision instead of improvising.
-10. Run `preflight` before provider-backed work.
-11. After `preflight`, record the validated run configuration, available providers, active role defaults, verification gates, and degraded fallback conditions in `team-impl-log.md`.
+1. `setup/10-spec-pack-discovery.md`
+2. `setup/11-spec-pack-read-order.md`
+3. `setup/12-run-setup.md`
 
-## Default Resolution Contract
+## Read When Entering Later Phases
 
-- Claude Code is the primary harness for every run.
-- If Codex CLI is available, default the story implementor to Codex `gpt-5.4` with high reasoning.
-- If Codex CLI is available, default the verifier pair to Codex `gpt-5.4` with extra high reasoning plus Claude Sonnet with high reasoning.
-- If Codex CLI is available, default epic verifier GPT lanes and the epic synthesizer to Codex `gpt-5.4` with extra high reasoning, paired with a Claude Sonnet verifier lane.
-- If Codex is unavailable but Copilot CLI is available, use Copilot for the fresh-session GPT roles and keep the retained story implementor on Claude Sonnet high.
-- If no GPT-capable secondary harness is available, switch the run to Claude-only defaults, record the degraded-diversity condition explicitly, and note that verifier diversity is weaker in this run.
+- Story implementation and progression: `phases/20-story-cycle.md`
+- Verification, disagreement handling, and fix routing: `phases/21-verification-and-fix-routing.md`
+- Recovery and resume: `phases/22-recovery-and-resume.md`
+- Cleanup, epic verification, synthesis, and closeout: `phases/23-cleanup-and-closeout.md`
 
-## State Ownership
+## Read for Specific Operations or Troubleshooting
 
-- `impl-run.config.json` is orchestrator-owned configuration.
-- `team-impl-log.md` is the durable run record.
-- The CLI performs one bounded operation per call and returns structured results.
-- The CLI does not own story progression, acceptance, or recovery strategy between calls.
-- Run the final story gate yourself after implementation evidence and verifier results are complete.
-- compile deferred and accepted-risk items into a durable cleanup artifact before epic verification begins.
-- Run the final epic gate yourself after cleanup, epic verification, and synthesis are complete.
-- Compare the current total test count to the prior accepted baseline before accepting a story.
-- Advance to the next story only from the committed codebase, the ordered story list, `team-impl-log.md`, and the recorded artifacts on disk.
-
-## Read Next
-
-After the initial `inspect` pass and log setup, read:
-
-1. `references/claude-impl-reading-journey.md`
-2. `references/claude-impl-process-playbook.md`
-3. `references/claude-impl-cli-operations.md`
-4. `references/claude-impl-prompt-system.md`
+- CLI command selection and outcome interpretation: `operations/30-cli-operations.md`
+- Provider defaults, fallback rules, and degraded modes: `operations/31-provider-resolution.md`
+- Prompt assembly, role-fit reading journeys, and prompt inserts: `operations/32-prompting-and-inserts.md`
+- Durable files, result artifacts, baselines, and receipts: `operations/33-artifact-contracts.md`

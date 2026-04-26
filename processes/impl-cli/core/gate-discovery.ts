@@ -11,6 +11,10 @@ export interface GateDiscoveryResult {
     epicGate: string;
     storyGateSource: string;
     epicGateSource: string;
+    storyGateCandidates: string[];
+    epicGateCandidates: string[];
+    storyGateRationale: string;
+    epicGateRationale: string;
   };
   errors: CliError[];
   notes: string[];
@@ -20,6 +24,13 @@ interface GateSourceCandidates {
   story: string[];
   epic: string[];
   source: string;
+}
+
+type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
+
+interface PackageManagerResolution {
+  name: PackageManagerName;
+  useCorepack: boolean;
 }
 
 function uniqueValues(values: string[]): string[] {
@@ -34,12 +45,16 @@ function resolveGateValue(input: {
   value?: string;
   source?: string;
   ambiguous: boolean;
+  candidates: string[];
+  rationale?: string;
 } {
   if (input.explicitValue) {
     return {
       value: input.explicitValue,
       source: "explicit CLI flag",
       ambiguous: false,
+      candidates: [input.explicitValue],
+      rationale: "Selected the explicit CLI flag over all discovered sources.",
     };
   }
 
@@ -48,6 +63,7 @@ function resolveGateValue(input: {
     if (values.length > 1) {
       return {
         ambiguous: true,
+        candidates: values,
       };
     }
 
@@ -56,12 +72,15 @@ function resolveGateValue(input: {
         value: values[0],
         source: candidateSet.source,
         ambiguous: false,
+        candidates: values,
+        rationale: `Selected '${values[0]}' from ${candidateSet.source}. Candidates considered: ${values.join(", ")}.`,
       };
     }
   }
 
   return {
     ambiguous: false,
+    candidates: [],
   };
 }
 
@@ -92,6 +111,7 @@ async function packageScriptCandidates(
   }
 
   const packageJson = JSON.parse(await readTextFile(packageJsonPath)) as {
+    packageManager?: string;
     scripts?: Record<string, string>;
   };
   const scripts = packageJson.scripts ?? {};
@@ -100,13 +120,110 @@ async function packageScriptCandidates(
     return [];
   }
 
+  const packageManager = await detectPackageManager(searchRoot, packageJson);
+
   return [
     {
-      story: scripts["green-verify"] ? ["bun run green-verify"] : [],
-      epic: scripts["verify-all"] ? ["bun run verify-all"] : [],
+      story: scripts["green-verify"]
+        ? [formatPackageScriptCommand(packageManager, "green-verify")]
+        : [],
+      epic: scripts["verify-all"]
+        ? [formatPackageScriptCommand(packageManager, "verify-all")]
+        : [],
       source,
     },
   ];
+}
+
+function parsePackageManagerName(value: string | undefined): PackageManagerName | null {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const separatorIndex = trimmed.lastIndexOf("@");
+  const name =
+    separatorIndex > 0 ? trimmed.slice(0, separatorIndex) : trimmed;
+
+  switch (name) {
+    case "bun":
+    case "npm":
+    case "pnpm":
+    case "yarn":
+      return name;
+    default:
+      return null;
+  }
+}
+
+async function detectPackageManager(
+  searchRoot: string,
+  packageJson: { packageManager?: string }
+): Promise<PackageManagerResolution> {
+  const configured = parsePackageManagerName(packageJson.packageManager);
+  if (configured) {
+    return {
+      name: configured,
+      useCorepack: true,
+    };
+  }
+
+  if (await pathExists(join(searchRoot, "pnpm-lock.yaml"))) {
+    return {
+      name: "pnpm",
+      useCorepack: false,
+    };
+  }
+
+  if (
+    (await pathExists(join(searchRoot, "bun.lock"))) ||
+    (await pathExists(join(searchRoot, "bun.lockb")))
+  ) {
+    return {
+      name: "bun",
+      useCorepack: false,
+    };
+  }
+
+  if (await pathExists(join(searchRoot, "yarn.lock"))) {
+    return {
+      name: "yarn",
+      useCorepack: false,
+    };
+  }
+
+  if (await pathExists(join(searchRoot, "package-lock.json"))) {
+    return {
+      name: "npm",
+      useCorepack: false,
+    };
+  }
+
+  return {
+    name: "npm",
+    useCorepack: false,
+  };
+}
+
+function formatPackageScriptCommand(
+  packageManager: PackageManagerResolution,
+  scriptName: string
+): string {
+  const runner = packageManager.useCorepack
+    ? `corepack ${packageManager.name}`
+    : packageManager.name;
+
+  switch (packageManager.name) {
+    case "bun":
+    case "npm":
+    case "pnpm":
+    case "yarn":
+      return `${runner} run ${scriptName}`;
+  }
 }
 
 async function docCandidates(
@@ -224,9 +341,28 @@ export async function resolveVerificationGates(input: {
   specPackRoot: string;
   explicitStoryGate?: string;
   explicitEpicGate?: string;
+  persistedVerificationGates?: {
+    storyGate: string;
+    epicGate: string;
+    storyGateSource?: string;
+    epicGateSource?: string;
+  };
 }): Promise<GateDiscoveryResult> {
   const specPackRoot = resolve(input.specPackRoot);
-  const sourceCandidates = await localAndRepoRootCandidates(specPackRoot);
+  const sourceCandidates = [
+    ...(input.persistedVerificationGates
+      ? [
+          {
+            story: [input.persistedVerificationGates.storyGate],
+            epic: [input.persistedVerificationGates.epicGate],
+            source:
+              input.persistedVerificationGates.storyGateSource ??
+              "impl-run.config.json verification_gates",
+          },
+        ]
+      : []),
+    ...(await localAndRepoRootCandidates(specPackRoot)),
+  ];
   const storyResolution = resolveGateValue({
     explicitValue: input.explicitStoryGate,
     sourceCandidates,
@@ -267,6 +403,14 @@ export async function resolveVerificationGates(input: {
       epicGate: epicResolution.value,
       storyGateSource: storyResolution.source,
       epicGateSource: epicResolution.source,
+      storyGateCandidates: storyResolution.candidates,
+      epicGateCandidates: epicResolution.candidates,
+      storyGateRationale:
+        storyResolution.rationale ??
+        `Selected '${storyResolution.value}' from ${storyResolution.source}.`,
+      epicGateRationale:
+        epicResolution.rationale ??
+        `Selected '${epicResolution.value}' from ${epicResolution.source}.`,
     },
     errors: [],
     notes: [],

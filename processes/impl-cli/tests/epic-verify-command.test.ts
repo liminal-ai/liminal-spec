@@ -1,7 +1,9 @@
 import { join } from "node:path";
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
+  ROOT,
   createExternalSpecPack,
   createRunConfig,
   createSpecPack,
@@ -204,15 +206,39 @@ test("TC-8.1c launches fresh epic verifiers and returns explicit mock or shim au
   expect(artifactPath).toContain("/artifacts/epic/001-epic-verifier-batch.json");
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    verifiersCompleted?: number;
+    verifiersPlanned?: number;
+  };
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.verifiersCompleted).toBe(2);
+  expect(runtimeStatus.verifiersPlanned).toBe(2);
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "verifier-started",
+      "verifier-completed",
+      "completed",
+    ])
+  );
 
-  const codexInvocations = await readJsonLines<{ args: string[] }>(
+  const codexInvocations = await readJsonLines<{ args: string[]; cwd: string }>(
     codexProvider.logPath
   );
-  const claudeInvocations = await readJsonLines<{ args: string[] }>(
+  const claudeInvocations = await readJsonLines<{ args: string[]; cwd: string }>(
     claudeProvider.logPath
   );
   expect(codexInvocations).toHaveLength(1);
   expect(claudeInvocations).toHaveLength(1);
+  expect(codexInvocations[0]?.cwd).toBe(ROOT);
+  expect(claudeInvocations[0]?.cwd).toBe(ROOT);
   expect(codexInvocations[0]?.args).not.toContain("resume");
   expect(claudeInvocations[0]?.args).not.toContain("--resume");
 });
@@ -527,10 +553,13 @@ test("executes a Copilot-backed epic verifier lane end to end when the run confi
   expect(copilotInvocations).toHaveLength(1);
   expect(copilotInvocations[0]?.args).toEqual([
     "-p",
-    expect.any(String),
-    "-s",
+    expect.stringContaining("# Epic Verifier Base Prompt"),
+    "--output-format",
+    "json",
     "--model",
     "gpt-5.4",
+    "--effort",
+    "xhigh",
   ]);
 });
 

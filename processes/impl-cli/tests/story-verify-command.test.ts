@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
   createRunConfig,
   createTempDir,
@@ -11,30 +12,38 @@ import {
   writeRunConfig,
 } from "./test-helpers";
 
+interface VerifierFindingPayload {
+  id: string;
+  severity: "critical" | "major" | "minor" | "observation";
+  title: string;
+  evidence: string;
+  affectedFiles: string[];
+  requirementIds: string[];
+  recommendedFixScope:
+    | "same-session-implementor"
+    | "quick-fix"
+    | "fresh-fix-path"
+    | "human-ruling";
+  blocking: boolean;
+}
+
 interface StoryVerifierPayload {
   artifactsRead: string[];
   reviewScopeSummary: string;
-  findings: Array<{
+  priorFindingStatuses: Array<{
     id: string;
-    severity: "critical" | "major" | "minor" | "observation";
-    title: string;
-    evidence: string;
-    affectedFiles: string[];
-    requirementIds: string[];
-    recommendedFixScope:
-      | "same-session-implementor"
-      | "quick-fix"
-      | "fresh-fix-path"
-      | "human-ruling";
-    blocking: boolean;
+    status: "resolved" | "still-open" | "needs-human-ruling";
+    rationale: string;
   }>;
+  newFindings: VerifierFindingPayload[];
+  openFindings: VerifierFindingPayload[];
   requirementCoverage: {
     verified: string[];
     unverified: string[];
   };
   gatesRun: Array<{ command: string; result: "pass" | "fail" | "not-run" }>;
   mockOrShimAuditFindings: string[];
-  recommendedNextStep: "pass" | "revise" | "block";
+  recommendedNextStep: "pass" | "revise" | "block" | "needs-human-ruling";
   recommendedFixScope:
     | "same-session-implementor"
     | "quick-fix"
@@ -54,7 +63,20 @@ function verifierProviderResult(
   });
 }
 
-function baseVerifierPayload(
+function baseFinding(id: string): VerifierFindingPayload {
+  return {
+    id,
+    severity: "major",
+    title: `Finding ${id}`,
+    evidence: `Verifier evidence for ${id}.`,
+    affectedFiles: ["processes/impl-cli/commands/story-verify.ts"],
+    requirementIds: ["TC-5.1a"],
+    recommendedFixScope: "same-session-implementor",
+    blocking: true,
+  };
+}
+
+function baseInitialPayload(
   fixture: Awaited<ReturnType<typeof createVerifierSpecPack>>,
   overrides: Partial<StoryVerifierPayload> = {}
 ): StoryVerifierPayload {
@@ -65,10 +87,12 @@ function baseVerifierPayload(
       fixture.testPlanPath,
     ],
     reviewScopeSummary:
-      "Reviewed the story contract, prompt assembly inputs, and verifier batch routing.",
-    findings: [],
+      "Reviewed the story contract, tech design, and test-plan evidence.",
+    priorFindingStatuses: [],
+    newFindings: [],
+    openFindings: [],
     requirementCoverage: {
-      verified: ["AC-5.1", "AC-5.2", "TC-5.1a", "TC-5.2a"],
+      verified: ["AC-5.1", "TC-5.1a"],
       unverified: [],
     },
     gatesRun: [
@@ -94,12 +118,11 @@ function baseVerifierPayload(
   };
 }
 
-test("TC-5.1a launches two fresh verifiers by default and returns the structured verifier batch", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-default-dual");
+test("initial story-verify starts one retained verifier session and returns continuation", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-initial-retained");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-default-dual-provider");
-  const codexSessionId = "codex-story-verify-001";
-  const claudeSessionId = "claude-story-verify-001";
+  const providerBinDir = await createTempDir("story-verify-initial-retained-provider");
+  const codexSessionId = "codex-story-verify-initial-001";
   const codexProvider = await writeFakeProviderExecutable({
     binDir: providerBinDir,
     provider: "codex",
@@ -107,19 +130,11 @@ test("TC-5.1a launches two fresh verifiers by default and returns the structured
       {
         stdout: verifierProviderResult(
           codexSessionId,
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          claudeSessionId,
-          baseVerifierPayload(fixture)
+          baseInitialPayload(fixture, {
+            recommendedNextStep: "revise",
+            newFindings: [baseFinding("F-001")],
+            openFindings: [baseFinding("F-001")],
+          })
         ),
       },
     ],
@@ -138,89 +153,98 @@ test("TC-5.1a launches two fresh verifiers by default and returns the structured
       env: {
         PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
         ...codexProvider.env,
-        ...claudeProvider.env,
       },
     }
   );
 
-  expect(run.exitCode).toBe(0);
+  expect(run.exitCode).toBe(2);
 
   const envelope = parseJsonOutput<any>(run.stdout);
   expect(envelope.command).toBe("story-verify");
-  expect(envelope.outcome).toBe("pass");
-  expect(envelope.result.story).toEqual({
-    id: fixture.storyId,
-    title: fixture.storyTitle,
+  expect(envelope.outcome).toBe("revise");
+  expect(envelope.result.mode).toBe("initial");
+  expect(envelope.result.role).toBe("story_verifier");
+  expect(envelope.result.sessionId).toBe(codexSessionId);
+  expect(envelope.result.continuation).toEqual({
+    provider: "codex",
+    sessionId: codexSessionId,
+    storyId: fixture.storyId,
   });
-  expect(envelope.result.verifierResults).toHaveLength(2);
-  expect(envelope.result.verifierResults).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        verifierLabel: "story-verifier-1",
-        provider: "codex",
-        model: "gpt-5.4",
-        recommendedNextStep: "pass",
-      }),
-      expect.objectContaining({
-        verifierLabel: "story-verifier-2",
-        provider: "claude-code",
-        model: "claude-sonnet",
-        recommendedNextStep: "pass",
-      }),
-    ])
+  expect(envelope.result.newFindings).toHaveLength(1);
+  expect(envelope.result.openFindings).toHaveLength(1);
+  expect(envelope.artifacts[0].path).toContain(
+    `/artifacts/${fixture.storyId}/001-verify.json`
   );
 
   const artifactPath = envelope.artifacts[0].path as string;
-  expect(artifactPath).toContain(`/artifacts/${fixture.storyId}/001-verify-batch.json`);
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    verifiersCompleted?: number;
+    verifiersPlanned?: number;
+  };
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.verifiersCompleted).toBe(1);
+  expect(runtimeStatus.verifiersPlanned).toBe(1);
 
   const codexInvocations = await readJsonLines<{ args: string[] }>(
     codexProvider.logPath
   );
-  const claudeInvocations = await readJsonLines<{ args: string[] }>(
-    claudeProvider.logPath
-  );
   expect(codexInvocations).toHaveLength(1);
-  expect(claudeInvocations).toHaveLength(1);
+  expect(codexInvocations[0]?.args.slice(0, 6)).toEqual([
+    "exec",
+    "--json",
+    "-m",
+    "gpt-5.4",
+    "-c",
+    "model_reasoning_effort=xhigh",
+  ]);
+  expect(codexInvocations[0]?.args).not.toContain("resume");
 });
 
-test("TC-5.1b launches fresh verifier sessions on re-verification instead of resuming prior verifier sessions", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-rerun-fresh");
+test("follow-up story-verify resumes the retained verifier session with implementor response and orchestrator context", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-followup-retained");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-rerun-fresh-provider");
+  const providerBinDir = await createTempDir("story-verify-followup-retained-provider");
+  const sessionId = "codex-story-verify-followup-001";
   const codexProvider = await writeFakeProviderExecutable({
     binDir: providerBinDir,
     provider: "codex",
     responses: [
       {
         stdout: verifierProviderResult(
-          "codex-story-verify-rerun-001",
-          baseVerifierPayload(fixture)
+          sessionId,
+          baseInitialPayload(fixture, {
+            recommendedNextStep: "revise",
+            newFindings: [baseFinding("F-001")],
+            openFindings: [baseFinding("F-001")],
+          })
         ),
       },
       {
         stdout: verifierProviderResult(
-          "codex-story-verify-rerun-002",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-rerun-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-rerun-002",
-          baseVerifierPayload(fixture)
+          sessionId,
+          {
+            ...baseInitialPayload(fixture, {
+              recommendedNextStep: "pass",
+              priorFindingStatuses: [
+                {
+                  id: "F-001",
+                  status: "resolved",
+                  rationale: "The retained implementor fixed the blocker.",
+                },
+              ],
+              newFindings: [],
+              openFindings: [],
+            }),
+            reviewScopeSummary:
+              "Re-reviewed the prior open findings against the implementor response and touched surfaces.",
+          }
         ),
       },
     ],
@@ -229,10 +253,9 @@ test("TC-5.1b launches fresh verifier sessions on re-verification instead of res
   const sharedEnv = {
     PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
     ...codexProvider.env,
-    ...claudeProvider.env,
   };
 
-  const firstRun = await runSourceCli(
+  const initialRun = await runSourceCli(
     [
       "story-verify",
       "--spec-pack-root",
@@ -241,103 +264,418 @@ test("TC-5.1b launches fresh verifier sessions on re-verification instead of res
       fixture.storyId,
       "--json",
     ],
-    {
-      env: sharedEnv,
-    }
+    { env: sharedEnv }
   );
-  const secondRun = await runSourceCli(
+  expect(initialRun.exitCode).toBe(2);
+
+  const followupRun = await runSourceCli(
     [
       "story-verify",
       "--spec-pack-root",
       fixture.specPackRoot,
       "--story-id",
       fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      sessionId,
+      "--response-text",
+      "Implemented the requested fix and tightened the affected contract surface.",
+      "--orchestrator-context-text",
+      "Focus on the prior open blocker and only raise new regressions if the fix introduced them.",
       "--json",
     ],
-    {
-      env: sharedEnv,
-    }
+    { env: sharedEnv }
   );
 
-  expect(firstRun.exitCode).toBe(0);
-  expect(secondRun.exitCode).toBe(0);
+  expect(followupRun.exitCode).toBe(0);
 
-  const secondEnvelope = parseJsonOutput<any>(secondRun.stdout);
-  expect(secondEnvelope.artifacts[0].path).toContain(
-    `/artifacts/${fixture.storyId}/002-verify-batch.json`
+  const envelope = parseJsonOutput<any>(followupRun.stdout);
+  expect(envelope.outcome).toBe("pass");
+  expect(envelope.result.mode).toBe("followup");
+  expect(envelope.result.sessionId).toBe(sessionId);
+  expect(envelope.result.priorFindingStatuses).toEqual([
+    {
+      id: "F-001",
+      status: "resolved",
+      rationale: "The retained implementor fixed the blocker.",
+    },
+  ]);
+  expect(envelope.result.openFindings).toEqual([]);
+  expect(envelope.result.newFindings).toEqual([]);
+  expect(envelope.artifacts[0].path).toContain(
+    `/artifacts/${fixture.storyId}/002-verify.json`
   );
 
   const codexInvocations = await readJsonLines<{ args: string[] }>(
     codexProvider.logPath
   );
-  const claudeInvocations = await readJsonLines<{ args: string[] }>(
-    claudeProvider.logPath
-  );
-
   expect(codexInvocations).toHaveLength(2);
-  expect(codexInvocations[0]?.args).toEqual([
+  expect(codexInvocations[1]?.args.slice(0, 4)).toEqual([
     "exec",
+    "resume",
     "--json",
-    "-m",
-    "gpt-5.4",
-    "-c",
-    "model_reasoning_effort=xhigh",
-    expect.any(String),
+    "-o",
   ]);
-  expect(codexInvocations[1]?.args).toEqual([
-    "exec",
-    "--json",
-    "-m",
-    "gpt-5.4",
-    "-c",
-    "model_reasoning_effort=xhigh",
-    expect.any(String),
-  ]);
-  expect(codexInvocations.flatMap((entry) => entry.args)).not.toContain("resume");
-
-  expect(claudeInvocations).toHaveLength(2);
-  expect(claudeInvocations[0]?.args).not.toContain("--resume");
-  expect(claudeInvocations[1]?.args).not.toContain("--resume");
+  expect(codexInvocations[1]?.args).toContain(sessionId);
+  const followupPrompt = codexInvocations[1]?.args[codexInvocations[1].args.length - 1];
+  expect(followupPrompt).toContain(
+    "the story implementor has responded to your feedback"
+  );
+  expect(followupPrompt).toContain("<response>");
+  expect(followupPrompt).toContain("F-001");
+  expect(followupPrompt).toContain("Focus on the prior open blocker");
 });
 
-test("executes a Copilot-backed verifier lane end to end when the run config selects Copilot for a fresh-session verifier", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-copilot-fallback");
+test("follow-up story-verify rejects missing provider or session id", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-missing-followup-handle");
+
+  const run = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--response-text",
+      "Implemented the fix.",
+      "--json",
+    ]
+  );
+
+  expect(run.exitCode).toBe(1);
+  const envelope = parseJsonOutput<any>(run.stdout);
+  expect(envelope.outcome).toBe("error");
+  expect(envelope.errors[0]?.code).toBe("INVALID_INVOCATION");
+});
+
+test("follow-up story-verify rejects missing or duplicate response inputs", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-invalid-followup-response");
+
+  const missingRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      "codex-story-verify-missing-response-001",
+      "--json",
+    ]
+  );
+  expect(missingRun.exitCode).toBe(1);
+  expect(parseJsonOutput<any>(missingRun.stdout).errors[0]?.code).toBe(
+    "INVALID_INVOCATION"
+  );
+
+  const duplicateRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      "codex-story-verify-duplicate-response-001",
+      "--response-text",
+      "Implemented the fix.",
+      "--response-file",
+      fixture.storyPath,
+      "--json",
+    ]
+  );
+  expect(duplicateRun.exitCode).toBe(1);
+  expect(parseJsonOutput<any>(duplicateRun.stdout).errors[0]?.code).toBe(
+    "INVALID_INVOCATION"
+  );
+});
+
+test("initial story-verify rejects response-only follow-up flags", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-initial-rejects-response");
+
+  const run = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--response-text",
+      "Implemented the fix.",
+      "--json",
+    ]
+  );
+
+  expect(run.exitCode).toBe(1);
+  const envelope = parseJsonOutput<any>(run.stdout);
+  expect(envelope.outcome).toBe("error");
+  expect(envelope.errors[0]?.code).toBe("INVALID_INVOCATION");
+});
+
+test("follow-up story-verify blocks when the retained verifier continuation cannot be recovered from prior artifacts", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-stale-continuation");
+  await writeRunConfig(fixture.specPackRoot, createRunConfig());
+
+  const run = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      "codex-story-verify-stale-001",
+      "--response-text",
+      "Implemented the fix.",
+      "--json",
+    ]
+  );
+
+  expect(run.exitCode).toBe(3);
+  const envelope = parseJsonOutput<any>(run.stdout);
+  expect(envelope.status).toBe("blocked");
+  expect(envelope.outcome).toBe("block");
+  expect(envelope.errors[0]?.code).toBe("CONTINUATION_HANDLE_INVALID");
+});
+
+test("follow-up story-verify preserves prior finding ids and accepts directly touched-surface regressions as new findings", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-followup-findings");
+  await writeRunConfig(fixture.specPackRoot, createRunConfig());
+  const providerBinDir = await createTempDir("story-verify-followup-findings-provider");
+  const sessionId = "codex-story-verify-followup-findings-001";
+  const codexProvider = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "codex",
+    responses: [
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          baseInitialPayload(fixture, {
+            recommendedNextStep: "revise",
+            newFindings: [baseFinding("F-001")],
+            openFindings: [baseFinding("F-001")],
+          })
+        ),
+      },
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          {
+            ...baseInitialPayload(fixture, {
+              recommendedNextStep: "revise",
+              priorFindingStatuses: [
+                {
+                  id: "F-001",
+                  status: "still-open",
+                  rationale: "The main blocker remains unresolved.",
+                },
+              ],
+              newFindings: [
+                {
+                  ...baseFinding("F-002"),
+                  title: "New regression on touched surface",
+                  evidence: "The fix introduced a touched-surface regression.",
+                  blocking: false,
+                },
+              ],
+              openFindings: [
+                baseFinding("F-001"),
+                {
+                  ...baseFinding("F-002"),
+                  title: "New regression on touched surface",
+                  evidence: "The fix introduced a touched-surface regression.",
+                  blocking: false,
+                },
+              ],
+            }),
+          }
+        ),
+      },
+    ],
+  });
+
+  const sharedEnv = {
+    PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+    ...codexProvider.env,
+  };
+
+  const initialRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+  expect(initialRun.exitCode).toBe(2);
+
+  const followupRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      sessionId,
+      "--response-text",
+      "Implemented a partial fix that touched the same service surface.",
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+
+  expect(followupRun.exitCode).toBe(2);
+  const envelope = parseJsonOutput<any>(followupRun.stdout);
+  expect(envelope.outcome).toBe("revise");
+  expect(envelope.result.priorFindingStatuses).toEqual([
+    {
+      id: "F-001",
+      status: "still-open",
+      rationale: "The main blocker remains unresolved.",
+    },
+  ]);
+  expect(envelope.result.newFindings).toEqual([
+    expect.objectContaining({
+      id: "F-002",
+      title: "New regression on touched surface",
+    }),
+  ]);
+  expect(envelope.result.openFindings).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: "F-001" }),
+      expect.objectContaining({ id: "F-002" }),
+    ])
+  );
+});
+
+test("follow-up story-verify surfaces needs-human-ruling as a top-level outcome when prior finding status requires it", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-needs-human-ruling");
+  await writeRunConfig(fixture.specPackRoot, createRunConfig());
+  const providerBinDir = await createTempDir("story-verify-needs-human-ruling-provider");
+  const sessionId = "codex-story-verify-human-ruling-001";
+  const codexProvider = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "codex",
+    responses: [
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          baseInitialPayload(fixture, {
+            recommendedNextStep: "revise",
+            newFindings: [baseFinding("F-001")],
+            openFindings: [baseFinding("F-001")],
+          })
+        ),
+      },
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          {
+            ...baseInitialPayload(fixture, {
+              recommendedNextStep: "needs-human-ruling",
+              priorFindingStatuses: [
+                {
+                  id: "F-001",
+                  status: "needs-human-ruling",
+                  rationale: "The verifier and implementor disagree on scope and the spec evidence is ambiguous.",
+                },
+              ],
+              newFindings: [],
+              openFindings: [baseFinding("F-001")],
+            }),
+          }
+        ),
+      },
+    ],
+  });
+
+  const sharedEnv = {
+    PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+    ...codexProvider.env,
+  };
+
+  const initialRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+  expect(initialRun.exitCode).toBe(2);
+
+  const followupRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "codex",
+      "--session-id",
+      sessionId,
+      "--response-text",
+      "I believe this is out of scope based on the current story wording.",
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+
+  expect(followupRun.exitCode).toBe(2);
+  const envelope = parseJsonOutput<any>(followupRun.stdout);
+  expect(envelope.status).toBe("needs-user-decision");
+  expect(envelope.outcome).toBe("needs-human-ruling");
+  expect(envelope.result.recommendedNextStep).toBe("needs-human-ruling");
+  expect(envelope.result.priorFindingStatuses).toEqual([
+    {
+      id: "F-001",
+      status: "needs-human-ruling",
+      rationale:
+        "The verifier and implementor disagree on scope and the spec evidence is ambiguous.",
+    },
+  ]);
+});
+
+test("story-verify runs through Copilot for fresh initial verification when configured", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-copilot-initial");
   await writeRunConfig(
     fixture.specPackRoot,
     createRunConfig({
-      story_verifier_1: {
+      story_verifier: {
         secondary_harness: "copilot",
         model: "gpt-5.4",
         reasoning_effort: "xhigh",
       },
-      story_verifier_2: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
-      },
     })
   );
-  const providerBinDir = await createTempDir("story-verify-copilot-provider");
+  const providerBinDir = await createTempDir("story-verify-copilot-initial-provider");
   const copilotProvider = await writeFakeProviderExecutable({
     binDir: providerBinDir,
     provider: "copilot",
     responses: [
       {
         stdout: verifierProviderResult(
-          "copilot-story-verify-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-copilot-001",
-          baseVerifierPayload(fixture)
+          "copilot-story-verify-initial-001",
+          baseInitialPayload(fixture)
         ),
       },
     ],
@@ -356,28 +694,14 @@ test("executes a Copilot-backed verifier lane end to end when the run config sel
       env: {
         PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
         ...copilotProvider.env,
-        ...claudeProvider.env,
       },
     }
   );
 
   expect(run.exitCode).toBe(0);
-
   const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.outcome).toBe("pass");
-  expect(envelope.result.verifierResults).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        verifierLabel: "story-verifier-1",
-        provider: "copilot",
-        model: "gpt-5.4",
-      }),
-      expect.objectContaining({
-        verifierLabel: "story-verifier-2",
-        provider: "claude-code",
-      }),
-    ])
-  );
+  expect(envelope.result.provider).toBe("copilot");
+  expect(envelope.result.mode).toBe("initial");
 
   const copilotInvocations = await readJsonLines<{ args: string[] }>(
     copilotProvider.logPath
@@ -385,638 +709,13 @@ test("executes a Copilot-backed verifier lane end to end when the run config sel
   expect(copilotInvocations).toHaveLength(1);
   expect(copilotInvocations[0]?.args).toEqual([
     "-p",
-    expect.any(String),
-    "-s",
+    expect.stringContaining("# Story Verifier Base Prompt"),
+    "--output-format",
+    "json",
     "--model",
     "gpt-5.4",
+    "--effort",
+    "xhigh",
   ]);
   expect(copilotInvocations[0]?.args).not.toContain("resume");
-});
-
-test("blocks story-verify with PROVIDER_OUTPUT_INVALID when the Copilot verifier returns an invalid text-wrapped payload", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-copilot-invalid-output");
-  await writeRunConfig(
-    fixture.specPackRoot,
-    createRunConfig({
-      story_verifier_1: {
-        secondary_harness: "copilot",
-        model: "gpt-5.4",
-        reasoning_effort: "xhigh",
-      },
-      story_verifier_2: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
-      },
-    })
-  );
-  const providerBinDir = await createTempDir(
-    "story-verify-copilot-invalid-output-provider"
-  );
-  const copilotProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "copilot",
-    responses: [
-      {
-        stdout: JSON.stringify({
-          sessionId: "copilot-story-verify-invalid-001",
-          text: JSON.stringify({
-            reviewScopeSummary: "Missing required verifier fields.",
-          }),
-        }),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-copilot-invalid-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...copilotProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(3);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.outcome).toBe("block");
-  expect(envelope.errors).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        code: "PROVIDER_OUTPUT_INVALID",
-      }),
-    ])
-  );
-
-  const copilotInvocations = await readJsonLines<{ args: string[] }>(
-    copilotProvider.logPath
-  );
-  expect(copilotInvocations).toHaveLength(1);
-  expect(copilotInvocations[0]?.args).toEqual([
-    "-p",
-    expect.any(String),
-    "-s",
-    "--model",
-    "gpt-5.4",
-  ]);
-});
-
-test("blocks story-verify when a structured verifier payload includes an unknown key inside a gatesRun entry", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-strict-gates-run");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-strict-gates-run-provider");
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stdout: JSON.stringify({
-          sessionId: "codex-story-verify-strict-001",
-          result: {
-            ...baseVerifierPayload(fixture),
-            gatesRun: [
-              {
-                command: "bun run green-verify",
-                result: "not-run",
-                extraField: "drift",
-              },
-            ],
-          },
-        }),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-strict-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(3);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.outcome).toBe("block");
-  expect(envelope.result).toEqual(
-    expect.objectContaining({
-      outcome: "block",
-      verifierResults: [
-        expect.objectContaining({
-          verifierLabel: "story-verifier-2",
-          provider: "claude-code",
-        }),
-      ],
-    })
-  );
-  expect(envelope.errors).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        code: "PROVIDER_OUTPUT_INVALID",
-        detail: expect.stringContaining("extraField"),
-      }),
-    ])
-  );
-  expect(envelope.errors[0]?.detail).toContain("gatesRun");
-
-  const codexInvocations = await readJsonLines<{ args: string[] }>(
-    codexProvider.logPath
-  );
-  const claudeInvocations = await readJsonLines<{ args: string[] }>(
-    claudeProvider.logPath
-  );
-  expect(codexInvocations).toHaveLength(1);
-  expect(claudeInvocations).toHaveLength(1);
-});
-
-test("TC-5.2b preserves additional observations that do not rise to formal findings", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-observations");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-observations-provider");
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "codex-story-verify-observations-001",
-          baseVerifierPayload(fixture, {
-            additionalObservations: [
-              "The verifier notes that the artifact naming is consistent but could be documented more explicitly.",
-            ],
-          })
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-observations-001",
-          baseVerifierPayload(fixture, {
-            additionalObservations: [
-              "No separate finding, but the verifier noticed the gate output would benefit from a brief summary line.",
-            ],
-          })
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(0);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(
-    envelope.result.verifierResults.flatMap(
-      (result: any) => result.additionalObservations
-    )
-  ).toEqual(
-    expect.arrayContaining([
-      "The verifier notes that the artifact naming is consistent but could be documented more explicitly.",
-      "No separate finding, but the verifier noticed the gate output would benefit from a brief summary line.",
-    ])
-  );
-});
-
-test("TC-5.2c includes explicit mock and shim audit findings for integration-facing story verification", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-mock-audit", {
-    storyBody: [
-      "# Story 4: Story Verification Workflow",
-      "",
-      "This story verifies integration-facing command and provider-adapter behavior.",
-      "",
-    ].join("\n"),
-  });
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-mock-audit-provider");
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "codex-story-verify-mock-audit-001",
-          baseVerifierPayload(fixture, {
-            recommendedNextStep: "revise",
-            recommendedFixScope: "quick-fix",
-            mockOrShimAuditFindings: [
-              "processes/impl-cli/core/provider-adapters/copilot.ts must stay on the real copilot subprocess path and avoid any fake success shim.",
-            ],
-          })
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-mock-audit-001",
-          baseVerifierPayload(fixture, {
-            recommendedNextStep: "revise",
-            recommendedFixScope: "quick-fix",
-            mockOrShimAuditFindings: [
-              "The verification path should keep production adapters on the real invocation path and avoid fake success shims.",
-            ],
-          })
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(2);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.outcome).toBe("revise");
-  expect(
-    envelope.result.verifierResults.flatMap(
-      (result: any) => result.mockOrShimAuditFindings
-    )
-  ).toEqual(
-    expect.arrayContaining([
-      "processes/impl-cli/core/provider-adapters/copilot.ts must stay on the real copilot subprocess path and avoid any fake success shim.",
-      "The verification path should keep production adapters on the real invocation path and avoid fake success shims.",
-    ])
-  );
-});
-
-test("preserves per-verifier disagreement while aggregating the batch outcome for routing", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-disagreement");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-disagreement-provider");
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "codex-story-verify-disagreement-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-disagreement-001",
-          baseVerifierPayload(fixture, {
-            recommendedNextStep: "revise",
-            recommendedFixScope: "fresh-fix-path",
-            findings: [
-              {
-                id: "finding-verify-001",
-                severity: "major",
-                title: "Verifier disagreement is visible to the orchestrator",
-                evidence:
-                  "The second verifier found missing evidence for TC-5.2c in the current implementation path.",
-                affectedFiles: ["processes/impl-cli/commands/story-verify.ts"],
-                requirementIds: ["TC-5.2c"],
-                recommendedFixScope: "fresh-fix-path",
-                blocking: false,
-              },
-            ],
-            requirementCoverage: {
-              verified: ["AC-5.1", "TC-5.1a"],
-              unverified: ["TC-5.2c"],
-            },
-          })
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(2);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.outcome).toBe("revise");
-  expect(
-    envelope.result.verifierResults.map(
-      (result: any) => result.recommendedNextStep
-    )
-  ).toEqual(["pass", "revise"]);
-  expect(envelope.result.verifierResults[0]).toMatchObject({
-    verifierLabel: "story-verifier-1",
-    findings: [],
-    requirementCoverage: {
-      verified: ["AC-5.1", "AC-5.2", "TC-5.1a", "TC-5.2a"],
-      unverified: [],
-    },
-  });
-  expect(envelope.result.verifierResults[1]).toMatchObject({
-    verifierLabel: "story-verifier-2",
-    findings: [
-      expect.objectContaining({
-        id: "finding-verify-001",
-        title: "Verifier disagreement is visible to the orchestrator",
-        requirementIds: ["TC-5.2c"],
-      }),
-    ],
-    requirementCoverage: {
-      verified: ["AC-5.1", "TC-5.1a"],
-      unverified: ["TC-5.2c"],
-    },
-  });
-});
-
-test("preserves successful verifier results when a sibling verifier execution fails", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-partial-failure");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir(
-    "story-verify-partial-failure-provider"
-  );
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stderr: "codex verifier crashed before producing JSON output",
-        exitCode: 1,
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-partial-failure-001",
-          baseVerifierPayload(fixture, {
-            recommendedNextStep: "revise",
-            recommendedFixScope: "quick-fix",
-            findings: [
-              {
-                id: "finding-partial-failure-001",
-                severity: "major",
-                title: "Surviving verifier evidence remains available",
-                evidence:
-                  "One verifier failed to launch, but the successful verifier still found a concrete fix-routing issue.",
-                affectedFiles: ["processes/impl-cli/core/story-verifier.ts"],
-                requirementIds: ["TC-5.2e"],
-                recommendedFixScope: "quick-fix",
-                blocking: false,
-              },
-            ],
-            requirementCoverage: {
-              verified: ["AC-5.1", "TC-5.2e"],
-              unverified: ["AC-5.2"],
-            },
-          })
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(3);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.outcome).toBe("block");
-  expect(envelope.errors).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        code: "PROVIDER_UNAVAILABLE",
-        message: "Provider execution failed for codex.",
-      }),
-    ])
-  );
-  expect(envelope.result.verifierResults).toHaveLength(1);
-  expect(envelope.result.verifierResults[0]).toMatchObject({
-    verifierLabel: "story-verifier-2",
-    provider: "claude-code",
-    recommendedNextStep: "revise",
-    recommendedFixScope: "quick-fix",
-    findings: [
-      expect.objectContaining({
-        id: "finding-partial-failure-001",
-        severity: "major",
-        blocking: false,
-      }),
-    ],
-    requirementCoverage: {
-      verified: ["AC-5.1", "TC-5.2e"],
-      unverified: ["AC-5.2"],
-    },
-  });
-});
-
-test("routes the verifier batch to block when any verifier recommends block", async () => {
-  const fixture = await createVerifierSpecPack("story-verify-block");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-verify-block-provider");
-  const codexProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "codex-story-verify-block-001",
-          baseVerifierPayload(fixture, {
-            recommendedNextStep: "block",
-            recommendedFixScope: "human-ruling",
-            findings: [
-              {
-                id: "finding-verify-block-001",
-                severity: "critical",
-                title: "Blocking verifier issue is preserved",
-                evidence:
-                  "The verifier could not establish safe story readiness from the available evidence.",
-                affectedFiles: ["processes/impl-cli/core/story-verifier.ts"],
-                requirementIds: ["AC-5.2"],
-                recommendedFixScope: "human-ruling",
-                blocking: true,
-              },
-            ],
-            requirementCoverage: {
-              verified: ["AC-5.1"],
-              unverified: ["AC-5.2"],
-            },
-            openQuestions: [
-              "Does the orchestrator want a human ruling before any further fix routing?",
-            ],
-          })
-        ),
-      },
-    ],
-  });
-  const claudeProvider = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "claude",
-    responses: [
-      {
-        stdout: verifierProviderResult(
-          "claude-story-verify-block-001",
-          baseVerifierPayload(fixture)
-        ),
-      },
-    ],
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-verify",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...codexProvider.env,
-        ...claudeProvider.env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(3);
-
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.outcome).toBe("block");
-  expect(
-    envelope.result.verifierResults.map(
-      (result: any) => result.recommendedNextStep
-    )
-  ).toEqual(["block", "pass"]);
-  expect(envelope.result.verifierResults[0]).toMatchObject({
-    verifierLabel: "story-verifier-1",
-    recommendedFixScope: "human-ruling",
-    findings: [
-      expect.objectContaining({
-        id: "finding-verify-block-001",
-        severity: "critical",
-        blocking: true,
-      }),
-    ],
-  });
 });

@@ -175,12 +175,7 @@ describe("security guardrails", () => {
             model: "claude-sonnet",
             reasoning_effort: "medium",
           },
-          story_verifier_1: {
-            secondary_harness: "none",
-            model: "claude-sonnet",
-            reasoning_effort: "high",
-          },
-          story_verifier_2: {
+          story_verifier: {
             secondary_harness: "none",
             model: "claude-sonnet",
             reasoning_effort: "high",

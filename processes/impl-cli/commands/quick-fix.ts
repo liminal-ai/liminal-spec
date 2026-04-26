@@ -3,7 +3,12 @@ import { resolve } from "node:path";
 import { defineCommand } from "citty";
 import { z } from "zod";
 
-import { nextArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import {
+  buildRuntimeProgressPaths,
+  buildStreamOutputPaths,
+  nextArtifactPath,
+  writeJsonArtifact,
+} from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
 import { readTextFile } from "../core/fs-utils";
 import { runQuickFix } from "../core/quick-fix";
@@ -162,6 +167,9 @@ export default defineCommand({
         workingDirectory: args["working-directory"],
         configPath: args.config,
         env: process.env,
+        artifactPath,
+        streamOutputPaths: buildStreamOutputPaths(artifactPath),
+        runtimeProgressPaths: buildRuntimeProgressPaths(artifactPath),
       });
       const envelope = cliResultEnvelopeSchema(z.unknown()).parse(
         createResultEnvelope({

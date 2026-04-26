@@ -35,15 +35,10 @@ describe("impl-run config schema", () => {
         model: "gpt-5.4",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
+      story_verifier: {
         secondary_harness: "codex",
         model: "gpt-5.4",
         reasoning_effort: "xhigh",
-      },
-      story_verifier_2: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
       },
       self_review: {
         passes: 3,
@@ -83,12 +78,7 @@ describe("impl-run config schema", () => {
         model: "claude-sonnet",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
-      },
-      story_verifier_2: {
+      story_verifier: {
         secondary_harness: "none",
         model: "claude-sonnet",
         reasoning_effort: "high",
@@ -115,7 +105,7 @@ describe("impl-run config schema", () => {
     expect(parsed.story_implementor.model).toBe("claude-sonnet");
   });
 
-  test("TC-2.3c accepts the mixed verifier pair default shape", async () => {
+  test("TC-2.3c accepts the story verifier default shape", async () => {
     const { implRunConfigSchema } = await import("../core/config-schema");
 
     const parsed = implRunConfigSchema.parse({
@@ -131,15 +121,10 @@ describe("impl-run config schema", () => {
         model: "gpt-5.4",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
+      story_verifier: {
         secondary_harness: "codex",
         model: "gpt-5.4",
         reasoning_effort: "xhigh",
-      },
-      story_verifier_2: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
       },
       self_review: {
         passes: 3,
@@ -159,11 +144,11 @@ describe("impl-run config schema", () => {
       },
     });
 
-    expect(parsed.story_verifier_1.reasoning_effort).toBe("xhigh");
-    expect(parsed.story_verifier_2.secondary_harness).toBe("none");
+    expect(parsed.story_verifier.reasoning_effort).toBe("xhigh");
+    expect(parsed.story_verifier.secondary_harness).toBe("codex");
   });
 
-  test("TC-2.3d accepts the Claude-only verifier pair fallback shape", async () => {
+  test("TC-2.3d accepts the Claude-only verifier fallback shape", async () => {
     const { implRunConfigSchema } = await import("../core/config-schema");
 
     const parsed = implRunConfigSchema.parse({
@@ -179,12 +164,7 @@ describe("impl-run config schema", () => {
         model: "claude-sonnet",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
-      },
-      story_verifier_2: {
+      story_verifier: {
         secondary_harness: "none",
         model: "claude-sonnet",
         reasoning_effort: "high",
@@ -207,8 +187,7 @@ describe("impl-run config schema", () => {
       },
     });
 
-    expect(parsed.story_verifier_1.model).toBe("claude-sonnet");
-    expect(parsed.story_verifier_2.model).toBe("claude-sonnet");
+    expect(parsed.story_verifier.model).toBe("claude-sonnet");
   });
 
   test("TC-2.3e accepts the epic verifier array plus epic synthesizer shape", async () => {
@@ -227,15 +206,10 @@ describe("impl-run config schema", () => {
         model: "gpt-5.4",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
+      story_verifier: {
         secondary_harness: "codex",
         model: "gpt-5.4",
         reasoning_effort: "xhigh",
-      },
-      story_verifier_2: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
       },
       self_review: {
         passes: 3,
@@ -282,15 +256,10 @@ describe("impl-run config schema", () => {
           model: "gpt-5.4",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
+        story_verifier: {
           secondary_harness: "copilot",
           model: "gpt-5.4",
           reasoning_effort: "xhigh",
-        },
-        story_verifier_2: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
         },
         self_review: {
           passes: 3,
@@ -329,15 +298,10 @@ describe("impl-run config schema", () => {
           model: "gpt-5.4",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
+        story_verifier: {
           secondary_harness: "codex",
           model: "gpt-5.4",
           reasoning_effort: "xhigh",
-        },
-        story_verifier_2: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
         },
         self_review: {
           passes: 3,
@@ -385,12 +349,7 @@ describe("impl-run config schema", () => {
             model: "claude-sonnet",
             reasoning_effort: "medium",
           },
-          story_verifier_1: {
-            secondary_harness: "none",
-            model: "claude-sonnet",
-            reasoning_effort: "high",
-          },
-          story_verifier_2: {
+          story_verifier: {
             secondary_harness: "none",
             model: "claude-sonnet",
             reasoning_effort: "high",
@@ -457,12 +416,7 @@ describe("impl-run config schema", () => {
             model: "claude-sonnet",
             reasoning_effort: "medium",
           },
-          story_verifier_1: {
-            secondary_harness: "none",
-            model: "claude-sonnet",
-            reasoning_effort: "high",
-          },
-          story_verifier_2: {
+          story_verifier: {
             secondary_harness: "none",
             model: "claude-sonnet",
             reasoning_effort: "high",
@@ -518,12 +472,7 @@ describe("impl-run config schema", () => {
             model: "claude-sonnet",
             reasoning_effort: "medium",
           },
-          story_verifier_1: {
-            secondary_harness: "none",
-            model: "claude-sonnet",
-            reasoning_effort: "high",
-          },
-          story_verifier_2: {
+          story_verifier: {
             secondary_harness: "none",
             model: "claude-sonnet",
             reasoning_effort: "high",
@@ -556,5 +505,156 @@ describe("impl-run config schema", () => {
         specPackRoot,
       })
     ).rejects.toBeInstanceOf(ConfigLoadError);
+  });
+
+  test("accepts reasoning_effort max for explicit Claude 4.7/4.6 model names only", async () => {
+    const { implRunConfigSchema } = await import("../core/config-schema");
+
+    const parsed = implRunConfigSchema.parse({
+      version: 1,
+      primary_harness: "claude-code",
+      story_implementor: {
+        secondary_harness: "none",
+        model: "claude-opus-4-7[1m]",
+        reasoning_effort: "max",
+      },
+      quick_fixer: {
+        secondary_harness: "none",
+        model: "claude-sonnet-4-6",
+        reasoning_effort: "max",
+      },
+      story_verifier: {
+        secondary_harness: "codex",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+      self_review: {
+        passes: 3,
+      },
+      epic_verifiers: [
+        {
+          label: "epic-verifier-1",
+          secondary_harness: "none",
+          model: "claude-opus-4-6",
+          reasoning_effort: "max",
+        },
+      ],
+      epic_synthesizer: {
+        secondary_harness: "codex",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+    });
+
+    expect(parsed.story_implementor.reasoning_effort).toBe("max");
+    expect(parsed.quick_fixer.reasoning_effort).toBe("max");
+    expect(parsed.epic_verifiers[0]?.reasoning_effort).toBe("max");
+  });
+
+  test("rejects reasoning_effort max for non-Claude harnesses and generic Claude aliases", async () => {
+    const { implRunConfigSchema } = await import("../core/config-schema");
+
+    expect(() =>
+      implRunConfigSchema.parse({
+        version: 1,
+        primary_harness: "claude-code",
+        story_implementor: {
+          secondary_harness: "codex",
+          model: "gpt-5.4",
+          reasoning_effort: "max",
+        },
+        quick_fixer: {
+          secondary_harness: "none",
+          model: "sonnet",
+          reasoning_effort: "max",
+        },
+        story_verifier: {
+          secondary_harness: "none",
+          model: "claude-sonnet-4-6",
+          reasoning_effort: "high",
+        },
+        self_review: {
+          passes: 3,
+        },
+        epic_verifiers: [
+          {
+            label: "epic-verifier-1",
+            secondary_harness: "none",
+            model: "claude-opus-4-7",
+            reasoning_effort: "high",
+          },
+        ],
+        epic_synthesizer: {
+          secondary_harness: "none",
+          model: "opus",
+          reasoning_effort: "high",
+        },
+      })
+    ).toThrow(/reasoning_effort 'max'/);
+  });
+
+  test("accepts persisted verification gates and timeout overrides", async () => {
+    const {
+      DEFAULT_RUN_TIMEOUTS,
+      implRunConfigSchema,
+      resolveConfiguredVerificationGates,
+      resolveRunTimeouts,
+    } = await import("../core/config-schema");
+
+    const parsed = implRunConfigSchema.parse({
+      version: 1,
+      primary_harness: "claude-code",
+      story_implementor: {
+        secondary_harness: "codex",
+        model: "gpt-5.4",
+        reasoning_effort: "high",
+      },
+      quick_fixer: {
+        secondary_harness: "none",
+        model: "claude-sonnet-4-6",
+        reasoning_effort: "medium",
+      },
+      story_verifier: {
+        secondary_harness: "codex",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+      self_review: {
+        passes: 3,
+      },
+      epic_verifiers: [
+        {
+          label: "epic-verifier-1",
+          secondary_harness: "none",
+          model: "claude-opus-4-7",
+          reasoning_effort: "high",
+        },
+      ],
+      epic_synthesizer: {
+        secondary_harness: "codex",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+      verification_gates: {
+        story: "corepack pnpm run verify",
+        epic: "corepack pnpm run verify-all",
+      },
+      timeouts: {
+        story_implementor_ms: 9_000,
+        quick_fixer_ms: 8_000,
+      },
+    });
+
+    expect(resolveConfiguredVerificationGates(parsed)).toEqual({
+      storyGate: "corepack pnpm run verify",
+      epicGate: "corepack pnpm run verify-all",
+      storyGateSource: "impl-run.config.json verification_gates",
+      epicGateSource: "impl-run.config.json verification_gates",
+    });
+    expect(resolveRunTimeouts(parsed)).toEqual({
+      ...DEFAULT_RUN_TIMEOUTS,
+      story_implementor_ms: 9_000,
+      quick_fixer_ms: 8_000,
+    });
   });
 });

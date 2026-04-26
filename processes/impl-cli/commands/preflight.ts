@@ -2,7 +2,12 @@ import { defineCommand } from "citty";
 
 import { nextArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
-import { loadRunConfig } from "../core/config-schema";
+import {
+  loadRunConfig,
+  mergeVerificationGates,
+  resolveConfiguredVerificationGates,
+  writeRunConfig,
+} from "../core/config-schema";
 import { resolveVerificationGates } from "../core/gate-discovery";
 import { inspectPromptAssets } from "../core/prompt-assets";
 import { resolveProviderMatrix } from "../core/provider-checks";
@@ -177,7 +182,7 @@ export default defineCommand({
         return;
       }
 
-      const validatedConfig = await loadRunConfig({
+      let validatedConfig = await loadRunConfig({
         specPackRoot: inspectResult.specPackRoot,
         configPath: args.config,
       });
@@ -190,6 +195,7 @@ export default defineCommand({
         specPackRoot: inspectResult.specPackRoot,
         explicitStoryGate: args["story-gate"],
         explicitEpicGate: args["epic-gate"],
+        persistedVerificationGates: resolveConfiguredVerificationGates(validatedConfig),
       });
       const promptAssets = inspectPromptAssets();
       const notes = [
@@ -197,12 +203,35 @@ export default defineCommand({
         ...authStatusUnknownNotes(providerMatrix),
       ];
 
+      if (gateResolution.status === "ready" && gateResolution.verificationGates) {
+        const nextConfig = mergeVerificationGates(
+          validatedConfig,
+          gateResolution.verificationGates
+        );
+        const currentStoryGate = validatedConfig.verification_gates?.story;
+        const currentEpicGate = validatedConfig.verification_gates?.epic;
+
+        if (
+          currentStoryGate !== nextConfig.verification_gates?.story ||
+          currentEpicGate !== nextConfig.verification_gates?.epic
+        ) {
+          await writeRunConfig({
+            specPackRoot: inspectResult.specPackRoot,
+            configPath: args.config,
+            config: nextConfig,
+          });
+          validatedConfig = nextConfig;
+          notes.push(
+            "Persisted resolved verification_gates into impl-run.config.json for downstream CLI commands."
+          );
+        }
+      }
+
       if (
         [
           validatedConfig.story_implementor,
           validatedConfig.quick_fixer,
-          validatedConfig.story_verifier_1,
-          validatedConfig.story_verifier_2,
+          validatedConfig.story_verifier,
           ...validatedConfig.epic_verifiers,
           validatedConfig.epic_synthesizer,
         ].every((assignment) => assignment.secondary_harness === "none")

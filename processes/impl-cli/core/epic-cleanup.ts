@@ -3,10 +3,24 @@ import { resolve } from "node:path";
 
 import { z } from "zod";
 
-import { loadRunConfig } from "./config-schema";
+import {
+  loadRunConfig,
+  resolveConfiguredVerificationGates,
+  resolveRunTimeouts,
+} from "./config-schema";
 import { pathExists, readTextFile } from "./fs-utils";
 import { resolveVerificationGates } from "./gate-discovery";
-import { createProviderAdapter, type ProviderName } from "./provider-adapters";
+import { resolveProviderCwd } from "./git-repo";
+import {
+  createProviderAdapter,
+  type ProviderLifecycleEvent,
+  type ProviderName,
+  type ProviderStreamOutputPaths,
+} from "./provider-adapters";
+import {
+  RuntimeProgressTracker,
+  type RuntimeProgressPaths,
+} from "./runtime-progress";
 import {
   epicCleanupResultSchema,
   type CliError,
@@ -14,11 +28,11 @@ import {
 } from "./result-contracts";
 import { inspectSpecPack } from "./spec-pack";
 
-const providerPayloadSchema = epicCleanupResultSchema.omit({
+export const epicCleanupProviderPayloadSchema = epicCleanupResultSchema.omit({
   resultId: true,
 }).strict();
 
-type ProviderPayload = z.infer<typeof providerPayloadSchema>;
+type ProviderPayload = z.infer<typeof epicCleanupProviderPayloadSchema>;
 
 export interface EpicCleanupWorkflowResult {
   outcome: "cleaned" | "needs-more-cleanup" | "blocked";
@@ -38,6 +52,10 @@ interface PreparedCleanupContext {
     story: string;
     epic: string;
   };
+  providerCwd: string;
+  timeoutMs: number;
+  startupTimeoutMs: number;
+  silenceTimeoutMs: number;
 }
 
 function blockedError(code: string, message: string, detail?: string): CliError {
@@ -61,6 +79,30 @@ function executionFailureError(input: {
   stderr: string;
   errorCode?: string;
 }): CliError {
+  if (input.errorCode === "INVALID_OUTPUT_SCHEMA") {
+    return blockedError(
+      "PROVIDER_OUTPUT_INVALID",
+      `Provider output schema was invalid for ${input.provider}.`,
+      input.stderr
+    );
+  }
+
+  if (input.errorCode === "PROVIDER_TIMEOUT") {
+    return blockedError(
+      "PROVIDER_TIMEOUT",
+      `Provider execution timed out for ${input.provider}.`,
+      input.stderr
+    );
+  }
+
+  if (input.errorCode === "PROVIDER_STALLED") {
+    return blockedError(
+      "PROVIDER_STALLED",
+      `Provider execution stalled for ${input.provider}.`,
+      input.stderr
+    );
+  }
+
   if (input.errorCode === "ENOENT") {
     return blockedError(
       "PROVIDER_UNAVAILABLE",
@@ -112,6 +154,7 @@ async function prepareCleanupContext(input: {
   });
   const gateResolution = await resolveVerificationGates({
     specPackRoot: inspection.specPackRoot,
+    persistedVerificationGates: resolveConfiguredVerificationGates(config),
   });
   if (gateResolution.status !== "ready" || !gateResolution.verificationGates) {
     return {
@@ -137,6 +180,11 @@ async function prepareCleanupContext(input: {
       story: gateResolution.verificationGates.storyGate,
       epic: gateResolution.verificationGates.epicGate,
     },
+    providerCwd: await resolveProviderCwd(inspection.specPackRoot),
+    timeoutMs: resolveRunTimeouts(config).epic_cleanup_ms,
+    startupTimeoutMs: resolveRunTimeouts(config).provider_startup_timeout_ms,
+    silenceTimeoutMs:
+      resolveRunTimeouts(config).epic_cleanup_silence_timeout_ms,
   };
 }
 
@@ -185,6 +233,9 @@ export async function runEpicCleanup(input: {
   cleanupBatchPath: string;
   configPath?: string;
   env?: Record<string, string | undefined>;
+  artifactPath?: string;
+  streamOutputPaths?: ProviderStreamOutputPaths;
+  runtimeProgressPaths?: RuntimeProgressPaths;
 }): Promise<EpicCleanupWorkflowResult> {
   const context = await prepareCleanupContext(input);
   if ("errors" in context) {
@@ -195,7 +246,29 @@ export async function runEpicCleanup(input: {
     };
   }
 
+  const progressTracker = input.runtimeProgressPaths
+    ? await RuntimeProgressTracker.start({
+        command: "epic-cleanup",
+        phase: "cleanup",
+        provider: context.provider,
+        cwd: context.providerCwd,
+        timeoutMs: context.timeoutMs,
+        configuredStartupTimeoutMs: context.startupTimeoutMs,
+        configuredSilenceTimeoutMs: context.silenceTimeoutMs,
+        artifactPath: input.artifactPath ?? input.runtimeProgressPaths.statusPath,
+        streamPaths: {
+          stdoutPath: input.streamOutputPaths?.stdoutPath ?? "",
+          stderrPath: input.streamOutputPaths?.stderrPath ?? "",
+        },
+        progressPaths: input.runtimeProgressPaths,
+      })
+    : undefined;
+
   if (!hasApprovedCleanupItems(context.cleanupBatchContent)) {
+    await progressTracker?.markCompleted(
+      "epic-cleanup completed as a no-op because there were no approved cleanup items."
+    );
+    await progressTracker?.flush();
     return {
       outcome: "cleaned",
       result: {
@@ -220,14 +293,23 @@ export async function runEpicCleanup(input: {
   });
   const execution = await adapter.execute({
     prompt: buildCleanupPrompt(context),
-    cwd: context.specPackRoot,
+    cwd: context.providerCwd,
     model: context.model,
     reasoningEffort: context.reasoningEffort,
-    timeoutMs: 30_000,
-    resultSchema: providerPayloadSchema,
+    timeoutMs: context.timeoutMs,
+      startupTimeoutMs: context.startupTimeoutMs,
+      silenceTimeoutMs: context.silenceTimeoutMs,
+    resultSchema: epicCleanupProviderPayloadSchema,
+    streamOutputPaths: input.streamOutputPaths,
+    lifecycleCallback: (event: ProviderLifecycleEvent) =>
+      progressTracker?.handleProviderLifecycle(event),
   });
 
   if (execution.exitCode !== 0) {
+    await progressTracker?.markFailed("epic-cleanup failed during provider execution.", {
+      errorCode: execution.errorCode,
+    });
+    await progressTracker?.flush();
     return {
       outcome: "blocked",
       errors: [
@@ -242,6 +324,10 @@ export async function runEpicCleanup(input: {
   }
 
   if (execution.parseError || !execution.parsedResult) {
+    await progressTracker?.markFailed("epic-cleanup produced invalid provider output.", {
+      parseError: execution.parseError,
+    });
+    await progressTracker?.flush();
     return {
       outcome: "blocked",
       errors: [
@@ -259,6 +345,14 @@ export async function runEpicCleanup(input: {
     cleanupBatchPath: context.cleanupBatchPath,
     payload: execution.parsedResult,
   });
+
+  await progressTracker?.markCompleted(
+    `epic-cleanup completed with outcome ${result.outcome}.`,
+    {
+      outcome: result.outcome,
+    }
+  );
+  await progressTracker?.flush();
 
   return {
     outcome: result.outcome,

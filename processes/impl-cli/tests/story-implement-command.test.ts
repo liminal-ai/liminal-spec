@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
+  ROOT,
   createImplementorSpecPack,
   createRunConfig,
   createTempDir,
@@ -75,7 +77,7 @@ function basePayload(
     },
     openQuestions: [],
     specDeviations: [],
-    recommendedNextStep: "Run the fresh verifier batch for story-03.",
+    recommendedNextStep: "Run the retained verifier initial pass for story-03.",
   };
 
   return {
@@ -94,7 +96,15 @@ function basePayload(
 
 test("TC-4.1a launches story-implement with the documented inputs and returns a structured implementor result", async () => {
   const fixture = await createImplementorSpecPack("story-implement-contract");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
+  await writeRunConfig(
+    fixture.specPackRoot,
+    createRunConfig({
+      verification_gates: {
+        story: "corepack pnpm run verify",
+        epic: "corepack pnpm run verify-all",
+      },
+    })
+  );
   const providerBinDir = await createTempDir("story-implement-contract-provider");
   const sessionId = "codex-session-001";
   const { env, logPath } = await writeFakeProviderExecutable({
@@ -159,12 +169,61 @@ test("TC-4.1a launches story-implement with the documented inputs and returns a 
   expect(artifactPath).toContain(`/artifacts/${fixture.storyId}/001-implementor.json`);
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    selfReviewPassesCompleted?: number;
+    selfReviewPassesPlanned?: number;
+    artifactPath: string;
+    lastOutputAt: string | null;
+    streamPaths: {
+      stdoutPath: string;
+      stderrPath: string;
+    };
+    progressPaths: {
+      statusPath: string;
+      progressPath: string;
+    };
+  };
+  const progressEvents = await readJsonLines<{
+    event: string;
+    phase: string;
+  }>(progressPaths.progressPath);
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.selfReviewPassesCompleted).toBe(0);
+  expect(runtimeStatus.selfReviewPassesPlanned).toBe(0);
+  expect(runtimeStatus.artifactPath).toBe(artifactPath);
+  expect(runtimeStatus.lastOutputAt).not.toBeNull();
+  expect(runtimeStatus.progressPaths).toEqual(progressPaths);
+  expect(runtimeStatus.streamPaths.stdoutPath).toContain(
+    "/artifacts/03-story-implementor-workflow/streams/001-implementor.stdout.log"
+  );
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "provider-spawned",
+      "first-output-received",
+      "initial-pass-started",
+      "initial-pass-completed",
+      "provider-exit",
+      "completed",
+    ])
+  );
 
-  const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(4);
+  const invocations = await readJsonLines<{ args: string[]; cwd: string }>(logPath);
+  expect(invocations).toHaveLength(1);
+  expect(invocations.every((invocation) => invocation.cwd === ROOT)).toBe(true);
+  expect(invocations[0]?.args[invocations[0].args.length - 1]).toContain(
+    "Story Gate: corepack pnpm run verify"
+  );
+  expect(invocations[0]?.args[invocations[0].args.length - 1]).not.toContain(
+    "Story Gate: bun run green-verify"
+  );
 });
 
-test("stops self-review early when the provider reports a blocking condition", async () => {
+test("returns blocked when the initial implementor pass reports a blocking condition", async () => {
   const fixture = await createImplementorSpecPack("story-implement-blocked-review");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
   const providerBinDir = await createTempDir("story-implement-blocked-review-provider");
@@ -173,9 +232,6 @@ test("stops self-review early when the provider reports a blocking condition", a
     binDir: providerBinDir,
     provider: "codex",
     responses: [
-      {
-        stdout: providerResult(sessionId, basePayload()),
-      },
       {
         stdout: providerResult(
           sessionId,
@@ -209,10 +265,10 @@ test("stops self-review early when the provider reports a blocking condition", a
 
   const envelope = parseJsonOutput<any>(run.stdout);
   expect(envelope.outcome).toBe("blocked");
-  expect(envelope.result.selfReview.passesRun).toBe(1);
+  expect(envelope.result.selfReview.passesRun).toBe(0);
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(2);
+  expect(invocations).toHaveLength(1);
 });
 
 test("returns exit code 2 when story-implement completes with a follow-up fix outcome", async () => {
@@ -427,7 +483,7 @@ test("TC-4.5a returns the full implementor result contract through the public CL
         }),
       ],
       selfReview: expect.objectContaining({
-        passesRun: 3,
+        passesRun: 0,
         findingsFixed: expect.any(Array),
         findingsSurfaced: expect.any(Array),
       }),
@@ -438,7 +494,7 @@ test("TC-4.5a returns the full implementor result contract through the public CL
   );
 });
 
-test("TC-4.3a runs the configured self-review pass count in the same story-implement call unless a stop rule fires", async () => {
+test("does not run self-review during story-implement even when the config requests multiple passes", async () => {
   const fixture = await createImplementorSpecPack("story-implement-self-review");
   await writeRunConfig(
     fixture.specPackRoot,
@@ -478,24 +534,20 @@ test("TC-4.3a runs the configured self-review pass count in the same story-imple
   expect(run.exitCode).toBe(0);
 
   const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.result.selfReview.passesRun).toBe(3);
+  expect(envelope.result.selfReview.passesRun).toBe(0);
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(4);
+  expect(invocations).toHaveLength(1);
 });
 
-test("blocks with PROVIDER_UNAVAILABLE when the provider exits nonzero mid-conversation", async () => {
+test("blocks with PROVIDER_UNAVAILABLE when the initial provider pass exits nonzero", async () => {
   const fixture = await createImplementorSpecPack("story-implement-nonzero-provider");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
   const providerBinDir = await createTempDir("story-implement-nonzero-provider-bin");
-  const sessionId = "codex-session-nonzero-005";
   const { env, logPath } = await writeFakeProviderExecutable({
     binDir: providerBinDir,
     provider: "codex",
     responses: [
-      {
-        stdout: providerResult(sessionId, basePayload()),
-      },
       {
         stderr: "provider exited unexpectedly",
         exitCode: 70,
@@ -532,116 +584,33 @@ test("blocks with PROVIDER_UNAVAILABLE when the provider exits nonzero mid-conve
   );
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(2);
+  expect(invocations).toHaveLength(1);
 });
 
-test("TC-4.3b drives pass-1, pass-2, and pass-3 self-review prompts through the runtime loop instead of repeating one unchanged prompt", async () => {
-  const fixture = await createImplementorSpecPack(
-    "story-implement-self-review-prompt-evolution"
-  );
-  await writeRunConfig(
-    fixture.specPackRoot,
-    createRunConfig({
-      self_review: {
-        passes: 3,
-      },
-    })
-  );
-  const providerBinDir = await createTempDir(
-    "story-implement-self-review-prompt-evolution-provider"
-  );
-  const sessionId = "codex-session-review-004";
-  const { env, logPath } = await writeFakeProviderExecutable({
-    binDir: providerBinDir,
-    provider: "codex",
-    responses: Array.from({ length: 4 }, () => ({
-      stdout: providerResult(sessionId, basePayload()),
-    })),
-  });
-
-  const run = await runSourceCli(
-    [
-      "story-implement",
-      "--spec-pack-root",
-      fixture.specPackRoot,
-      "--story-id",
-      fixture.storyId,
-      "--json",
-    ],
-    {
-      env: {
-        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
-        ...env,
-      },
-    }
-  );
-
-  expect(run.exitCode).toBe(0);
-
-  const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  const reviewPrompts = invocations.slice(1).map((invocation) => {
-    return invocation.args[invocation.args.length - 1] ?? "";
-  });
-
-  expect(reviewPrompts).toHaveLength(3);
-  expect(reviewPrompts[0]).toContain(
-    "Self-review pass 1: broad correctness and obvious omissions."
-  );
-  expect(reviewPrompts[1]).toContain(
-    "Self-review pass 2: requirement alignment, test coverage, and missing evidence."
-  );
-  expect(reviewPrompts[2]).toContain(
-    "Self-review pass 3: residual risks, scope edges, and cleanup before handoff."
-  );
-  expect(reviewPrompts[0]).not.toBe(reviewPrompts[1]);
-  expect(reviewPrompts[1]).not.toBe(reviewPrompts[2]);
-});
-
-test("TC-4.4a records clear and local self-review fixes that were applied automatically during the same call", async () => {
-  const fixture = await createImplementorSpecPack("story-implement-auto-fix");
+test("surfaces invalid output-schema failures with the actual OpenAI/Codex schema error detail", async () => {
+  const fixture = await createImplementorSpecPack("story-implement-invalid-output-schema");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const providerBinDir = await createTempDir("story-implement-auto-fix-provider");
-  const sessionId = "codex-session-fix-004";
-  const appliedFix = "Tightened the artifact persistence assertion in the story-implement command test.";
+  const providerBinDir = await createTempDir(
+    "story-implement-invalid-output-schema-provider"
+  );
   const { env } = await writeFakeProviderExecutable({
     binDir: providerBinDir,
     provider: "codex",
     responses: [
       {
-        stdout: providerResult(sessionId, basePayload()),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          basePayload({
-            selfReview: {
-              findingsFixed: [appliedFix],
-              findingsSurfaced: [],
-            },
-          })
-        ),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          basePayload({
-            selfReview: {
-              findingsFixed: [appliedFix],
-              findingsSurfaced: [],
-            },
-          })
-        ),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          basePayload({
-            selfReview: {
-              findingsFixed: [appliedFix],
-              findingsSurfaced: [],
-            },
-          })
-        ),
+        stdout: JSON.stringify({
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            code: "invalid_json_schema",
+            message:
+              "Invalid schema for response_format 'codex_output_schema': Missing 'totalAfterStory'.",
+            param: "text.format.schema",
+          },
+          status: 400,
+        }),
+        stderr: "Reading additional input from stdin...",
+        exitCode: 1,
       },
     ],
   });
@@ -663,11 +632,16 @@ test("TC-4.4a records clear and local self-review fixes that were applied automa
     }
   );
 
-  expect(run.exitCode).toBe(0);
+  expect(run.exitCode).toBe(3);
 
   const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.result.selfReview.findingsFixed).toContain(appliedFix);
-  expect(envelope.result.outcome).toBe("ready-for-verification");
+  expect(envelope.status).toBe("blocked");
+  expect(envelope.errors).toContainEqual(
+    expect.objectContaining({
+      code: "PROVIDER_OUTPUT_INVALID",
+      detail: expect.stringContaining("invalid_json_schema"),
+    })
+  );
 });
 
 test("blocks with CONTINUATION_HANDLE_INVALID when the provider omits a session id for a retained implementor run", async () => {
@@ -713,7 +687,7 @@ test("blocks with CONTINUATION_HANDLE_INVALID when the provider omits a session 
   );
 });
 
-test("TC-4.4b surfaces uncertain fixes to the orchestrator instead of hiding them behind an automatic edit", async () => {
+test("surfaces a needs-human-ruling outcome directly from the initial implementor pass", async () => {
   const fixture = await createImplementorSpecPack("story-implement-surfaced-risk");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
   const providerBinDir = await createTempDir("story-implement-surfaced-risk-provider");
@@ -724,9 +698,6 @@ test("TC-4.4b surfaces uncertain fixes to the orchestrator instead of hiding the
     binDir: providerBinDir,
     provider: "codex",
     responses: [
-      {
-        stdout: providerResult(sessionId, basePayload()),
-      },
       {
         stdout: providerResult(
           sessionId,
@@ -766,9 +737,9 @@ test("TC-4.4b surfaces uncertain fixes to the orchestrator instead of hiding the
   const envelope = parseJsonOutput<any>(run.stdout);
   expect(envelope.status).toBe("needs-user-decision");
   expect(envelope.outcome).toBe("needs-human-ruling");
-  expect(envelope.result.selfReview.passesRun).toBe(1);
+  expect(envelope.result.selfReview.passesRun).toBe(0);
   expect(envelope.result.selfReview.findingsSurfaced).toContain(surfacedFinding);
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(2);
+  expect(invocations).toHaveLength(1);
 });

@@ -1,6 +1,11 @@
 import { defineCommand } from "citty";
 
-import { nextGroupedArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import {
+  buildRuntimeProgressPaths,
+  buildStreamOutputPaths,
+  nextGroupedArtifactPath,
+  writeJsonArtifact,
+} from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
 import { runEpicVerify } from "../core/epic-verifier";
 import {
@@ -89,6 +94,9 @@ export default defineCommand({
         specPackRoot: args["spec-pack-root"],
         configPath: args.config,
         env: process.env,
+        artifactPath,
+        streamOutputPaths: buildStreamOutputPaths(artifactPath),
+        runtimeProgressPaths: buildRuntimeProgressPaths(artifactPath),
       });
       const envelope = cliResultEnvelopeSchema(
         epicVerifierBatchResultSchema

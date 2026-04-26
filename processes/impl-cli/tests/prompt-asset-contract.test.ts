@@ -11,6 +11,7 @@ describe("prompt asset content contracts", () => {
     expect(prompt).toContain("Artifact Reading Order");
     expect(prompt).toContain("Self-Review");
     expect(prompt).toContain("{{RESULT_CONTRACT_NAME}}");
+    expect(prompt).toContain("{{RESULT_CONTRACT_SCHEMA}}");
   });
 
   test("TC-3.1a story implementor prompt excludes CLAUDE.md, prior story files, and team-impl-log.md from the reading contract", () => {
@@ -29,7 +30,12 @@ describe("prompt asset content contracts", () => {
     expect(prompt).toContain("Evidence Rules");
     expect(prompt).toContain("Severity");
     expect(prompt).toContain("AC / TC Coverage");
+    expect(prompt).toContain("Follow-Up Convergence");
+    expect(prompt).toContain("{{PRIOR_OPEN_FINDINGS}}");
+    expect(prompt).toContain("{{FOLLOWUP_RESPONSE}}");
+    expect(prompt).toContain("{{ORCHESTRATOR_CONTEXT}}");
     expect(prompt).toContain("{{ROUTING_GUIDANCE}}");
+    expect(prompt).toContain("{{RESULT_CONTRACT_SCHEMA}}");
   });
 
   test("TC-3.4c quick-fix prompt stays free of story-aware structured contract requirements", () => {
@@ -70,5 +76,31 @@ describe("prompt asset content contracts", () => {
     expect(prompt).toContain("independently verify");
     expect(prompt).toContain("codebase");
     expect(prompt).toContain("{{RESULT_CONTRACT_NAME}}");
+    expect(prompt).toContain("{{RESULT_CONTRACT_SCHEMA}}");
+  });
+
+  test("story implementor prompt exposes the provider payload schema placeholder", () => {
+    const assets = getEmbeddedPromptAssets();
+    const prompt = assets.base["story-implementor"];
+
+    expect(prompt).toContain("{{RESULT_CONTRACT_SCHEMA}}");
+  });
+
+  test("story verifier prompt exposes the provider payload schema placeholder", () => {
+    const assets = getEmbeddedPromptAssets();
+    const prompt = assets.base["story-verifier"];
+
+    expect(prompt).toContain("{{RESULT_CONTRACT_SCHEMA}}");
+  });
+
+  test("self-review snippets stay story-scoped while checking handoff obligations and production-path gaps", () => {
+    const assets = getEmbeddedPromptAssets();
+
+    expect(assets.snippets["self-review-pass-2"]).toContain(
+      "provided story, tech-design, and test-plan handoff"
+    );
+    expect(assets.snippets["self-review-pass-3"]).toContain(
+      "production-path shim, placeholder, or handoff obligation gap"
+    );
   });
 });

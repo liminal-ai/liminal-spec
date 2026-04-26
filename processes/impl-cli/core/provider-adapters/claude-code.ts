@@ -27,6 +27,8 @@ export function createClaudeCodeAdapter(
             "json",
             "--model",
             request.model,
+            "--effort",
+            request.reasoningEffort,
           ]
         : [
             "-p",
@@ -35,6 +37,8 @@ export function createClaudeCodeAdapter(
             "json",
             "--model",
             request.model,
+            "--effort",
+            request.reasoningEffort,
             "--permission-mode",
             "acceptEdits",
           ];
@@ -45,6 +49,8 @@ export function createClaudeCodeAdapter(
         cwd: request.cwd,
         env: options.env,
         timeoutMs: request.timeoutMs,
+        streamOutputPaths: request.streamOutputPaths,
+        lifecycleCallback: request.lifecycleCallback,
       });
 
       if (execution.exitCode !== 0) {

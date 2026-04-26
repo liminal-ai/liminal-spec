@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
   createRunConfig,
   createSpecPack,
@@ -84,9 +85,14 @@ test("TC-5.3a runs quick-fix from request-text without requiring story-aware inp
   expect(envelope.result).toMatchObject({
     provider: "codex",
     model: "gpt-5.4",
-    rawProviderOutput,
+    rawProviderOutputPreview: rawProviderOutput,
+    rawProviderOutputBytes: Buffer.byteLength(rawProviderOutput, "utf8"),
+    rawProviderOutputTruncated: false,
+    rawProviderOutputLogPath: expect.stringContaining(
+      "/artifacts/quick-fix/streams/001-quick-fix.stdout.log"
+    ),
   });
-  expect(envelope.result.rawProviderOutput).toContain(
+  expect(envelope.result.rawProviderOutputPreview).toContain(
     "src/references/claude-impl-cli-operations.md"
   );
 
@@ -94,18 +100,39 @@ test("TC-5.3a runs quick-fix from request-text without requiring story-aware inp
   expect(artifactPath).toContain("/artifacts/quick-fix/001-quick-fix.json");
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    phase: string;
+  };
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.phase).toBe("finalizing");
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "provider-spawned",
+      "first-output-received",
+      "provider-exit",
+      "completed",
+    ])
+  );
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
   expect(invocations).toHaveLength(1);
-  expect(invocations[0]?.args).toEqual([
+  expect(invocations[0]?.args.slice(0, 6)).toEqual([
     "exec",
     "--json",
     "-m",
     "gpt-5.4",
     "-c",
-    "model_reasoning_effort=medium",
-    requestText,
+    "model_reasoning_effort=high",
   ]);
+  expect(invocations[0]?.args).toContain("-o");
   expect(invocations[0]?.args).not.toContain("resume");
   expect(invocations[0]?.args[invocations[0].args.length - 1]).toBe(requestText);
 });
@@ -158,7 +185,12 @@ test("TC-5.3b accepts --request-file, uses the selected working directory, and k
   expect(envelope.result).toMatchObject({
     provider: "codex",
     model: "gpt-5.4",
-    rawProviderOutput,
+    rawProviderOutputPreview: rawProviderOutput,
+    rawProviderOutputBytes: Buffer.byteLength(rawProviderOutput, "utf8"),
+    rawProviderOutputTruncated: false,
+    rawProviderOutputLogPath: expect.stringContaining(
+      "/artifacts/quick-fix/streams/001-quick-fix.stdout.log"
+    ),
   });
   expect(envelope.result.filesChanged).toBeUndefined();
   expect(envelope.result.changeSummary).toBeUndefined();
@@ -221,7 +253,12 @@ test("runs quick-fix through Copilot when the run config selects the Copilot fre
   expect(envelope.result).toMatchObject({
     provider: "copilot",
     model: "gpt-5.4",
-    rawProviderOutput,
+    rawProviderOutputPreview: rawProviderOutput,
+    rawProviderOutputBytes: Buffer.byteLength(rawProviderOutput, "utf8"),
+    rawProviderOutputTruncated: false,
+    rawProviderOutputLogPath: expect.stringContaining(
+      "/artifacts/quick-fix/streams/001-quick-fix.stdout.log"
+    ),
   });
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
@@ -229,9 +266,12 @@ test("runs quick-fix through Copilot when the run config selects the Copilot fre
   expect(invocations[0]?.args).toEqual([
     "-p",
     requestText,
-    "-s",
+    "--output-format",
+    "json",
     "--model",
     "gpt-5.4",
+    "--effort",
+    "medium",
   ]);
 });
 
@@ -424,7 +464,14 @@ test("routes quick-fix to needs-more-routing when the provider returns no stdout
   const envelope = parseJsonOutput<any>(run.stdout);
   expect(envelope.status).toBe("ok");
   expect(envelope.outcome).toBe("needs-more-routing");
-  expect(envelope.result.rawProviderOutput).toBe("");
+  expect(envelope.result).toMatchObject({
+    rawProviderOutputPreview: "",
+    rawProviderOutputBytes: 0,
+    rawProviderOutputTruncated: false,
+    rawProviderOutputLogPath: expect.stringContaining(
+      "/artifacts/quick-fix/streams/001-quick-fix.stdout.log"
+    ),
+  });
 });
 
 test("blocks quick-fix when the explicit working directory escapes the repo root", async () => {

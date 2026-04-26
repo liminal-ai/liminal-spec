@@ -15,7 +15,7 @@
  *   DIST_DIR -- output root directory (default: dist)
  */
 
-import { cp, mkdir, rm } from "node:fs/promises";
+import { chmod, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { syncImplCliAssets } from "./sync-impl-cli-assets";
@@ -30,6 +30,10 @@ interface SkillEntry {
   phases: string[];
   shared: string[];
   references?: string[];
+  bundledMarkdownFiles?: Array<{
+    source: string;
+    destination: string;
+  }>;
   templates?: string[];
   examples?: string[];
   bundledArtifacts?: Array<{
@@ -212,6 +216,22 @@ async function copyBundledMarkdownFiles(
   }
 }
 
+async function copyBundledMarkdownAssets(
+  assets: SkillEntry["bundledMarkdownFiles"],
+  destinationRoot: string
+): Promise<void> {
+  if (!assets || assets.length === 0) {
+    return;
+  }
+
+  for (const asset of assets) {
+    const content = await readSourceFile(asset.source);
+    const destinationPath = join(destinationRoot, asset.destination);
+    await mkdir(dirname(destinationPath), { recursive: true });
+    await Bun.write(destinationPath, content);
+  }
+}
+
 function resolveArtifactSourcePath(source: string): string {
   if (source.startsWith("dist/")) {
     return join(DIST, source.slice("dist/".length));
@@ -257,6 +277,15 @@ async function buildBundledArtifact(source: string): Promise<void> {
         throw new Error(`Bundled artifact was not created at ${sourcePath}`);
       }
 
+      const currentContents = await readFile(sourcePath, "utf8");
+      const withShebang = currentContents.startsWith("#!/usr/bin/env node\n")
+        ? currentContents
+        : `#!/usr/bin/env node\n${currentContents}`;
+      if (withShebang !== currentContents) {
+        await writeFile(sourcePath, withShebang, "utf8");
+      }
+      await chmod(sourcePath, 0o755);
+
       console.log(`  bundled artifact: ${source}`);
       return;
     }
@@ -292,6 +321,11 @@ async function copyBundledArtifacts(
     const destinationPath = join(destinationRoot, artifact.destination);
     await mkdir(dirname(destinationPath), { recursive: true });
     await cp(sourcePath, destinationPath, { force: true });
+    try {
+      await chmod(destinationPath, 0o755);
+    } catch {
+      // Ignore chmod failures on platforms or filesystems that do not support it.
+    }
   }
 }
 
@@ -328,6 +362,7 @@ async function build(): Promise<void> {
     await mkdir(skillDir, { recursive: true });
     await Bun.write(join(skillDir, "SKILL.md"), composed);
     await copyBundledMarkdownFiles("references", skill.references, skillDir);
+    await copyBundledMarkdownAssets(skill.bundledMarkdownFiles, skillDir);
     await copyBundledArtifacts(skill.bundledArtifacts, skillDir);
 
     // Standalone .md output (no frontmatter, for paste-into-chat)
@@ -342,6 +377,7 @@ async function build(): Promise<void> {
     await mkdir(skillPkgDir, { recursive: true });
     await Bun.write(join(skillPkgDir, "SKILL.md"), composed);
     await copyBundledMarkdownFiles("references", skill.references, skillPkgDir);
+    await copyBundledMarkdownAssets(skill.bundledMarkdownFiles, skillPkgDir);
     await copyBundledArtifacts(skill.bundledArtifacts, skillPkgDir);
 
     skillSummary.push({ name: key, lines: lineCount });

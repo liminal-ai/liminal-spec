@@ -2,7 +2,9 @@ import { chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
+  ROOT,
   createExternalSpecPack,
   createRunConfig,
   createSpecPack,
@@ -242,9 +244,30 @@ test("TC-8.2a runs epic synthesis from verifier reports and returns the structur
   expect(artifactPath).toContain("/artifacts/epic/001-epic-synthesis.json");
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    phase: string;
+  };
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.phase).toBe("finalizing");
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "provider-spawned",
+      "provider-exit",
+      "completed",
+    ])
+  );
 
-  const invocations = await readJsonLines<{ args: string[] }>(logPath);
+  const invocations = await readJsonLines<{ args: string[]; cwd: string }>(logPath);
   expect(invocations).toHaveLength(1);
+  expect(invocations[0]?.cwd).toBe(ROOT);
   expect(invocations[0]?.args).not.toContain("resume");
 });
 
@@ -410,10 +433,13 @@ test("executes epic-synthesize through Copilot when the run config selects Copil
   expect(invocations).toHaveLength(1);
   expect(invocations[0]?.args).toEqual([
     "-p",
-    expect.any(String),
-    "-s",
+    expect.stringContaining("# Epic Synthesizer Base Prompt"),
+    "--output-format",
+    "json",
     "--model",
     "gpt-5.4",
+    "--effort",
+    "xhigh",
   ]);
 });
 

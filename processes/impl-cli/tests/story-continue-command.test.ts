@@ -1,7 +1,9 @@
 import { join } from "node:path";
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
+  ROOT,
   createImplementorSpecPack,
   createRunConfig,
   createTempDir,
@@ -93,33 +95,6 @@ test("continues the retained implementor session from explicit provider and sess
         stdout: providerResult(sessionId, continuePayload("Resume verification.")),
       },
       {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          continuePayload("Hand the refreshed result back to story verification.")
-        ),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          continuePayload("Hand the refreshed result back to story verification.")
-        ),
-      },
-      {
-        stdout: providerResult(
-          sessionId,
-          continuePayload("Hand the refreshed result back to story verification.")
-        ),
-      },
-      {
         stdout: providerResult(
           sessionId,
           continuePayload("Hand the refreshed result back to story verification.")
@@ -185,9 +160,32 @@ test("continues the retained implementor session from explicit provider and sess
   expect(artifactPath).toContain(`/artifacts/${fixture.storyId}/002-continue.json`);
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    selfReviewPassesCompleted?: number;
+    selfReviewPassesPlanned?: number;
+  };
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.selfReviewPassesCompleted).toBe(0);
+  expect(runtimeStatus.selfReviewPassesPlanned).toBe(0);
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "initial-pass-started",
+      "initial-pass-completed",
+      "completed",
+    ])
+  );
 
-  const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(8);
+  const invocations = await readJsonLines<{ args: string[]; cwd: string }>(logPath);
+  expect(invocations).toHaveLength(2);
+  expect(invocations.every((invocation) => invocation.cwd === ROOT)).toBe(true);
 });
 
 test("accepts a follow-up file when continuing the same implementor session", async () => {
@@ -214,25 +212,33 @@ test("accepts a follow-up file when continuing the same implementor session", as
       {
         stdout: providerResult(
           sessionId,
-          continuePayload("Run the verifier batch against the follow-up edits.")
+          continuePayload(
+            "Run the retained verifier against the follow-up edits."
+          )
         ),
       },
       {
         stdout: providerResult(
           sessionId,
-          continuePayload("Run the verifier batch against the follow-up edits.")
+          continuePayload(
+            "Run the retained verifier against the follow-up edits."
+          )
         ),
       },
       {
         stdout: providerResult(
           sessionId,
-          continuePayload("Run the verifier batch against the follow-up edits.")
+          continuePayload(
+            "Run the retained verifier against the follow-up edits."
+          )
         ),
       },
       {
         stdout: providerResult(
           sessionId,
-          continuePayload("Run the verifier batch against the follow-up edits.")
+          continuePayload(
+            "Run the retained verifier against the follow-up edits."
+          )
         ),
       },
     ],
@@ -288,7 +294,7 @@ test("accepts a follow-up file when continuing the same implementor session", as
   expect(continuedRun.exitCode).toBe(0);
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations[4]?.args.join(" ")).toContain(sessionId);
+  expect(invocations[1]?.args.join(" ")).toContain(sessionId);
 });
 
 test("returns exit code 2 when story-continue completes with a follow-up fix outcome", async () => {
@@ -308,24 +314,6 @@ test("returns exit code 2 when story-continue completes with a follow-up fix out
     responses: [
       {
         stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, followupPayload),
-      },
-      {
-        stdout: providerResult(sessionId, followupPayload),
-      },
-      {
-        stdout: providerResult(sessionId, followupPayload),
       },
       {
         stdout: providerResult(sessionId, followupPayload),
@@ -391,15 +379,6 @@ test("blocks story-continue when the continued implementor payload includes an u
     binDir: providerBinDir,
     provider: "codex",
     responses: [
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
-      {
-        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
-      },
       {
         stdout: providerResult(sessionId, continuePayload("Resume verification.")),
       },
@@ -472,10 +451,10 @@ test("blocks story-continue when the continued implementor payload includes an u
   );
 
   const invocations = await readJsonLines<{ args: string[] }>(logPath);
-  expect(invocations).toHaveLength(5);
+  expect(invocations).toHaveLength(2);
 });
 
-test("rejects a continuation handle when the session belongs to a different story", async () => {
+test("accepts an explicit continuation handle without local story-ownership validation", async () => {
   const fixture = await createImplementorSpecPack("story-continue-wrong-story");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
   const providerBinDir = await createTempDir("story-continue-wrong-story-provider");
@@ -530,18 +509,15 @@ test("rejects a continuation handle when the session belongs to a different stor
     }
   );
 
-  expect(continuedRun.exitCode).toBe(3);
+  expect(continuedRun.exitCode).toBe(0);
 
   const envelope = parseJsonOutput<any>(continuedRun.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.errors).toContainEqual(
-    expect.objectContaining({
-      code: "CONTINUATION_HANDLE_INVALID",
-    })
-  );
+  expect(envelope.outcome).toBe("ready-for-verification");
+  expect(envelope.result.provider).toBe("codex");
+  expect(envelope.result.sessionId).toBe(sessionId);
 });
 
-test("rejects an unknown session id with a stable continuation error code", async () => {
+test("accepts an explicit continuation handle even when it was not previously emitted by story-implement", async () => {
   const fixture = await createImplementorSpecPack("story-continue-unknown-session");
   await writeRunConfig(fixture.specPackRoot, createRunConfig());
   const providerBinDir = await createTempDir("story-continue-unknown-session-provider");
@@ -596,15 +572,11 @@ test("rejects an unknown session id with a stable continuation error code", asyn
     }
   );
 
-  expect(continuedRun.exitCode).toBe(3);
+  expect(continuedRun.exitCode).toBe(0);
 
   const envelope = parseJsonOutput<any>(continuedRun.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.errors).toContainEqual(
-    expect.objectContaining({
-      code: "CONTINUATION_HANDLE_INVALID",
-    })
-  );
+  expect(envelope.outcome).toBe("ready-for-verification");
+  expect(envelope.result.provider).toBe("codex");
 });
 
 test("rejects a copilot continuation handle before provider dispatch", async () => {

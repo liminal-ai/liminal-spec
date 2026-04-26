@@ -19,6 +19,21 @@ function parseStoryImplementorHandle(content: string) {
   };
 }
 
+function parseStoryVerifierHandle(content: string) {
+  const match = content.match(
+    /- Story Verifier:\n  - Story: (?<story>[^\n]+)\n  - Provider: (?<provider>[^\n]+)\n  - Session ID: (?<sessionId>[^\n]+)\n  - Result Artifact: (?<artifact>[^\n]+)/
+  );
+
+  expect(match?.groups).toBeDefined();
+
+  return {
+    story: match?.groups?.story,
+    provider: match?.groups?.provider,
+    sessionId: match?.groups?.sessionId,
+    artifact: match?.groups?.artifact,
+  };
+}
+
 describe("team-impl log template", () => {
   test("TC-1.3a initializes a new log with the required recovery headings", async () => {
     const specPackRoot = await createTempDir("log-init");
@@ -75,8 +90,7 @@ describe("team-impl log template", () => {
     expect(result.content).toContain("- Title: Story Acceptance and Progression");
     expect(result.content).toContain("- Implementor Evidence Ref: pending");
     expect(result.content).toContain("- Verifier Evidence Refs:");
-    expect(result.content).toContain("  - pending-primary");
-    expect(result.content).toContain("  - pending-secondary");
+    expect(result.content).toContain("  - pending");
     expect(result.content).toContain("- Gate Command: pending");
     expect(result.content).toContain("- Gate Result: pending (pass | fail)");
     expect(result.content).toContain("- Dispositions:");
@@ -101,6 +115,12 @@ describe("team-impl log template", () => {
     expect(result.content).toContain("- Current Phase: inspect");
     expect(result.content).toContain("- Last Completed Checkpoint: none");
     expect(parseStoryImplementorHandle(result.content)).toEqual({
+      story: "none",
+      provider: "none",
+      sessionId: "none",
+      artifact: "none",
+    });
+    expect(parseStoryVerifierHandle(result.content)).toEqual({
       story: "none",
       provider: "none",
       sessionId: "none",

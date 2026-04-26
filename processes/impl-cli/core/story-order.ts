@@ -32,8 +32,7 @@ export async function resolveStoryOrder(
   const entries = await readdir(storiesDir, { withFileTypes: true });
   const fileNames = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-    .map((entry) => entry.name)
-    .filter((fileName) => fileName !== "coverage.md");
+    .map((entry) => entry.name);
   const numericFileNames = fileNames.filter(
     (fileName) => numericPrefix(fileName) !== null
   );
@@ -41,21 +40,22 @@ export async function resolveStoryOrder(
     (fileName) => numericPrefix(fileName) === null
   );
 
+  const notes: string[] = [];
+  const orderedCandidates =
+    numericFileNames.length > 0 ? numericFileNames : fileNames;
+
   if (numericFileNames.length > 0 && nonNumericFileNames.length > 0) {
-    return {
-      status: "needs-user-decision",
-      stories: [],
-      notes: [
-        "Mixed numeric and non-numeric story filenames require an explicit user ordering decision.",
-      ],
-    };
+    notes.push(
+      `Ignored non-story markdown files in stories/: ${nonNumericFileNames
+        .sort((left, right) => left.localeCompare(right))
+        .join(", ")}`
+    );
   }
 
-  const notes: string[] = [];
   const orderedFileNames =
     numericFileNames.length === 0
-      ? [...fileNames].sort((left, right) => left.localeCompare(right))
-      : [...fileNames].sort((left, right) => {
+      ? [...orderedCandidates].sort((left, right) => left.localeCompare(right))
+      : [...orderedCandidates].sort((left, right) => {
           const leftPrefix = numericPrefix(left) ?? Number.MAX_SAFE_INTEGER;
           const rightPrefix = numericPrefix(right) ?? Number.MAX_SAFE_INTEGER;
           if (leftPrefix !== rightPrefix) {
@@ -64,7 +64,7 @@ export async function resolveStoryOrder(
           return left.localeCompare(right);
         });
 
-  if (numericFileNames.length === 0 && fileNames.length > 0) {
+  if (numericFileNames.length === 0 && orderedCandidates.length > 0) {
     notes.push(
       "Story filenames do not use numeric prefixes; lexical ordering was applied."
     );

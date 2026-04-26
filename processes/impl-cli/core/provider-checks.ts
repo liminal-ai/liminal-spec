@@ -74,9 +74,10 @@ function authCommandForHarness(
 ): string[] | undefined {
   switch (harness) {
     case "claude-code":
-    case "codex":
     case "copilot":
       return ["auth", "status"];
+    case "codex":
+      return undefined;
     case "none":
       return undefined;
   }
@@ -216,8 +217,7 @@ function requestedSecondaryHarnesses(config: ImplRunConfig): SecondaryHarness[] 
   for (const assignment of [
     config.story_implementor,
     config.quick_fixer,
-    config.story_verifier_1,
-    config.story_verifier_2,
+    config.story_verifier,
     ...config.epic_verifiers,
     config.epic_synthesizer,
   ]) {

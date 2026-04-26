@@ -57,10 +57,14 @@ describe("verification gate discovery", () => {
       epicGate: "bun run explicit-epic-gate",
       storyGateSource: "explicit CLI flag",
       epicGateSource: "explicit CLI flag",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
     });
   });
 
-  test("uses canonical package script invocations and prefers them over docs and CI", async () => {
+  test("uses inferred npm package script invocations and prefers them over docs and CI when no package manager is declared", async () => {
     const { resolveVerificationGates } = await import("../core/gate-discovery");
 
     const specPackRoot = await createSpecPack("gate-discovery-package-precedence");
@@ -105,14 +109,18 @@ describe("verification gate discovery", () => {
 
     expect(result.status).toBe("ready");
     expect(result.verificationGates).toEqual({
-      storyGate: "bun run green-verify",
-      epicGate: "bun run verify-all",
+      storyGate: "npm run green-verify",
+      epicGate: "npm run verify-all",
       storyGateSource: "local package.json scripts",
       epicGateSource: "local package.json scripts",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
     });
   });
 
-  test("discovers canonical package-script gates from the repo root when a nested spec pack has no local policy files", async () => {
+  test("discovers inferred npm package-script gates from the repo root when a nested spec pack has no local policy files", async () => {
     const { resolveVerificationGates } = await import("../core/gate-discovery");
 
     const repoRoot = await createTempDir("gate-discovery-nested-repo-root");
@@ -146,10 +154,14 @@ describe("verification gate discovery", () => {
 
     expect(result.status).toBe("ready");
     expect(result.verificationGates).toEqual({
-      storyGate: "bun run green-verify",
-      epicGate: "bun run verify-all",
+      storyGate: "npm run green-verify",
+      epicGate: "npm run verify-all",
       storyGateSource: "repo-root package.json scripts",
       epicGateSource: "repo-root package.json scripts",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
     });
   });
 
@@ -189,6 +201,10 @@ describe("verification gate discovery", () => {
       epicGate: "bun run doc-epic-gate",
       storyGateSource: "project policy docs",
       epicGateSource: "project policy docs",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
     });
   });
 
@@ -218,6 +234,82 @@ describe("verification gate discovery", () => {
       epicGate: "bun run verify-all-ci",
       storyGateSource: "CI configuration",
       epicGateSource: "CI configuration",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
+    });
+  });
+
+  test("uses corepack when packageManager declares pnpm explicitly", async () => {
+    const { resolveVerificationGates } = await import("../core/gate-discovery");
+
+    const specPackRoot = await createSpecPack("gate-discovery-corepack-pnpm");
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          packageManager: "pnpm@10.33.0",
+          scripts: {
+            "green-verify": "pnpm lint && pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+
+    const result = await resolveVerificationGates({
+      specPackRoot,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.verificationGates).toEqual({
+      storyGate: "corepack pnpm run green-verify",
+      epicGate: "corepack pnpm run verify-all",
+      storyGateSource: "local package.json scripts",
+      epicGateSource: "local package.json scripts",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
+    });
+  });
+
+  test("uses lockfile inference when packageManager is absent", async () => {
+    const { resolveVerificationGates } = await import("../core/gate-discovery");
+
+    const specPackRoot = await createSpecPack("gate-discovery-lockfile-pnpm");
+    await writeTextFile(
+      join(specPackRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "green-verify": "pnpm lint && pnpm test:story",
+            "verify-all": "pnpm test:epic",
+          },
+        },
+        null,
+        2
+      )
+    );
+    await writeTextFile(join(specPackRoot, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+
+    const result = await resolveVerificationGates({
+      specPackRoot,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.verificationGates).toEqual({
+      storyGate: "pnpm run green-verify",
+      epicGate: "pnpm run verify-all",
+      storyGateSource: "local package.json scripts",
+      epicGateSource: "local package.json scripts",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
     });
   });
 

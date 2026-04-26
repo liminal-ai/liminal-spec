@@ -97,6 +97,14 @@ const SkillSchema = z.object({
   phases: z.array(z.string().min(1)).min(1),
   shared: z.array(z.string().min(1)),
   references: z.array(z.string().min(1)).optional(),
+  bundledMarkdownFiles: z
+    .array(
+      z.object({
+        source: z.string().min(1),
+        destination: z.string().min(1),
+      })
+    )
+    .optional(),
   templates: z.array(z.string().min(1)).optional(),
   examples: z.array(z.string().min(1)).optional(),
   bundledArtifacts: z
@@ -347,6 +355,36 @@ async function validateBundledArtifacts(): Promise<void> {
   }
 }
 
+async function validateBundledMarkdownFiles(): Promise<void> {
+  const manifestPath = join(ROOT, "manifest.json");
+  const parsed = ManifestSchema.safeParse(await Bun.file(manifestPath).json());
+  if (!parsed.success) {
+    return;
+  }
+
+  for (const [skillId, skill] of Object.entries(parsed.data.skills)) {
+    for (const asset of skill.bundledMarkdownFiles ?? []) {
+      const fullPath = join(DIST_SKILLS, skillId, asset.destination);
+      if (!(await fileExists(fullPath))) {
+        result.errors.push(
+          `Skill '${skillId}': missing bundled markdown ${asset.destination}`
+        );
+        continue;
+      }
+
+      const content = await readFile(fullPath);
+      if (content.trim().length === 0) {
+        result.errors.push(
+          `Skill '${skillId}': bundled markdown ${asset.destination} is empty`
+        );
+        continue;
+      }
+
+      console.log(`  doc: ${skillId}/${asset.destination}`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -365,6 +403,9 @@ async function validate(): Promise<void> {
 
   console.log("\nBundled References:");
   await validateBundledReferences();
+
+  console.log("\nBundled Docs:");
+  await validateBundledMarkdownFiles();
 
   console.log("\nBundled Artifacts:");
   await validateBundledArtifacts();

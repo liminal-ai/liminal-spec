@@ -24,6 +24,7 @@ These files are optional public inserts. `inspect` records whether they are pres
 - verifier prompts use the verifier base prompt plus the required snippets, the optional verifier insert, runtime values, and the verifier reading journey
 - quick-fix handoffs pass through a plain-language task description only
 - prompt assembly stays deterministic so the orchestrator can reason about what the runtime will send
+- provider-backed prompts instruct the agent to emit the provider payload shape the CLI validates, not the final outer envelope the CLI writes to `artifacts/`
 
 ## Story implementor reading journey
 

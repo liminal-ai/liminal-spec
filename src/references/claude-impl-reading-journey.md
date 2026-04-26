@@ -1,22 +1,24 @@
 # Claude Impl Reading Journey
 
-Use this file after the initial `inspect` pass. The goal is to read just enough, in the right order, to establish durable state before any implementation work begins.
+Use this file after the initial `inspect` pass. The goal is to read just enough, in the right order, to onboard the orchestrator to the implementation surface before any story work begins.
 
 ## Read Order
 
-1. Read `tech-design.md`.
-2. If `inspect` reported a four-file layout, read `tech-design-skill-process.md` and `tech-design-cli-runtime.md` next.
-3. Read `test-plan.md`.
-4. Read `epic.md`.
-5. Read every story file in `stories/` in order before starting Story 0 or Story 1.
+1. Read every story file in `stories/` in order before starting Story 0 or Story 1.
+2. Read `test-plan.md`.
+
+Use `epic.md` only when the stories and test plan leave story scope or AC/TC provenance unclear.
+
+Use `tech-design.md` and companion tech-design files only when the stories and test plan leave architecture, boundary, or runtime constraints unclear.
 
 ## What To Record In `team-impl-log.md`
 
 - the resolved spec-pack root
-- whether the tech design is a two-file or four-file pack
 - the ordered story inventory
+- the test-plan expectations that matter for the story cycle
 - the story and epic verification gates
 - any blockers that require a user decision
+- any targeted lookup clarifications taken from `epic.md` or the tech-design set
 - whether public prompt inserts are active
 
 ## Prompt Insert Detection

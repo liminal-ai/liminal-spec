@@ -56,17 +56,12 @@ export function createRunConfig(
     quick_fixer: {
       secondary_harness: "codex",
       model: "gpt-5.4",
-      reasoning_effort: "medium",
+      reasoning_effort: "high",
     },
-    story_verifier_1: {
+    story_verifier: {
       secondary_harness: "codex",
       model: "gpt-5.4",
       reasoning_effort: "xhigh",
-    },
-    story_verifier_2: {
-      secondary_harness: "none",
-      model: "claude-sonnet",
-      reasoning_effort: "high",
     },
     self_review: {
       passes: 3,
@@ -97,13 +92,9 @@ export function createRunConfig(
       ...base.quick_fixer,
       ...overrides.quick_fixer,
     },
-    story_verifier_1: {
-      ...base.story_verifier_1,
-      ...overrides.story_verifier_1,
-    },
-    story_verifier_2: {
-      ...base.story_verifier_2,
-      ...overrides.story_verifier_2,
+    story_verifier: {
+      ...base.story_verifier,
+      ...overrides.story_verifier,
     },
     self_review: {
       ...base.self_review,
@@ -305,6 +296,7 @@ export interface FakeProviderResponse {
   stdout?: string;
   stderr?: string;
   exitCode?: number;
+  lastMessage?: string;
 }
 
 export async function writeFakeProviderExecutable(params: {
@@ -374,6 +366,11 @@ export async function writeFakeProviderExecutable(params: {
       "  exitCode: 1,",
       "};",
       "writeFileSync(cursorPath, `${cursor + 1}`);",
+      "const outputLastMessageFlagIndex = args.findIndex((arg) => arg === \"-o\" || arg === \"--output-last-message\");",
+      "const outputLastMessagePath = outputLastMessageFlagIndex >= 0 ? args[outputLastMessageFlagIndex + 1] : undefined;",
+      "if (outputLastMessagePath && typeof response.lastMessage === \"string\") {",
+      "  writeFileSync(outputLastMessagePath, response.lastMessage);",
+      "}",
       "if (response.stderr) {",
       "  process.stderr.write(response.stderr);",
       "}",

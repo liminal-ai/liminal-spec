@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -15,4 +16,8 @@ export async function resolveGitRepoRoot(
   } catch {
     return null;
   }
+}
+
+export async function resolveProviderCwd(specPackRoot: string): Promise<string> {
+  return (await resolveGitRepoRoot(specPackRoot)) ?? resolve(specPackRoot);
 }

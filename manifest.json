@@ -112,6 +112,72 @@
         "claude-impl"
       ],
       "shared": [],
+      "bundledMarkdownFiles": [
+        {
+          "source": "claude-impl/onboarding/01-orientation.md",
+          "destination": "onboarding/01-orientation.md"
+        },
+        {
+          "source": "claude-impl/onboarding/02-terminology.md",
+          "destination": "onboarding/02-terminology.md"
+        },
+        {
+          "source": "claude-impl/onboarding/03-operating-model.md",
+          "destination": "onboarding/03-operating-model.md"
+        },
+        {
+          "source": "claude-impl/onboarding/04-stage-map.md",
+          "destination": "onboarding/04-stage-map.md"
+        },
+        {
+          "source": "claude-impl/onboarding/05-initialization-overview.md",
+          "destination": "onboarding/05-initialization-overview.md"
+        },
+        {
+          "source": "claude-impl/setup/10-spec-pack-discovery.md",
+          "destination": "setup/10-spec-pack-discovery.md"
+        },
+        {
+          "source": "claude-impl/setup/11-spec-pack-read-order.md",
+          "destination": "setup/11-spec-pack-read-order.md"
+        },
+        {
+          "source": "claude-impl/setup/12-run-setup.md",
+          "destination": "setup/12-run-setup.md"
+        },
+        {
+          "source": "claude-impl/phases/20-story-cycle.md",
+          "destination": "phases/20-story-cycle.md"
+        },
+        {
+          "source": "claude-impl/phases/21-verification-and-fix-routing.md",
+          "destination": "phases/21-verification-and-fix-routing.md"
+        },
+        {
+          "source": "claude-impl/phases/22-recovery-and-resume.md",
+          "destination": "phases/22-recovery-and-resume.md"
+        },
+        {
+          "source": "claude-impl/phases/23-cleanup-and-closeout.md",
+          "destination": "phases/23-cleanup-and-closeout.md"
+        },
+        {
+          "source": "claude-impl/operations/30-cli-operations.md",
+          "destination": "operations/30-cli-operations.md"
+        },
+        {
+          "source": "claude-impl/operations/31-provider-resolution.md",
+          "destination": "operations/31-provider-resolution.md"
+        },
+        {
+          "source": "claude-impl/operations/32-prompting-and-inserts.md",
+          "destination": "operations/32-prompting-and-inserts.md"
+        },
+        {
+          "source": "claude-impl/operations/33-artifact-contracts.md",
+          "destination": "operations/33-artifact-contracts.md"
+        }
+      ],
       "references": [
         "claude-impl-reading-journey",
         "claude-impl-process-playbook",

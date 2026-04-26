@@ -11,7 +11,9 @@ export type {
   ProviderAdapter,
   ProviderExecutionRequest,
   ProviderExecutionResult,
+  ProviderLifecycleEvent,
   ProviderName,
+  ProviderStreamOutputPaths,
 } from "./shared";
 
 export function createProviderAdapter(

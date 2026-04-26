@@ -15,6 +15,7 @@ The immediate problem is not that the methodology is wrong. The problem is that 
 
 The near-term target is `ls-claude-impl`: a new implementation orchestration skill built to preserve the useful parts of the current methodology while simplifying the runtime shape enough that it can actually be used repeatedly for full-epic implementation.
 
+
 ## Why We Are Building It
 
 We want a dependable implementation orchestrator that can:

@@ -1,7 +1,9 @@
 import { join } from "node:path";
 import { expect, test } from "bun:test";
 
+import { buildRuntimeProgressPaths } from "../core/artifact-writer";
 import {
+  ROOT,
   createExternalSpecPack,
   createRunConfig,
   createSpecPack,
@@ -157,9 +159,30 @@ test("TC-7.1a consumes a durable cleanup artifact and returns the structured cle
   expect(artifactPath).toContain("/artifacts/cleanup/001-cleanup-result.json");
   const persisted = JSON.parse(await Bun.file(artifactPath).text());
   expect(persisted).toEqual(envelope);
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const runtimeStatus = JSON.parse(
+    await Bun.file(progressPaths.statusPath).text()
+  ) as {
+    status: string;
+    phase: string;
+  };
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(runtimeStatus.status).toBe("completed");
+  expect(runtimeStatus.phase).toBe("finalizing");
+  expect(progressEvents.map((event) => event.event)).toEqual(
+    expect.arrayContaining([
+      "command-started",
+      "provider-spawned",
+      "provider-exit",
+      "completed",
+    ])
+  );
 
-  const invocations = await readJsonLines<{ args: string[] }>(logPath);
+  const invocations = await readJsonLines<{ args: string[]; cwd: string }>(logPath);
   expect(invocations).toHaveLength(1);
+  expect(invocations[0]?.cwd).toBe(ROOT);
   expect(invocations[0]?.args).not.toContain("resume");
 });
 
@@ -216,6 +239,15 @@ test("treats a reviewed cleanup batch with zero approved items as a cleaned no-o
   expect(envelope.outcome).toBe("cleaned");
   expect(envelope.result.filesChanged).toEqual([]);
   expect(envelope.result.changeSummary).toContain("no-op");
+  const artifactPath = envelope.artifacts[0].path as string;
+  const progressPaths = buildRuntimeProgressPaths(artifactPath);
+  const progressEvents = await readJsonLines<{ event: string }>(
+    progressPaths.progressPath
+  );
+  expect(progressEvents.map((event) => event.event)).toEqual([
+    "command-started",
+    "completed",
+  ]);
 });
 
 test("does not treat negated or superseded APPROVED text as actionable cleanup work", async () => {

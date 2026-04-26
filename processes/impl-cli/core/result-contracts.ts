@@ -79,6 +79,10 @@ export const verificationGatesSchema = z.object({
   epicGate: z.string().min(1),
   storyGateSource: z.string().min(1),
   epicGateSource: z.string().min(1),
+  storyGateCandidates: z.array(z.string().min(1)),
+  epicGateCandidates: z.array(z.string().min(1)),
+  storyGateRationale: z.string().min(1),
+  epicGateRationale: z.string().min(1),
 });
 
 export const preflightResultSchema = z.object({
@@ -107,6 +111,13 @@ export const verifierBatchOutcomeSchema = z.enum([
   "pass",
   "revise",
   "block",
+]);
+
+export const storyVerifierOutcomeSchema = z.enum([
+  "pass",
+  "revise",
+  "block",
+  "needs-human-ruling",
 ]);
 
 export const epicCleanupOutcomeSchema = z.enum([
@@ -177,6 +188,13 @@ const selfReviewSchema = z
   })
   .strict();
 
+const selfReviewPassArtifactSchema = z
+  .object({
+    passNumber: z.number().int().min(1).max(5),
+    path: z.string().min(1),
+  })
+  .strict();
+
 const requirementCoverageSchema = z
   .object({
     verified: z.array(z.string()),
@@ -238,6 +256,79 @@ export const implementorResultSchema = z
     }
   });
 
+export const storySelfReviewResultSchema = z
+  .object({
+    resultId: z.string().min(1),
+    provider: providerIdSchema,
+    model: z.string().min(1),
+    role: z.literal("story_self_review"),
+    sessionId: z.string().min(1),
+    continuation: continuationHandleSchema,
+    outcome: implementationOutcomeSchema,
+    story: storyIdentitySchema,
+    passesRequested: z.number().int().min(1).max(5),
+    passesCompleted: z.number().int().min(0).max(5),
+    passArtifacts: z.array(selfReviewPassArtifactSchema),
+    planSummary: z.string().min(1),
+    changedFiles: z.array(changedFileSchema),
+    tests: testSummarySchema,
+    gatesRun: z.array(gateRunSchema),
+    selfReview: selfReviewSchema,
+    openQuestions: z.array(z.string()),
+    specDeviations: z.array(z.string()),
+    recommendedNextStep: z.string().min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.sessionId !== value.continuation.sessionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Self-review sessionId must match continuation.sessionId",
+        path: ["continuation", "sessionId"],
+      });
+    }
+
+    if (value.story.id !== value.continuation.storyId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Self-review story.id must match continuation.storyId",
+        path: ["continuation", "storyId"],
+      });
+    }
+
+    if (value.provider !== value.continuation.provider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Self-review provider must match continuation.provider",
+        path: ["continuation", "provider"],
+      });
+    }
+
+    if (value.passesCompleted > value.passesRequested) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "passesCompleted cannot exceed passesRequested",
+        path: ["passesCompleted"],
+      });
+    }
+
+    if (value.selfReview.passesRun !== value.passesCompleted) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "selfReview.passesRun must match passesCompleted",
+        path: ["selfReview", "passesRun"],
+      });
+    }
+
+    if (value.passArtifacts.length !== value.passesRequested) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "passArtifacts must contain one entry for each requested pass",
+        path: ["passArtifacts"],
+      });
+    }
+  });
+
 export const verifierFindingSchema = z
   .object({
     id: z.string().min(1),
@@ -251,25 +342,135 @@ export const verifierFindingSchema = z
   })
   .strict();
 
+export const priorFindingStatusSchema = z
+  .object({
+    id: z.string().min(1),
+    status: z.enum(["resolved", "still-open", "needs-human-ruling"]),
+    rationale: z.string().min(1),
+  })
+  .strict();
+
 export const storyVerifierResultSchema = z
   .object({
     resultId: z.string().min(1),
-    verifierLabel: z.string().min(1),
+    role: z.literal("story_verifier"),
     provider: providerIdSchema,
     model: z.string().min(1),
+    sessionId: z.string().min(1),
+    continuation: continuationHandleSchema,
+    mode: z.enum(["initial", "followup"]),
     story: storyIdentitySchema,
     artifactsRead: z.array(z.string().min(1)).min(1),
     reviewScopeSummary: z.string().min(1),
-    findings: z.array(verifierFindingSchema),
+    priorFindingStatuses: z.array(priorFindingStatusSchema),
+    newFindings: z.array(verifierFindingSchema),
+    openFindings: z.array(verifierFindingSchema),
     requirementCoverage: requirementCoverageSchema,
     gatesRun: z.array(gateRunSchema),
     mockOrShimAuditFindings: z.array(z.string()),
-    recommendedNextStep: verifierBatchOutcomeSchema,
+    recommendedNextStep: storyVerifierOutcomeSchema,
     recommendedFixScope: recommendedFixScopeSchema,
     openQuestions: z.array(z.string()),
     additionalObservations: z.array(z.string()),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.sessionId !== value.continuation.sessionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Story verifier sessionId must match continuation.sessionId",
+        path: ["continuation", "sessionId"],
+      });
+    }
+
+    if (value.story.id !== value.continuation.storyId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Story verifier story.id must match continuation.storyId",
+        path: ["continuation", "storyId"],
+      });
+    }
+
+    if (value.provider !== value.continuation.provider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Story verifier provider must match continuation.provider",
+        path: ["continuation", "provider"],
+      });
+    }
+
+    const openFindingIds = new Set<string>();
+    for (const [index, finding] of value.openFindings.entries()) {
+      if (openFindingIds.has(finding.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Open finding ids must be unique",
+          path: ["openFindings", index, "id"],
+        });
+      }
+      openFindingIds.add(finding.id);
+    }
+
+    const priorStatusIds = new Set<string>();
+    for (const [index, finding] of value.priorFindingStatuses.entries()) {
+      if (priorStatusIds.has(finding.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Prior finding status ids must be unique",
+          path: ["priorFindingStatuses", index, "id"],
+        });
+      }
+      priorStatusIds.add(finding.id);
+    }
+
+    for (const [index, finding] of value.newFindings.entries()) {
+      if (!openFindingIds.has(finding.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Every new finding must also appear in openFindings",
+          path: ["newFindings", index, "id"],
+        });
+      }
+    }
+
+    if (value.mode === "initial" && value.priorFindingStatuses.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Initial verifier mode must not include priorFindingStatuses",
+        path: ["priorFindingStatuses"],
+      });
+    }
+
+    if (value.mode === "initial") {
+      const openIds = value.openFindings.map((finding) => finding.id).sort();
+      const newIds = value.newFindings.map((finding) => finding.id).sort();
+      if (
+        openIds.length !== newIds.length ||
+        openIds.some((id, index) => id !== newIds[index])
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Initial verifier mode must expose all surfaced findings in both newFindings and openFindings",
+          path: ["newFindings"],
+        });
+      }
+    }
+
+    if (
+      value.priorFindingStatuses.some(
+        (finding) => finding.status === "needs-human-ruling"
+      ) &&
+      value.recommendedNextStep !== "needs-human-ruling"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "If any prior finding status is needs-human-ruling, recommendedNextStep must be needs-human-ruling",
+        path: ["recommendedNextStep"],
+      });
+    }
+  });
 
 export const epicCleanupResultSchema = z
   .object({
@@ -301,40 +502,6 @@ export const epicVerifierResultSchema = z
     gateResult: z.enum(["pass", "fail", "not-run"]),
   })
   .strict();
-
-export function aggregateVerifierBatchOutcome(
-  results: Array<{
-    recommendedNextStep: z.infer<typeof verifierBatchOutcomeSchema>;
-  }>
-): z.infer<typeof verifierBatchOutcomeSchema> {
-  if (results.some((result) => result.recommendedNextStep === "block")) {
-    return "block";
-  }
-
-  if (results.some((result) => result.recommendedNextStep === "revise")) {
-    return "revise";
-  }
-
-  return "pass";
-}
-
-export const storyVerifierBatchResultSchema = z
-  .object({
-    outcome: verifierBatchOutcomeSchema,
-    story: storyIdentitySchema,
-    verifierResults: z.array(storyVerifierResultSchema).min(1),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    const expectedOutcome = aggregateVerifierBatchOutcome(value.verifierResults);
-    if (value.outcome !== expectedOutcome && value.outcome !== "block") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Verifier batch outcome '${value.outcome}' does not match aggregated verifier recommendations '${expectedOutcome}' unless the batch is blocked by verifier execution failure`,
-        path: ["outcome"],
-      });
-    }
-  });
 
 export function aggregateEpicVerifierBatchOutcome(
   results: Array<{
@@ -400,13 +567,12 @@ export type RecommendedFixScope = z.infer<typeof recommendedFixScopeSchema>;
 export type ProviderId = z.infer<typeof providerIdSchema>;
 export type ContinuationHandle = z.infer<typeof continuationHandleSchema>;
 export type ImplementorResult = z.infer<typeof implementorResultSchema>;
+export type StorySelfReviewResult = z.infer<typeof storySelfReviewResultSchema>;
 export type VerifierFinding = z.infer<typeof verifierFindingSchema>;
+export type PriorFindingStatus = z.infer<typeof priorFindingStatusSchema>;
 export type EpicCleanupResult = z.infer<typeof epicCleanupResultSchema>;
 export type EpicVerifierResult = z.infer<typeof epicVerifierResultSchema>;
 export type StoryVerifierResult = z.infer<typeof storyVerifierResultSchema>;
-export type StoryVerifierBatchResult = z.infer<
-  typeof storyVerifierBatchResultSchema
->;
 export type EpicVerifierBatchResult = z.infer<
   typeof epicVerifierBatchResultSchema
 >;

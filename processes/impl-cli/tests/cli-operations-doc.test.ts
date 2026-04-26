@@ -45,3 +45,45 @@ test("TC-8.4a states that the final epic gate remains orchestrator-owned", async
   expect(content).toContain("final epic gate");
   expect(content).toContain("outside the CLI");
 });
+
+test("documents pollable runtime progress artifacts without replacing the final envelope", async () => {
+  const content = await read("src/references/claude-impl-cli-operations.md");
+
+  expect(content).toContain("progress/<artifact-base>.status.json");
+  expect(content).toContain("progress/<artifact-base>.progress.jsonl");
+  expect(content).toContain("Use the final JSON envelope for routing");
+});
+
+test("teaches the orchestrator how to poll and describe long-running work", async () => {
+  const content = await read("src/references/claude-impl-process-playbook.md");
+
+  expect(content).toContain("read `status.json`");
+  expect(content).toContain("compare `updatedAt` and `lastOutputAt`");
+  expect(content).toContain("suspected-stall");
+  expect(content).toContain("Do not reroute");
+});
+
+test("documents story-self-review as a separate bounded operation in the public command guide", async () => {
+  const content = await read("src/references/claude-impl-cli-operations.md");
+
+  expect(content).toContain("`story-self-review`");
+  expect(content).toContain("Run `story-self-review` after a clean `story-implement` or `story-continue` result");
+});
+
+test("documents story-verify as a retained verifier convergence command", async () => {
+  const content = await read("src/claude-impl/operations/30-cli-operations.md");
+
+  expect(content).toContain("start or continue the retained verifier session");
+  expect(content).toContain("Initial verifier pass");
+  expect(content).toContain("Follow-up verifier pass");
+  expect(content).toContain("--response-file <path> | --response-text <text>");
+  expect(content).toContain("--orchestrator-context-file <path> | --orchestrator-context-text <text>");
+});
+
+test("documents portable CLI invocation and top-level quick-fix artifacts", async () => {
+  const content = await read("src/references/claude-impl-cli-operations.md");
+
+  expect(content).toContain("node bin/ls-impl-cli.cjs");
+  expect(content).toContain("portable invocation form across macOS, Linux, and Windows");
+  expect(content).toContain("quick-fix persists under top-level `artifacts/quick-fix/`");
+});

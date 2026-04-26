@@ -64,6 +64,26 @@ async function writeProviderBinary(params: {
   await chmod(scriptPath, 0o755);
 }
 
+function codexJsonlEventStream(threadId: string, finalText: string): string {
+  return [
+    JSON.stringify({
+      type: "thread.started",
+      thread_id: threadId,
+    }),
+    JSON.stringify({
+      type: "item.completed",
+      item: {
+        id: "item_1",
+        type: "agent_message",
+        text: finalText,
+      },
+    }),
+    JSON.stringify({
+      type: "turn.completed",
+    }),
+  ].join("\n");
+}
+
 describe("provider availability checks", () => {
   test("resolves requested provider availability from real subprocess calls against PATH binaries", async () => {
     const { resolveProviderMatrix } = await import("../core/provider-checks");
@@ -96,15 +116,10 @@ describe("provider availability checks", () => {
           model: "gpt-5.4",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
+        story_verifier: {
           secondary_harness: "codex",
           model: "gpt-5.4",
           reasoning_effort: "xhigh",
-        },
-        story_verifier_2: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
         },
         self_review: {
           passes: 3,
@@ -139,8 +154,8 @@ describe("provider availability checks", () => {
       expect.objectContaining({
         harness: "codex",
         available: true,
-        tier: "authenticated-known",
-        authStatus: "authenticated",
+        tier: "binary-present",
+        authStatus: "unknown",
         version: "codex 2.0.0",
       })
     );
@@ -179,15 +194,10 @@ describe("provider availability checks", () => {
           model: "gpt-5.4",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
+        story_verifier: {
           secondary_harness: "copilot",
           model: "gpt-5.4",
           reasoning_effort: "xhigh",
-        },
-        story_verifier_2: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
         },
         self_review: {
           passes: 2,
@@ -256,12 +266,7 @@ describe("provider availability checks", () => {
           model: "claude-sonnet",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
-        },
-        story_verifier_2: {
+        story_verifier: {
           secondary_harness: "none",
           model: "claude-sonnet",
           reasoning_effort: "high",
@@ -293,15 +298,16 @@ describe("provider availability checks", () => {
       expect.objectContaining({
         harness: "codex",
         available: true,
-        tier: "auth-unknown",
+        tier: "binary-present",
         authStatus: "unknown",
       })
     );
     const codexProvider = providerMatrix.secondary.find(
       (provider) => provider.harness === "codex"
     );
-    expect(codexProvider?.notes.join(" ")).toContain("Bearer [REDACTED]");
-    expect(codexProvider?.notes.join(" ")).not.toContain("secret-token-123");
+    expect(codexProvider?.notes.join(" ")).toContain(
+      "No non-mutating auth status command is available for codex."
+    );
   });
 
   test("treats provider auth timeouts as unavailable with unknown auth status", async () => {
@@ -336,12 +342,7 @@ describe("provider availability checks", () => {
           model: "gpt-5.4",
           reasoning_effort: "medium",
         },
-        story_verifier_1: {
-          secondary_harness: "none",
-          model: "claude-sonnet",
-          reasoning_effort: "high",
-        },
-        story_verifier_2: {
+        story_verifier: {
           secondary_harness: "none",
           model: "claude-sonnet",
           reasoning_effort: "high",
@@ -390,19 +391,25 @@ describe("provider availability checks", () => {
       provider: "codex",
       responses: [
         {
-          stdout: JSON.stringify({
+          stdout: codexJsonlEventStream(
             sessionId,
-            result: {
+            JSON.stringify({
               ok: true,
-            },
+            })
+          ),
+          lastMessage: JSON.stringify({
+            ok: true,
           }),
         },
         {
-          stdout: JSON.stringify({
+          stdout: codexJsonlEventStream(
             sessionId,
-            result: {
+            JSON.stringify({
               ok: true,
-            },
+            })
+          ),
+          lastMessage: JSON.stringify({
+            ok: true,
           }),
         },
       ],
@@ -420,6 +427,9 @@ describe("provider availability checks", () => {
       model: "gpt-5.4",
       reasoningEffort: "high",
       timeoutMs: 1_000,
+      resultSchema: z.object({
+        ok: z.boolean(),
+      }),
     });
     const resumed = await adapter.execute({
       prompt: "{\"step\":\"self-review\"}",
@@ -428,28 +438,46 @@ describe("provider availability checks", () => {
       reasoningEffort: "high",
       resumeSessionId: sessionId,
       timeoutMs: 1_000,
+      resultSchema: z.object({
+        ok: z.boolean(),
+      }),
     });
 
     expect(initial.sessionId).toBe(sessionId);
     expect(resumed.sessionId).toBe(sessionId);
+    expect(initial.parsedResult).toEqual({
+      ok: true,
+    });
+    expect(resumed.parsedResult).toEqual({
+      ok: true,
+    });
 
     const invocations = await readJsonLines<{ args: string[] }>(logPath);
-    expect(invocations[0]?.args).toEqual([
+    expect(invocations[0]?.args.slice(0, 6)).toEqual([
       "exec",
       "--json",
       "-m",
       "gpt-5.4",
       "-c",
       "model_reasoning_effort=high",
-      "{\"step\":\"implement\"}",
     ]);
-    expect(invocations[1]?.args).toEqual([
+    expect(invocations[0]?.args).toContain("--output-schema");
+    expect(invocations[0]?.args).toContain("-o");
+    expect(invocations[0]?.args).not.toContain("resume");
+    expect(invocations[0]?.args[invocations[0].args.length - 1]).toBe(
+      "{\"step\":\"implement\"}"
+    );
+    expect(invocations[1]?.args.slice(0, 3)).toEqual([
       "exec",
       "resume",
       "--json",
-      sessionId,
-      "{\"step\":\"self-review\"}",
     ]);
+    expect(invocations[1]?.args).toContain("-o");
+    expect(invocations[1]?.args).toContain(sessionId);
+    expect(invocations[1]?.args).not.toContain("--output-schema");
+    expect(invocations[1]?.args[invocations[1].args.length - 1]).toBe(
+      "{\"step\":\"self-review\"}"
+    );
   });
 
   test("uses an explicit Claude resume flag and never falls back to latest-session-by-cwd continuation", async () => {
@@ -505,8 +533,12 @@ describe("provider availability checks", () => {
     });
 
     const invocations = await readJsonLines<{ args: string[] }>(logPath);
+    expect(invocations[0]?.args).toContain("--effort");
+    expect(invocations[0]?.args).toContain("high");
     expect(invocations[1]?.args).toContain("--resume");
     expect(invocations[1]?.args).toContain(sessionId);
+    expect(invocations[1]?.args).toContain("--effort");
+    expect(invocations[1]?.args).toContain("high");
     expect(invocations[1]?.args).not.toContain("--continue");
   });
 
@@ -521,19 +553,25 @@ describe("provider availability checks", () => {
       provider: "codex",
       responses: [
         {
-          stdout: JSON.stringify({
-            sessionId: "codex-verifier-fresh-001",
-            result: {
+          stdout: codexJsonlEventStream(
+            "codex-verifier-fresh-001",
+            JSON.stringify({
               ok: true,
-            },
+            })
+          ),
+          lastMessage: JSON.stringify({
+            ok: true,
           }),
         },
         {
-          stdout: JSON.stringify({
-            sessionId: "codex-verifier-fresh-002",
-            result: {
+          stdout: codexJsonlEventStream(
+            "codex-verifier-fresh-002",
+            JSON.stringify({
               ok: true,
-            },
+            })
+          ),
+          lastMessage: JSON.stringify({
+            ok: true,
           }),
         },
       ],
@@ -551,6 +589,9 @@ describe("provider availability checks", () => {
       model: "gpt-5.4",
       reasoningEffort: "xhigh",
       timeoutMs: 1_000,
+      resultSchema: z.object({
+        ok: z.boolean(),
+      }),
     });
     const second = await adapter.execute({
       prompt: "{\"step\":\"verify-2\"}",
@@ -558,30 +599,41 @@ describe("provider availability checks", () => {
       model: "gpt-5.4",
       reasoningEffort: "xhigh",
       timeoutMs: 1_000,
+      resultSchema: z.object({
+        ok: z.boolean(),
+      }),
     });
 
     expect(first.sessionId).toBe("codex-verifier-fresh-001");
     expect(second.sessionId).toBe("codex-verifier-fresh-002");
 
     const invocations = await readJsonLines<{ args: string[] }>(logPath);
-    expect(invocations[0]?.args).toEqual([
+    expect(invocations[0]?.args.slice(0, 6)).toEqual([
       "exec",
       "--json",
       "-m",
       "gpt-5.4",
       "-c",
       "model_reasoning_effort=xhigh",
-      "{\"step\":\"verify-1\"}",
     ]);
-    expect(invocations[1]?.args).toEqual([
+    expect(invocations[0]?.args).toContain("--output-schema");
+    expect(invocations[0]?.args).toContain("-o");
+    expect(invocations[0]?.args[invocations[0].args.length - 1]).toBe(
+      "{\"step\":\"verify-1\"}"
+    );
+    expect(invocations[1]?.args.slice(0, 6)).toEqual([
       "exec",
       "--json",
       "-m",
       "gpt-5.4",
       "-c",
       "model_reasoning_effort=xhigh",
-      "{\"step\":\"verify-2\"}",
     ]);
+    expect(invocations[1]?.args).toContain("--output-schema");
+    expect(invocations[1]?.args).toContain("-o");
+    expect(invocations[1]?.args[invocations[1].args.length - 1]).toBe(
+      "{\"step\":\"verify-2\"}"
+    );
   });
 
   test("launches fresh Claude executions without implicit resume when a verifier reruns", async () => {
@@ -638,6 +690,10 @@ describe("provider availability checks", () => {
     expect(second.sessionId).toBe("claude-verifier-fresh-002");
 
     const invocations = await readJsonLines<{ args: string[] }>(logPath);
+    expect(invocations[0]?.args).toContain("--effort");
+    expect(invocations[0]?.args).toContain("high");
+    expect(invocations[1]?.args).toContain("--effort");
+    expect(invocations[1]?.args).toContain("high");
     expect(invocations[0]?.args).not.toContain("--resume");
     expect(invocations[1]?.args).not.toContain("--resume");
   });
@@ -654,12 +710,21 @@ describe("provider availability checks", () => {
       provider: "copilot",
       responses: [
         {
-          stdout: JSON.stringify({
-            sessionId,
-            result: {
-              ok: true,
-            },
-          }),
+          stdout: [
+            JSON.stringify({
+              type: "assistant.message",
+              data: {
+                content: JSON.stringify({
+                  ok: true,
+                }),
+              },
+            }),
+            JSON.stringify({
+              type: "result",
+              sessionId,
+              exitCode: 0,
+            }),
+          ].join("\n"),
         },
       ],
     });
@@ -693,34 +758,85 @@ describe("provider availability checks", () => {
     expect(invocations[0]?.args).toEqual([
       "-p",
       "{\"step\":\"verify\"}",
-      "-s",
+      "--output-format",
+      "json",
       "--model",
       "gpt-5.4",
+      "--effort",
+      "xhigh",
     ]);
     expect(invocations[0]?.args).not.toContain("resume");
   });
 
-  test("rejects Copilot retained-session requests with CONTINUATION_HANDLE_INVALID", async () => {
+  test("resumes Copilot retained sessions with the real resume flag and parses JSONL content", async () => {
     const { createCopilotAdapter } = await import(
       "../core/provider-adapters/copilot"
     );
 
-    const adapter = createCopilotAdapter();
+    const providerBinDir = await createTempDir("provider-adapter-copilot-resume");
+    const sessionId = "copilot-session-reuse-301";
+    const { env, logPath } = await writeFakeProviderExecutable({
+      binDir: providerBinDir,
+      provider: "copilot",
+      responses: [
+        {
+          stdout: [
+            JSON.stringify({
+              type: "assistant.message",
+              data: {
+                content: JSON.stringify({
+                  ok: true,
+                }),
+              },
+            }),
+            JSON.stringify({
+              type: "result",
+              sessionId,
+              exitCode: 0,
+            }),
+          ].join("\n"),
+        },
+      ],
+    });
+    const adapter = createCopilotAdapter({
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    });
+
     const execution = await adapter.execute({
       prompt: "{\"step\":\"self-review\"}",
       cwd: ROOT,
       model: "gpt-5.4",
       reasoningEffort: "high",
-      resumeSessionId: "copilot-session-reuse-301",
+      resumeSessionId: sessionId,
       timeoutMs: 1_000,
       resultSchema: z.object({
         ok: z.boolean(),
       }),
     });
 
-    expect(execution.exitCode).toBe(1);
-    expect(execution.errorCode).toBe("CONTINUATION_HANDLE_INVALID");
-    expect(execution.stderr).toContain("not supported");
+    expect(execution.exitCode).toBe(0);
+    expect(execution.parseError).toBeUndefined();
+    expect(execution.sessionId).toBe(sessionId);
+    expect(execution.parsedResult).toEqual({
+      ok: true,
+    });
+
+    const invocations = await readJsonLines<{ args: string[] }>(logPath);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]?.args).toEqual([
+      `--resume=${sessionId}`,
+      "-p",
+      "{\"step\":\"self-review\"}",
+      "--output-format",
+      "json",
+      "--model",
+      "gpt-5.4",
+      "--effort",
+      "high",
+    ]);
   });
 
   test("parses provider-native JSON when the final text field contains the expected payload object", async () => {
@@ -769,6 +885,56 @@ describe("provider availability checks", () => {
     });
   });
 
+  test("parses real Codex JSONL event streams when the final last-message file contains the structured payload", async () => {
+    const { createCodexAdapter } = await import(
+      "../core/provider-adapters/codex"
+    );
+
+    const providerBinDir = await createTempDir("provider-adapter-codex-jsonl");
+    const sessionId = "codex-jsonl-parse-401";
+    const { env } = await writeFakeProviderExecutable({
+      binDir: providerBinDir,
+      provider: "codex",
+      responses: [
+        {
+          stdout: codexJsonlEventStream(
+            sessionId,
+            JSON.stringify({
+              ok: true,
+            })
+          ),
+          lastMessage: JSON.stringify({
+            ok: true,
+          }),
+        },
+      ],
+    });
+    const adapter = createCodexAdapter({
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    });
+
+    const execution = await adapter.execute({
+      prompt: "{\"step\":\"verify-jsonl\"}",
+      cwd: ROOT,
+      model: "gpt-5.4",
+      reasoningEffort: "high",
+      timeoutMs: 1_000,
+      resultSchema: z.object({
+        ok: z.boolean(),
+      }),
+    });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.parseError).toBeUndefined();
+    expect(execution.sessionId).toBe(sessionId);
+    expect(execution.parsedResult).toEqual({
+      ok: true,
+    });
+  });
+
   test("parses raw stdout when it is exactly the expected payload object", async () => {
     const { createCodexAdapter } = await import(
       "../core/provider-adapters/codex"
@@ -809,5 +975,50 @@ describe("provider availability checks", () => {
     expect(execution.parsedResult).toEqual({
       ok: true,
     });
+  });
+
+  test("closes stdin for subprocesses that would otherwise block reading from stdin and streams output to disk", async () => {
+    const { runProviderCommand } = await import(
+      "../core/provider-adapters/shared"
+    );
+
+    const streamDir = await createTempDir("provider-runner-stdin-close");
+    const stdoutPath = join(streamDir, "stdin-close.stdout.log");
+    const stderrPath = join(streamDir, "stdin-close.stderr.log");
+    const execution = await runProviderCommand({
+      provider: "codex",
+      executable: "sh",
+      args: ["-lc", "read x; echo done"],
+      cwd: ROOT,
+      timeoutMs: 1_000,
+      streamOutputPaths: {
+        stdoutPath,
+        stderrPath,
+      },
+    });
+
+    expect(execution.exitCode).toBe(0);
+    expect(execution.stdout).toBe("done");
+    expect(await Bun.file(stdoutPath).text()).toBe("done\n");
+    expect(await Bun.file(stderrPath).text()).toBe("");
+  });
+
+  test("classifies provider timeouts explicitly instead of collapsing them into generic execution failures", async () => {
+    const { runProviderCommand } = await import(
+      "../core/provider-adapters/shared"
+    );
+
+    const execution = await runProviderCommand({
+      provider: "codex",
+      executable: "sh",
+      args: ["-lc", "sleep 2"],
+      cwd: ROOT,
+      timeoutMs: 50,
+    });
+
+    expect(execution.exitCode).toBe(124);
+    expect(execution.errorCode).toBe("PROVIDER_TIMEOUT");
+    expect(execution.timedOut).toBe(true);
+    expect(execution.stderr).toContain("Provider timed out after");
   });
 });

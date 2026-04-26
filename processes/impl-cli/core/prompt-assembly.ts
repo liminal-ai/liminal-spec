@@ -46,8 +46,12 @@ export interface StoryVerifierPromptInput extends SharedPromptInput {
   storyId: string;
   storyTitle: string;
   storyPath: string;
-  verifierLabel: string;
+  verifierMode: "initial" | "followup";
   verifierPromptInsertPath?: string;
+  verifierSessionId?: string;
+  priorOpenFindingsJson?: string;
+  followupResponse?: string;
+  orchestratorContext?: string;
 }
 
 export interface QuickFixPromptInput extends SharedPromptInput {
@@ -185,6 +189,18 @@ function buildReadingJourney(input: PromptAssemblyInput): string {
   }
 
   if (input.role === "story_verifier") {
+    if (input.verifierMode === "followup") {
+      return [
+        "You are continuing the retained story verifier session for this story.",
+        common,
+        "Focus on convergence against the prior open findings before broadening scope.",
+        "Use the prior open findings, the implementor response, and directly touched surfaces to decide what remains open, what is resolved, and whether new regressions were introduced.",
+        "Do not perform a broad full-story re-review by default.",
+        "Read each file in 500-line chunks if large.",
+        "Reflect after each chunk before you move on.",
+      ].join("\n");
+    }
+
     return [
       "Read the current story and the full tech-design set before you judge the implementation.",
       common,
@@ -220,22 +236,156 @@ function buildReadingJourney(input: PromptAssemblyInput): string {
 function resultContractName(input: PromptAssemblyInput): string {
   switch (input.role) {
     case "story_implementor":
-      return "ImplementorResult";
+      return "StoryImplementorProviderPayload";
     case "story_verifier":
-      return "StoryVerifierResult";
+      return "StoryVerifierProviderPayload";
     case "quick_fixer":
       return "QuickFixResult";
     case "epic_verifier":
-      return "EpicVerifierResult";
+      return "EpicVerifierProviderPayload";
     case "epic_synthesizer":
-      return "EpicSynthesisResult";
+      return "EpicSynthesisProviderPayload";
+  }
+}
+
+function resultContractSchema(input: PromptAssemblyInput): string {
+  switch (input.role) {
+    case "story_implementor":
+      return [
+        "```json",
+        "{",
+        '  "outcome": "ready-for-verification" | "needs-followup-fix" | "needs-human-ruling" | "blocked",',
+        '  "planSummary": "string",',
+        '  "changedFiles": [',
+        '    { "path": "string", "reason": "string" }',
+        "  ],",
+        '  "tests": {',
+        '    "added": ["string"],',
+        '    "modified": ["string"],',
+        '    "removed": ["string"],',
+        '    "totalAfterStory": 123,',
+        '    "deltaFromPriorBaseline": 4',
+        "  },",
+        '  "gatesRun": [',
+        '    { "command": "string", "result": "pass" | "fail" | "not-run" }',
+        "  ],",
+        '  "selfReview": {',
+        '    "findingsFixed": ["string"],',
+        '    "findingsSurfaced": ["string"]',
+        "  },",
+        '  "openQuestions": ["string"],',
+        '  "specDeviations": ["string"],',
+        '  "recommendedNextStep": "string"',
+        "}",
+        "```",
+        "Rules:",
+        "- Return only this JSON object with no prose, no markdown fences outside the object example, and no surrounding explanation.",
+        "- Do not add extra top-level keys.",
+        "- `changedFiles` items must be objects with `path` and `reason`, not plain strings.",
+        "- Do not include `status`, `story`, `summary`, `verification`, `notes`, `sessionId`, or `continuation`; the CLI adds identity fields itself.",
+      ].join("\n");
+    case "story_verifier":
+      return [
+        "```json",
+        "{",
+        '  "artifactsRead": ["string"],',
+        '  "reviewScopeSummary": "string",',
+        '  "priorFindingStatuses": [',
+        "    {",
+        '      "id": "string",',
+        '      "status": "resolved" | "still-open" | "needs-human-ruling",',
+        '      "rationale": "string"',
+        "    }",
+        "  ],",
+        '  "newFindings": [',
+        "    {",
+        '      "id": "string",',
+        '      "severity": "critical" | "major" | "minor" | "observation",',
+        '      "title": "string",',
+        '      "evidence": "string",',
+        '      "affectedFiles": ["string"],',
+        '      "requirementIds": ["string"],',
+        '      "recommendedFixScope": "same-session-implementor" | "quick-fix" | "fresh-fix-path" | "human-ruling",',
+        '      "blocking": true',
+        "    }",
+        "  ],",
+        '  "openFindings": [/* same finding shape */],',
+        '  "requirementCoverage": {',
+        '    "verified": ["string"],',
+        '    "unverified": ["string"]',
+        "  },",
+        '  "gatesRun": [',
+        '    { "command": "string", "result": "pass" | "fail" | "not-run" }',
+        "  ],",
+        '  "mockOrShimAuditFindings": ["string"],',
+        '  "recommendedNextStep": "pass" | "revise" | "block",',
+        '  "recommendedFixScope": "same-session-implementor" | "quick-fix" | "fresh-fix-path" | "human-ruling",',
+        '  "openQuestions": ["string"],',
+        '  "additionalObservations": ["string"]',
+        "}",
+        "```",
+        "Rules:",
+        "- Return only this JSON object with no extra top-level keys.",
+        "- Do not include `resultId`, `role`, `provider`, `model`, `sessionId`, `continuation`, `mode`, or `story`; the CLI adds identity fields itself.",
+        "- In initial mode, `priorFindingStatuses` must be empty and all surfaced findings must appear in both `newFindings` and `openFindings`.",
+        "- In follow-up mode, preserve finding ids for carried findings and add new findings only for newly introduced regressions or directly touched-surface issues.",
+      ].join("\n");
+    case "epic_verifier":
+      return [
+        "```json",
+        "{",
+        '  "outcome": "pass" | "revise" | "block",',
+        '  "crossStoryFindings": ["string"],',
+        '  "architectureFindings": ["string"],',
+        '  "epicCoverageAssessment": ["string"],',
+        '  "mockOrShimAuditFindings": ["string"],',
+        '  "blockingFindings": [',
+        "    {",
+        '      "id": "string",',
+        '      "severity": "critical" | "major" | "minor" | "observation",',
+        '      "title": "string",',
+        '      "evidence": "string",',
+        '      "affectedFiles": ["string"],',
+        '      "requirementIds": ["string"],',
+        '      "recommendedFixScope": "same-session-implementor" | "quick-fix" | "fresh-fix-path" | "human-ruling",',
+        '      "blocking": true',
+        "    }",
+        "  ],",
+        '  "nonBlockingFindings": [/* same finding shape */],',
+        '  "unresolvedItems": ["string"],',
+        '  "gateResult": "pass" | "fail" | "not-run"',
+        "}",
+        "```",
+        "Rules:",
+        "- Return only this JSON object with no extra top-level keys.",
+        "- Do not include `resultId`, `provider`, `model`, or `reviewerLabel`; the CLI adds identity fields itself.",
+      ].join("\n");
+    case "epic_synthesizer":
+      return [
+        "```json",
+        "{",
+        '  "outcome": "ready-for-closeout" | "needs-fixes" | "needs-more-verification" | "blocked",',
+        '  "confirmedIssues": ["string"],',
+        '  "disputedOrUnconfirmedIssues": ["string"],',
+        '  "readinessAssessment": "string",',
+        '  "recommendedNextStep": "string"',
+        "}",
+        "```",
+        "Rules:",
+        "- Return only this JSON object with no extra top-level keys.",
+        "- Do not include `resultId`; the CLI adds identity fields itself.",
+      ].join("\n");
+    case "quick_fixer":
+      return "";
   }
 }
 
 function routingGuidance(input: PromptAssemblyInput): string {
   switch (input.role) {
     case "story_verifier":
-      return "Preserve the outcome, requirement coverage, and recommended fix scope for the orchestrator.";
+      return input.verifierMode === "followup"
+        ? "Preserve stable finding ids, resolve prior blockers when the implementor evidence closes them, and raise needs-human-ruling instead of silently downgrading scope disputes."
+        : "Preserve the outcome, requirement coverage, and recommended fix scope for the orchestrator.";
     case "quick_fixer":
       return "Report whether the bounded fix is ready for verification or needs more routing.";
     case "epic_synthesizer":
@@ -256,14 +406,23 @@ function runtimeValues(input: PromptAssemblyInput): Record<string, string> {
     STORY_GATE_COMMAND: input.gateCommands.story ?? "not provided",
     EPIC_GATE_COMMAND: input.gateCommands.epic ?? "not provided",
     RESULT_CONTRACT_NAME: resultContractName(input),
+    RESULT_CONTRACT_SCHEMA: resultContractSchema(input),
     ROUTING_GUIDANCE: routingGuidance(input),
     READING_JOURNEY: buildReadingJourney(input),
     VERIFIER_LABEL:
-      input.role === "story_verifier"
-        ? input.verifierLabel
-        : input.role === "epic_verifier"
+      input.role === "epic_verifier"
           ? (input.reviewerLabel ?? "")
           : "",
+    VERIFIER_MODE:
+      input.role === "story_verifier" ? input.verifierMode : "",
+    VERIFIER_SESSION_ID:
+      input.role === "story_verifier" ? input.verifierSessionId ?? "" : "",
+    PRIOR_OPEN_FINDINGS:
+      input.role === "story_verifier" ? input.priorOpenFindingsJson ?? "" : "",
+    FOLLOWUP_RESPONSE:
+      input.role === "story_verifier" ? input.followupResponse ?? "" : "",
+    ORCHESTRATOR_CONTEXT:
+      input.role === "story_verifier" ? input.orchestratorContext ?? "" : "",
     FOLLOWUP_REQUEST:
       input.role === "quick_fixer"
         ? input.followupRequest

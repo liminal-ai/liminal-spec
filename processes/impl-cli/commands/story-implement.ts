@@ -1,6 +1,11 @@
 import { defineCommand } from "citty";
 
-import { nextGroupedArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import {
+  buildRuntimeProgressPaths,
+  buildStreamOutputPaths,
+  nextGroupedArtifactPath,
+  writeJsonArtifact,
+} from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
 import {
   cliResultEnvelopeSchema,
@@ -63,7 +68,7 @@ function emitOutput(params: {
 export default defineCommand({
   meta: {
     name: "story-implement",
-    description: "Launch the retained story implementor and run the self-review loop.",
+    description: "Launch the retained story implementor for the initial story pass.",
   },
   args: {
     "spec-pack-root": {
@@ -99,6 +104,9 @@ export default defineCommand({
         storyId: args["story-id"],
         configPath: args.config,
         env: process.env,
+        artifactPath,
+        streamOutputPaths: buildStreamOutputPaths(artifactPath),
+        runtimeProgressPaths: buildRuntimeProgressPaths(artifactPath),
       });
       const envelope = cliResultEnvelopeSchema(implementorResultSchema).parse(
         createResultEnvelope({

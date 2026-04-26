@@ -11,3 +11,4 @@ Perform a production-path mock or shim audit and report every material finding.
 
 ## Output Contract
 Return exactly one JSON object matching `{{RESULT_CONTRACT_NAME}}`.
+{{RESULT_CONTRACT_SCHEMA}}

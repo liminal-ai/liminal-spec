@@ -86,7 +86,7 @@ describe("prompt assembly", () => {
 
     const assembled = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -106,10 +106,57 @@ describe("prompt assembly", () => {
     ]);
     expect(assembled.prompt).toContain("# Story Verifier Base Prompt");
     expect(assembled.prompt).toContain("## Reading Journey");
-    expect(assembled.prompt).toContain("story-verifier-1");
+    expect(assembled.prompt).toContain("Current verifier mode: `initial`.");
     expect(assembled.prompt).toContain("evidence-backed");
     expect(assembled.prompt).toContain(
       "Audit production paths for mocks, shims, or fake adapters"
+    );
+  });
+
+  test("assembles the story verifier follow-up prompt with prior findings, implementor response, and orchestrator context", async () => {
+    const fixture = await createPromptSpecPack("prompt-assembly-verifier-followup");
+
+    const assembled = await assemblePrompt({
+      role: "story_verifier",
+      verifierMode: "followup",
+      verifierSessionId: "codex-story-verifier-001",
+      priorOpenFindingsJson: JSON.stringify(
+        [
+          {
+            id: "F-001",
+            title: "Existing blocker",
+          },
+        ],
+        null,
+        2
+      ),
+      followupResponse: [
+        "the story implementor has responded to your feedback",
+        "<response>",
+        "Implemented the requested fix.",
+        "</response>",
+      ].join("\n"),
+      orchestratorContext:
+        "Focus on the prior blocker first and raise only directly touched-surface regressions.",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+
+    expect(assembled.prompt).toContain("Current verifier mode: `followup`.");
+    expect(assembled.prompt).toContain("Previous verifier session id");
+    expect(assembled.prompt).toContain("codex-story-verifier-001");
+    expect(assembled.prompt).toContain('"id": "F-001"');
+    expect(assembled.prompt).toContain("<response>");
+    expect(assembled.prompt).toContain("Implemented the requested fix.");
+    expect(assembled.prompt).toContain("Focus on the prior blocker first");
+    expect(assembled.prompt).toContain(
+      "add new findings only for newly introduced regressions or directly touched-surface issues"
     );
   });
 
@@ -181,7 +228,7 @@ describe("prompt assembly", () => {
 
     const first = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -194,7 +241,7 @@ describe("prompt assembly", () => {
     });
     const second = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -220,7 +267,7 @@ describe("prompt assembly", () => {
 
     const assembled = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -268,7 +315,7 @@ describe("prompt assembly", () => {
 
     const assembled = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -301,7 +348,7 @@ describe("prompt assembly", () => {
     });
     const verifier = await assemblePrompt({
       role: "story_verifier",
-      verifierLabel: "story-verifier-1",
+      verifierMode: "initial",
       storyId: fixture.storyId,
       storyTitle: fixture.storyTitle,
       storyPath: fixture.storyPath,
@@ -419,12 +466,96 @@ describe("prompt assembly", () => {
       gateCommands: fixture.gateCommands,
       selfReviewPass: 2,
     });
+    const passFour = await assemblePrompt({
+      role: "story_implementor",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+      selfReviewPass: 4,
+    });
+    const passFive = await assemblePrompt({
+      role: "story_implementor",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+      selfReviewPass: 5,
+    });
 
     expect(passOne.prompt).not.toBe(passTwo.prompt);
     expect(passOne.snippetIds).toContain("self-review-pass-1");
     expect(passTwo.snippetIds).toContain("self-review-pass-2");
+    expect(passFour.snippetIds).toContain("self-review-pass-3");
+    expect(passFive.snippetIds).toContain("self-review-pass-3");
     expect(passOne.prompt).toContain("Self-review pass 1");
     expect(passTwo.prompt).toContain("Self-review pass 2");
+    expect(passFour.prompt).toContain("Self-review pass 4");
+    expect(passFive.prompt).toContain("Self-review pass 5");
+    expect(passFour.prompt).toContain(
+      "Self-review pass 3: residual risks, scope edges, and cleanup before handoff."
+    );
+  });
+
+  test("assembled implementor prompts interpolate the exact provider payload fields the CLI validates", async () => {
+    const fixture = await createPromptSpecPack(
+      "prompt-assembly-implementor-provider-schema"
+    );
+
+    const assembled = await assemblePrompt({
+      role: "story_implementor",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+    });
+
+    expect(assembled.prompt).toContain('"outcome"');
+    expect(assembled.prompt).toContain('"planSummary"');
+    expect(assembled.prompt).toContain('"changedFiles"');
+    expect(assembled.prompt).toContain('"recommendedNextStep"');
+    expect(assembled.prompt).toContain(
+      "Do not include `status`, `story`, `summary`, `verification`, `notes`, `sessionId`, or `continuation`"
+    );
+  });
+
+  test("assembled verifier prompts interpolate the exact provider payload fields the CLI validates", async () => {
+    const fixture = await createPromptSpecPack(
+      "prompt-assembly-verifier-provider-schema"
+    );
+
+    const assembled = await assemblePrompt({
+      role: "story_verifier",
+      storyId: fixture.storyId,
+      storyTitle: fixture.storyTitle,
+      storyPath: fixture.storyPath,
+      epicPath: fixture.epicPath,
+      techDesignPath: fixture.techDesignPath,
+      techDesignCompanionPaths: fixture.techDesignCompanionPaths,
+      testPlanPath: fixture.testPlanPath,
+      gateCommands: fixture.gateCommands,
+      verifierMode: "initial",
+    });
+
+    expect(assembled.prompt).toContain('"artifactsRead"');
+    expect(assembled.prompt).toContain('"reviewScopeSummary"');
+    expect(assembled.prompt).toContain('"requirementCoverage"');
+    expect(assembled.prompt).toContain('"recommendedFixScope"');
+    expect(assembled.prompt).toContain(
+      "Do not include `resultId`, `role`, `provider`, `model`, `sessionId`, `continuation`, `mode`, or `story`"
+    );
   });
 
   test("rejects oversized public inserts even when a future non-story role passes an insert path", async () => {

@@ -1,14 +1,26 @@
 import { isAbsolute, relative, resolve } from "node:path";
 
-import { loadRunConfig } from "./config-schema";
+import { loadRunConfig, resolveRunTimeouts } from "./config-schema";
 import { resolveGitRepoRoot } from "./git-repo";
-import { createProviderAdapter, type ProviderName } from "./provider-adapters";
+import {
+  createProviderAdapter,
+  type ProviderLifecycleEvent,
+  type ProviderName,
+} from "./provider-adapters";
+import type { ProviderStreamOutputPaths } from "./provider-adapters";
 import type { CliError } from "./result-contracts";
+import {
+  RuntimeProgressTracker,
+  type RuntimeProgressPaths,
+} from "./runtime-progress";
 
 interface QuickFixResultPayload {
   provider: ProviderName;
   model: string;
-  rawProviderOutput: string;
+  rawProviderOutputPreview: string;
+  rawProviderOutputBytes: number;
+  rawProviderOutputTruncated: boolean;
+  rawProviderOutputLogPath: string;
 }
 
 export interface QuickFixWorkflowResult {
@@ -16,6 +28,31 @@ export interface QuickFixWorkflowResult {
   result?: QuickFixResultPayload;
   errors: CliError[];
   warnings: string[];
+}
+
+const QUICK_FIX_OUTPUT_PREVIEW_BYTES = 8_192;
+
+function buildQuickFixOutputPreview(rawProviderOutput: string): {
+  preview: string;
+  bytes: number;
+  truncated: boolean;
+} {
+  const bytes = Buffer.byteLength(rawProviderOutput, "utf8");
+  if (bytes <= QUICK_FIX_OUTPUT_PREVIEW_BYTES) {
+    return {
+      preview: rawProviderOutput,
+      bytes,
+      truncated: false,
+    };
+  }
+
+  return {
+    preview: Buffer.from(rawProviderOutput, "utf8")
+      .subarray(0, QUICK_FIX_OUTPUT_PREVIEW_BYTES)
+      .toString("utf8"),
+    bytes,
+    truncated: true,
+  };
 }
 
 function blockedError(code: string, message: string, detail?: string): CliError {
@@ -39,6 +76,22 @@ function executionFailureError(input: {
   stderr: string;
   errorCode?: string;
 }): CliError {
+  if (input.errorCode === "PROVIDER_TIMEOUT") {
+    return blockedError(
+      "PROVIDER_TIMEOUT",
+      `Provider execution timed out for ${input.provider}.`,
+      input.stderr
+    );
+  }
+
+  if (input.errorCode === "PROVIDER_STALLED") {
+    return blockedError(
+      "PROVIDER_STALLED",
+      `Provider execution stalled for ${input.provider}.`,
+      input.stderr
+    );
+  }
+
   if (input.errorCode === "ENOENT") {
     return blockedError(
       "PROVIDER_UNAVAILABLE",
@@ -108,11 +161,15 @@ export async function runQuickFix(input: {
   workingDirectory?: string;
   configPath?: string;
   env?: Record<string, string | undefined>;
+  artifactPath?: string;
+  streamOutputPaths?: ProviderStreamOutputPaths;
+  runtimeProgressPaths?: RuntimeProgressPaths;
 }): Promise<QuickFixWorkflowResult> {
   const config = await loadRunConfig({
     specPackRoot: input.specPackRoot,
     configPath: input.configPath,
   });
+  const timeouts = resolveRunTimeouts(config);
   const provider = providerForHarness(config.quick_fixer.secondary_harness);
   const workingDirectoryResolution = await resolveWorkingDirectory({
     specPackRoot: input.specPackRoot,
@@ -138,6 +195,23 @@ export async function runQuickFix(input: {
       warnings: [],
     };
   }
+  const progressTracker = input.runtimeProgressPaths
+    ? await RuntimeProgressTracker.start({
+        command: "quick-fix",
+        phase: "quick-fix",
+        provider,
+        cwd: workingDirectory,
+        timeoutMs: timeouts.quick_fixer_ms,
+        configuredStartupTimeoutMs: timeouts.provider_startup_timeout_ms,
+        configuredSilenceTimeoutMs: timeouts.quick_fixer_silence_timeout_ms,
+        artifactPath: input.artifactPath ?? input.runtimeProgressPaths.statusPath,
+        streamPaths: {
+          stdoutPath: input.streamOutputPaths?.stdoutPath ?? "",
+          stderrPath: input.streamOutputPaths?.stderrPath ?? "",
+        },
+        progressPaths: input.runtimeProgressPaths,
+      })
+    : undefined;
   const adapter = createProviderAdapter(provider, {
     env: input.env,
   });
@@ -146,10 +220,19 @@ export async function runQuickFix(input: {
     cwd: workingDirectory,
     model: config.quick_fixer.model,
     reasoningEffort: config.quick_fixer.reasoning_effort,
-    timeoutMs: 30_000,
+    timeoutMs: timeouts.quick_fixer_ms,
+    startupTimeoutMs: timeouts.provider_startup_timeout_ms,
+    silenceTimeoutMs: timeouts.quick_fixer_silence_timeout_ms,
+    streamOutputPaths: input.streamOutputPaths,
+    lifecycleCallback: (event: ProviderLifecycleEvent) =>
+      progressTracker?.handleProviderLifecycle(event),
   });
 
   if (execution.exitCode !== 0) {
+    await progressTracker?.markFailed(`quick-fix failed for provider ${provider}.`, {
+      errorCode: execution.errorCode,
+    });
+    await progressTracker?.flush();
     return {
       outcome: "blocked",
       errors: [
@@ -164,13 +247,26 @@ export async function runQuickFix(input: {
   }
 
   const rawProviderOutput = execution.stdout;
+  const outputPreview = buildQuickFixOutputPreview(rawProviderOutput);
+  const rawProviderOutputLogPath =
+    input.streamOutputPaths?.stdoutPath ?? "";
   if (rawProviderOutput.trim().length === 0) {
+    await progressTracker?.markCompleted(
+      "quick-fix completed without provider stdout and needs more routing.",
+      {
+        outcome: "needs-more-routing",
+      }
+    );
+    await progressTracker?.flush();
     return {
       outcome: "needs-more-routing",
       result: {
         provider,
         model: config.quick_fixer.model,
-        rawProviderOutput,
+        rawProviderOutputPreview: outputPreview.preview,
+        rawProviderOutputBytes: outputPreview.bytes,
+        rawProviderOutputTruncated: outputPreview.truncated,
+        rawProviderOutputLogPath,
       },
       errors: [],
       warnings: [
@@ -179,12 +275,23 @@ export async function runQuickFix(input: {
     };
   }
 
+  await progressTracker?.markCompleted(
+    "quick-fix completed and is ready for verification.",
+    {
+      outcome: "ready-for-verification",
+    }
+  );
+  await progressTracker?.flush();
+
   return {
     outcome: "ready-for-verification",
     result: {
       provider,
       model: config.quick_fixer.model,
-      rawProviderOutput,
+      rawProviderOutputPreview: outputPreview.preview,
+      rawProviderOutputBytes: outputPreview.bytes,
+      rawProviderOutputTruncated: outputPreview.truncated,
+      rawProviderOutputLogPath,
     },
     errors: [],
     warnings: [],

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createSpecPack, writeTextFile } from "./test-helpers";
 
 describe("story ordering", () => {
-  test("TC-1.5a applies numeric ordering, lexical fallback, and flags mixed naming as ambiguous", async () => {
+  test("TC-1.5a applies numeric ordering, lexical fallback, and ignores non-story markdown when numbered files exist", async () => {
     const { resolveStoryOrder } = await import("../core/story-order");
 
     const orderedRoot = await createSpecPack("story-order-numeric");
@@ -38,9 +38,13 @@ describe("story ordering", () => {
     );
 
     const ambiguous = await resolveStoryOrder(join(ambiguousRoot, "stories"));
-    expect(ambiguous.status).toBe("needs-user-decision");
+    expect(ambiguous.status).toBe("ready");
+    expect(ambiguous.stories.map((story: { id: string }) => story.id)).toEqual([
+      "00-foundation",
+      "01-next",
+    ]);
     expect(ambiguous.notes).toContain(
-      "Mixed numeric and non-numeric story filenames require an explicit user ordering decision."
+      "Ignored non-story markdown files in stories/: beta.md"
     );
   });
 });

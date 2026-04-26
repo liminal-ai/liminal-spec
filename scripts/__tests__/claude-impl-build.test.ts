@@ -81,12 +81,38 @@ describe("claude-impl build integration", () => {
     ).toBe(true);
   });
 
+  test("packages the claude-impl onboarding, setup, phase, and operations docs into the installed skill output", async () => {
+    for (const relativePath of [
+      "onboarding/01-orientation.md",
+      "onboarding/02-terminology.md",
+      "onboarding/03-operating-model.md",
+      "onboarding/04-stage-map.md",
+      "onboarding/05-initialization-overview.md",
+      "setup/10-spec-pack-discovery.md",
+      "setup/11-spec-pack-read-order.md",
+      "setup/12-run-setup.md",
+      "phases/20-story-cycle.md",
+      "phases/21-verification-and-fix-routing.md",
+      "phases/22-recovery-and-resume.md",
+      "phases/23-cleanup-and-closeout.md",
+      "operations/30-cli-operations.md",
+      "operations/31-provider-resolution.md",
+      "operations/32-prompting-and-inserts.md",
+      "operations/33-artifact-contracts.md",
+    ]) {
+      expect(
+        await Bun.file(join(DIST, "skills", "ls-claude-impl", relativePath)).exists()
+      ).toBe(true);
+    }
+  });
+
   test("copies the bundled cli artifact into the packaged skill", async () => {
-    const cliExists = await Bun.file(
-      join(DIST, "skills", "ls-claude-impl", "bin", "ls-impl-cli.cjs")
-    ).exists();
+    const cliPath = join(DIST, "skills", "ls-claude-impl", "bin", "ls-impl-cli.cjs");
+    const cliExists = await Bun.file(cliPath).exists();
 
     expect(cliExists).toBe(true);
+    const content = await Bun.file(cliPath).text();
+    expect(content.startsWith("#!/usr/bin/env node\n")).toBe(true);
   });
 
   test("runs the bundled cli under Node for inspect", async () => {

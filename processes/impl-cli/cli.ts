@@ -8,6 +8,7 @@ import preflightCommand from "./commands/preflight";
 import quickFixCommand from "./commands/quick-fix";
 import storyContinueCommand from "./commands/story-continue";
 import storyImplementCommand from "./commands/story-implement";
+import storySelfReviewCommand from "./commands/story-self-review";
 import storyVerifyCommand from "./commands/story-verify";
 
 const main = defineCommand({
@@ -27,6 +28,7 @@ const main = defineCommand({
     "quick-fix": quickFixCommand,
     "story-implement": storyImplementCommand,
     "story-continue": storyContinueCommand,
+    "story-self-review": storySelfReviewCommand,
     "story-verify": storyVerifyCommand,
   },
 });

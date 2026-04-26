@@ -1,6 +1,11 @@
 import { defineCommand } from "citty";
 
-import { nextGroupedArtifactPath, writeJsonArtifact } from "../core/artifact-writer";
+import {
+  buildRuntimeProgressPaths,
+  buildStreamOutputPaths,
+  nextGroupedArtifactPath,
+  writeJsonArtifact,
+} from "../core/artifact-writer";
 import { classifyCommandError } from "../core/command-errors";
 import { readTextFile } from "../core/fs-utils";
 import {
@@ -64,7 +69,7 @@ function emitOutput(params: {
 export default defineCommand({
   meta: {
     name: "story-continue",
-    description: "Continue an explicit retained story implementor session.",
+    description: "Continue an explicit retained story implementor session with follow-up work.",
   },
   args: {
     "spec-pack-root": {
@@ -157,6 +162,9 @@ export default defineCommand({
         followupRequest,
         configPath: args.config,
         env: process.env,
+        artifactPath,
+        streamOutputPaths: buildStreamOutputPaths(artifactPath),
+        runtimeProgressPaths: buildRuntimeProgressPaths(artifactPath),
       });
       const envelope = cliResultEnvelopeSchema(implementorResultSchema).parse(
         createResultEnvelope({

@@ -24,15 +24,10 @@ function codexBackedConfig() {
       model: "gpt-5.4",
       reasoning_effort: "medium",
     },
-    story_verifier_1: {
+    story_verifier: {
       secondary_harness: "codex",
       model: "gpt-5.4",
       reasoning_effort: "xhigh",
-    },
-    story_verifier_2: {
-      secondary_harness: "none",
-      model: "claude-sonnet",
-      reasoning_effort: "high",
     },
     self_review: {
       passes: 3,
@@ -73,15 +68,10 @@ function copilotFallbackConfig() {
       model: "gpt-5.4",
       reasoning_effort: "medium",
     },
-    story_verifier_1: {
+    story_verifier: {
       secondary_harness: "copilot",
       model: "gpt-5.4",
       reasoning_effort: "xhigh",
-    },
-    story_verifier_2: {
-      secondary_harness: "none",
-      model: "claude-sonnet",
-      reasoning_effort: "high",
     },
     self_review: {
       passes: 3,
@@ -122,12 +112,7 @@ function claudeOnlyConfig() {
       model: "claude-sonnet",
       reasoning_effort: "medium",
     },
-    story_verifier_1: {
-      secondary_harness: "none",
-      model: "claude-sonnet",
-      reasoning_effort: "high",
-    },
-    story_verifier_2: {
+    story_verifier: {
       secondary_harness: "none",
       model: "claude-sonnet",
       reasoning_effort: "high",
@@ -365,12 +350,7 @@ describe("preflight command", () => {
         model: "claude-sonnet",
         reasoning_effort: "medium",
       },
-      story_verifier_1: {
-        secondary_harness: "none",
-        model: "claude-sonnet",
-        reasoning_effort: "high",
-      },
-      story_verifier_2: {
+      story_verifier: {
         secondary_harness: "none",
         model: "claude-sonnet",
         reasoning_effort: "high",
@@ -524,11 +504,64 @@ describe("preflight command", () => {
     expect(envelope.command).toBe("preflight");
     expect(envelope.status).toBe("ok");
     expect(envelope.outcome).toBe("ready");
-    expect(envelope.result.verificationGates).toEqual({
-      storyGate: "bun run green-verify",
-      epicGate: "bun run verify-all",
+    expect(envelope.result.verificationGates).toMatchObject({
+      storyGate: "npm run green-verify",
+      epicGate: "npm run verify-all",
       storyGateSource: "local package.json scripts",
       epicGateSource: "local package.json scripts",
+      storyGateCandidates: expect.any(Array),
+      epicGateCandidates: expect.any(Array),
+      storyGateRationale: expect.any(String),
+      epicGateRationale: expect.any(String),
+    });
+  });
+
+  test("persists resolved verification_gates into impl-run.config.json for downstream commands", async () => {
+    const specPackRoot = await createSpecPack("preflight-persisted-gates");
+    await writeRunConfig(specPackRoot, codexBackedConfig());
+    const pathValue = await setupProviderPath("preflight-persisted-gates-bins", [
+      {
+        name: "claude",
+        version: "claude 1.0.0",
+      },
+      {
+        name: "codex",
+        version: "codex 2.0.0",
+      },
+    ]);
+
+    const run = await runSourceCli(
+      [
+        "preflight",
+        "--spec-pack-root",
+        specPackRoot,
+        "--story-gate",
+        "corepack pnpm run verify",
+        "--epic-gate",
+        "corepack pnpm run verify-all",
+        "--json",
+      ],
+      {
+        env: {
+          PATH: pathValue,
+        },
+      }
+    );
+
+    expect(run.exitCode).toBe(0);
+
+    const envelope = parseJsonOutput<any>(run.stdout);
+    expect(envelope.result.validatedConfig.verification_gates).toEqual({
+      story: "corepack pnpm run verify",
+      epic: "corepack pnpm run verify-all",
+    });
+
+    const persistedConfig = JSON.parse(
+      await Bun.file(join(specPackRoot, "impl-run.config.json")).text()
+    );
+    expect(persistedConfig.verification_gates).toEqual({
+      story: "corepack pnpm run verify",
+      epic: "corepack pnpm run verify-all",
     });
   });
 
