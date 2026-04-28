@@ -433,13 +433,6 @@ async function validateVerifierContinuationHandle(input: {
     );
   }
 
-  if (provider.data === "copilot") {
-    return blockedError(
-      "CONTINUATION_HANDLE_INVALID",
-      "Provider 'copilot' cannot be used for retained story_verifier continuation sessions."
-    );
-  }
-
   return null;
 }
 

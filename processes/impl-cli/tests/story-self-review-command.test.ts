@@ -532,10 +532,45 @@ test("accepts an explicit self-review continuation handle without local story-ow
   expect(envelope.result.sessionId).toBe(sessionId);
 });
 
-test("rejects copilot as an invalid retained self-review provider before provider dispatch", async () => {
-  const fixture = await createImplementorSpecPack("story-self-review-copilot-rejected");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const run = await runSourceCli(
+test("runs story-self-review through retained Copilot sessions when configured", async () => {
+  const fixture = await createImplementorSpecPack("story-self-review-copilot-retained");
+  await writeRunConfig(
+    fixture.specPackRoot,
+    createRunConfig({
+      story_implementor: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "high",
+      },
+      self_review: {
+        passes: 3,
+      },
+    })
+  );
+  const providerBinDir = await createTempDir("story-self-review-copilot-provider");
+  const sessionId = "copilot-session-self-review-001";
+  const { env, logPath } = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "copilot",
+    responses: [
+      {
+        stdout: providerResult(sessionId, basePayload()),
+      },
+      ...Array.from({ length: 3 }, () => ({
+        stdout: providerResult(sessionId, basePayload()),
+      })),
+    ],
+  });
+
+  const initialRun = await launchInitialImplementorSession({
+    specPackRoot: fixture.specPackRoot,
+    storyId: fixture.storyId,
+    providerBinDir,
+    env,
+  });
+  expect(initialRun.exitCode).toBe(0);
+
+  const selfReviewRun = await runSourceCli(
     [
       "story-self-review",
       "--spec-pack-root",
@@ -545,23 +580,29 @@ test("rejects copilot as an invalid retained self-review provider before provide
       "--provider",
       "copilot",
       "--session-id",
-      "copilot-session-001",
+      sessionId,
       "--json",
     ],
     {
       env: {
-        FORCE_COLOR: "0",
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
       },
     }
   );
 
-  expect(run.exitCode).toBe(3);
-  const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.errors).toContainEqual(
-    expect.objectContaining({
-      code: "CONTINUATION_HANDLE_INVALID",
-    })
-  );
+  expect(selfReviewRun.exitCode).toBe(0);
+  const envelope = parseJsonOutput<any>(selfReviewRun.stdout);
+  expect(envelope.outcome).toBe("ready-for-verification");
+  expect(envelope.result.provider).toBe("copilot");
+  expect(envelope.result.sessionId).toBe(sessionId);
+
+  const invocations = await readJsonLines<{ args: string[] }>(logPath);
+  expect(invocations).toHaveLength(4);
+  expect(invocations[0]?.args).not.toContain(`--resume=${sessionId}`);
+  for (const invocation of invocations.slice(1)) {
+    expect(invocation.args).toContain(`--resume=${sessionId}`);
+  }
 });
 
 test("writes partial pass evidence and skips the remaining passes when provider execution fails mid-review", async () => {

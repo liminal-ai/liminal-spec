@@ -26,6 +26,8 @@ export function createCopilotAdapter(
             : []),
           "-p",
           request.prompt,
+          "--allow-all-tools",
+          "--no-custom-instructions",
           "--output-format",
           "json",
           "--model",

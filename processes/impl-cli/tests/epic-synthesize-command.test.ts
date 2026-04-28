@@ -434,6 +434,8 @@ test("executes epic-synthesize through Copilot when the run config selects Copil
   expect(invocations[0]?.args).toEqual([
     "-p",
     expect.stringContaining("# Epic Synthesizer Base Prompt"),
+    "--allow-all-tools",
+    "--no-custom-instructions",
     "--output-format",
     "json",
     "--model",

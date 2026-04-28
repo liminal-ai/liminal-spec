@@ -710,6 +710,8 @@ test("story-verify runs through Copilot for fresh initial verification when conf
   expect(copilotInvocations[0]?.args).toEqual([
     "-p",
     expect.stringContaining("# Story Verifier Base Prompt"),
+    "--allow-all-tools",
+    "--no-custom-instructions",
     "--output-format",
     "json",
     "--model",
@@ -718,4 +720,113 @@ test("story-verify runs through Copilot for fresh initial verification when conf
     "xhigh",
   ]);
   expect(copilotInvocations[0]?.args).not.toContain("resume");
+});
+
+test("follow-up story-verify resumes the retained Copilot verifier session when configured", async () => {
+  const fixture = await createVerifierSpecPack("story-verify-copilot-followup");
+  await writeRunConfig(
+    fixture.specPackRoot,
+    createRunConfig({
+      story_verifier: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+    })
+  );
+  const providerBinDir = await createTempDir("story-verify-copilot-followup-provider");
+  const sessionId = "copilot-story-verify-followup-001";
+  const copilotProvider = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "copilot",
+    responses: [
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          baseInitialPayload(fixture, {
+            recommendedNextStep: "revise",
+            newFindings: [baseFinding("F-001")],
+            openFindings: [baseFinding("F-001")],
+          })
+        ),
+      },
+      {
+        stdout: verifierProviderResult(
+          sessionId,
+          {
+            ...baseInitialPayload(fixture, {
+              recommendedNextStep: "pass",
+              priorFindingStatuses: [
+                {
+                  id: "F-001",
+                  status: "resolved",
+                  rationale: "The retained implementor fixed the blocker.",
+                },
+              ],
+              newFindings: [],
+              openFindings: [],
+            }),
+            reviewScopeSummary:
+              "Re-reviewed the prior open findings against the implementor response and touched surfaces.",
+          }
+        ),
+      },
+    ],
+  });
+
+  const sharedEnv = {
+    PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+    ...copilotProvider.env,
+  };
+
+  const initialRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+  expect(initialRun.exitCode).toBe(2);
+
+  const followupRun = await runSourceCli(
+    [
+      "story-verify",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "copilot",
+      "--session-id",
+      sessionId,
+      "--response-text",
+      "The implementor updated the touched surfaces and resolved the verifier finding.",
+      "--json",
+    ],
+    { env: sharedEnv }
+  );
+
+  expect(followupRun.exitCode).toBe(0);
+  const envelope = parseJsonOutput<any>(followupRun.stdout);
+  expect(envelope.result.provider).toBe("copilot");
+  expect(envelope.result.mode).toBe("followup");
+  expect(envelope.result.sessionId).toBe(sessionId);
+  expect(envelope.result.priorFindingStatuses).toEqual([
+    {
+      id: "F-001",
+      status: "resolved",
+      rationale: "The retained implementor fixed the blocker.",
+    },
+  ]);
+
+  const copilotInvocations = await readJsonLines<{ args: string[] }>(
+    copilotProvider.logPath
+  );
+  expect(copilotInvocations).toHaveLength(2);
+  expect(copilotInvocations[0]?.args).not.toContain(`--resume=${sessionId}`);
+  expect(copilotInvocations[1]?.args).toContain(`--resume=${sessionId}`);
 });

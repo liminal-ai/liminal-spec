@@ -554,6 +554,8 @@ test("executes a Copilot-backed epic verifier lane end to end when the run confi
   expect(copilotInvocations[0]?.args).toEqual([
     "-p",
     expect.stringContaining("# Epic Verifier Base Prompt"),
+    "--allow-all-tools",
+    "--no-custom-instructions",
     "--output-format",
     "json",
     "--model",

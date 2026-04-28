@@ -239,46 +239,46 @@ describe("impl-run config schema", () => {
     expect(parsed.epic_synthesizer.secondary_harness).toBe("codex");
   });
 
-  test("rejects Copilot as the retained story implementor secondary harness in v1", async () => {
+  test("accepts Copilot as the retained story implementor secondary harness in v1", async () => {
     const { implRunConfigSchema } = await import("../core/config-schema");
 
-    expect(() =>
-      implRunConfigSchema.parse({
-        version: 1,
-        primary_harness: "claude-code",
-        story_implementor: {
-          secondary_harness: "copilot",
-          model: "gpt-5.4",
-          reasoning_effort: "high",
-        },
-        quick_fixer: {
-          secondary_harness: "copilot",
-          model: "gpt-5.4",
-          reasoning_effort: "medium",
-        },
-        story_verifier: {
-          secondary_harness: "copilot",
-          model: "gpt-5.4",
-          reasoning_effort: "xhigh",
-        },
-        self_review: {
-          passes: 3,
-        },
-        epic_verifiers: [
-          {
-            label: "epic-verifier-1",
-            secondary_harness: "copilot",
-            model: "gpt-5.4",
-            reasoning_effort: "xhigh",
-          },
-        ],
-        epic_synthesizer: {
+    const parsed = implRunConfigSchema.parse({
+      version: 1,
+      primary_harness: "claude-code",
+      story_implementor: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "high",
+      },
+      quick_fixer: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "medium",
+      },
+      story_verifier: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+      self_review: {
+        passes: 3,
+      },
+      epic_verifiers: [
+        {
+          label: "epic-verifier-1",
           secondary_harness: "copilot",
           model: "gpt-5.4",
           reasoning_effort: "xhigh",
         },
-      })
-    ).toThrow();
+      ],
+      epic_synthesizer: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "xhigh",
+      },
+    });
+
+    expect(parsed.story_implementor.secondary_harness).toBe("copilot");
   });
 
   test("rejects duplicate epic verifier labels", async () => {

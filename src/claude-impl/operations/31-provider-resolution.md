@@ -37,11 +37,11 @@ Each role gets a `secondary_harness`, `model`, and `reasoning_effort`. The epic 
 
 ### Codex unavailable, Copilot available
 
-Copilot is valid only for fresh-session roles in v1. The retained story implementor falls back to Claude.
+Copilot is valid for both fresh-session and retained-session roles in v1.
 
 | Role | secondary_harness | model | reasoning_effort |
 |------|---|---|---|
-| `story_implementor` | `none` | `claude-sonnet` | `high` |
+| `story_implementor` | `copilot` | `gpt-5.4` | `high` |
 | `quick_fixer` | `copilot` | `gpt-5.4` | `high` |
 | `story_verifier` | `copilot` | `gpt-5.4` | `xhigh` |
 | `epic_verifier_1` | `copilot` | `gpt-5.4` | `xhigh` |

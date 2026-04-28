@@ -266,6 +266,8 @@ test("runs quick-fix through Copilot when the run config selects the Copilot fre
   expect(invocations[0]?.args).toEqual([
     "-p",
     requestText,
+    "--allow-all-tools",
+    "--no-custom-instructions",
     "--output-format",
     "json",
     "--model",

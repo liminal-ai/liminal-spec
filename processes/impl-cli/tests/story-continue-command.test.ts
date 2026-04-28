@@ -579,71 +579,88 @@ test("accepts an explicit continuation handle even when it was not previously em
   expect(envelope.result.provider).toBe("codex");
 });
 
-test("rejects a copilot continuation handle before provider dispatch", async () => {
-  const fixture = await createImplementorSpecPack("story-continue-copilot-rejected");
-  await writeRunConfig(fixture.specPackRoot, createRunConfig());
-  const sessionId = "copilot-session-continue-301";
-  const artifactPath = join(
+test("continues a retained Copilot implementor session from explicit provider and session inputs", async () => {
+  const fixture = await createImplementorSpecPack("story-continue-copilot-retained");
+  await writeRunConfig(
     fixture.specPackRoot,
-    "artifacts",
-    fixture.storyId,
-    "001-implementor.json"
-  );
-  await writeTextFile(
-    artifactPath,
-    `${JSON.stringify(
-      {
-        command: "story-implement",
-        version: 1,
-        status: "ok",
-        outcome: "ready-for-verification",
-        result: {
-          continuation: {
-            provider: "copilot",
-            sessionId,
-            storyId: fixture.storyId,
-          },
-        },
-        errors: [],
-        warnings: [],
-        artifacts: [],
-        startedAt: "2026-04-20T00:00:00.000Z",
-        finishedAt: "2026-04-20T00:00:01.000Z",
+    createRunConfig({
+      story_implementor: {
+        secondary_harness: "copilot",
+        model: "gpt-5.4",
+        reasoning_effort: "high",
       },
-      null,
-      2
-    )}\n`
+    })
+  );
+  const providerBinDir = await createTempDir("story-continue-copilot-provider");
+  const sessionId = "copilot-session-continue-301";
+  const { env, logPath } = await writeFakeProviderExecutable({
+    binDir: providerBinDir,
+    provider: "copilot",
+    responses: [
+      {
+        stdout: providerResult(sessionId, continuePayload("Resume verification.")),
+      },
+      {
+        stdout: providerResult(
+          sessionId,
+          continuePayload("Hand the refreshed result back to story verification.")
+        ),
+      },
+    ],
+  });
+
+  const initialRun = await runSourceCli(
+    [
+      "story-implement",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--json",
+    ],
+    {
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    }
+  );
+  expect(initialRun.exitCode).toBe(0);
+
+  const run = await runSourceCli(
+    [
+      "story-continue",
+      "--spec-pack-root",
+      fixture.specPackRoot,
+      "--story-id",
+      fixture.storyId,
+      "--provider",
+      "copilot",
+      "--session-id",
+      sessionId,
+      "--followup-text",
+      "Continue the retained Copilot session and apply the narrow follow-up fix.",
+      "--json",
+    ],
+    {
+      env: {
+        PATH: `${providerBinDir}:${process.env.PATH ?? ""}`,
+        ...env,
+      },
+    }
   );
 
-  const run = await runSourceCli([
-    "story-continue",
-    "--spec-pack-root",
-    fixture.specPackRoot,
-    "--story-id",
-    fixture.storyId,
-    "--provider",
-    "copilot",
-    "--session-id",
-    sessionId,
-    "--followup-text",
-    "Attempt to continue a retained copilot session.",
-    "--json",
-  ]);
-
-  expect(run.exitCode).toBe(3);
+  expect(run.exitCode).toBe(0);
 
   const envelope = parseJsonOutput<any>(run.stdout);
-  expect(envelope.status).toBe("blocked");
-  expect(envelope.errors).toContainEqual(
-    expect.objectContaining({
-      code: "CONTINUATION_HANDLE_INVALID",
-    })
-  );
-  expect(envelope.errors).not.toContainEqual(
-    expect.objectContaining({
-      code: "PROVIDER_UNAVAILABLE",
-    })
-  );
+  expect(envelope.outcome).toBe("ready-for-verification");
+  expect(envelope.result.provider).toBe("copilot");
+  expect(envelope.result.sessionId).toBe(sessionId);
+
+  const invocations = await readJsonLines<{ args: string[] }>(logPath);
+  expect(invocations).toHaveLength(2);
+  expect(invocations[0]?.args).not.toContain(`--resume=${sessionId}`);
+  expect(invocations[1]?.args).toContain(`--resume=${sessionId}`);
 });
 
 test("rejects a resume attempt when no follow-up content is provided", async () => {

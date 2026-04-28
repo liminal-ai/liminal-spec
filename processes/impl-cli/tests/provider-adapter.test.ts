@@ -758,6 +758,8 @@ describe("provider availability checks", () => {
     expect(invocations[0]?.args).toEqual([
       "-p",
       "{\"step\":\"verify\"}",
+      "--allow-all-tools",
+      "--no-custom-instructions",
       "--output-format",
       "json",
       "--model",
@@ -830,6 +832,8 @@ describe("provider availability checks", () => {
       `--resume=${sessionId}`,
       "-p",
       "{\"step\":\"self-review\"}",
+      "--allow-all-tools",
+      "--no-custom-instructions",
       "--output-format",
       "json",
       "--model",

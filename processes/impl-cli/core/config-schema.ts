@@ -142,15 +142,6 @@ export const implRunConfigSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.story_implementor.secondary_harness === "copilot") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "story_implementor.secondary_harness cannot be copilot in v1",
-        path: ["story_implementor", "secondary_harness"],
-      });
-    }
-
     validateRoleEffort(value.story_implementor, ["story_implementor"], ctx);
     validateRoleEffort(value.quick_fixer, ["quick_fixer"], ctx);
     validateRoleEffort(value.story_verifier, ["story_verifier"], ctx);
